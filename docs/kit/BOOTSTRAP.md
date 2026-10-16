@@ -1,19 +1,20 @@
 # Bootstrap — from an empty repo to a plan being worked
 
 You are setting up a new project that several humans and several AI agents will
-work in at the same time. **Precondition: the starter repo exists**, built per
-[starter-repo.md](starter-repo.md). If it does not, build the starter first; this
-document assumes its tooling.
+work in at the same time. **Precondition: the project was created with
+`ai-sdlc init`** from the registry ([registry.md](registry.md)), which copies
+base: this kit, its tooling, skills and hooks, and no product code. Everything
+else arrives with `pnpm sdlc add <item>` when a foundation item needs it.
 
-| phase                              | who                           | item                                     | output                                                             |
-| ---------------------------------- | ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------ |
-| 0. create the project              | a person, then the agent      | none (no item can exist before the repo) | a GitHub repo from the starter, `dev` as default, settings applied |
-| 1. discovery                       | agent with the author         | `X-000`                                  | requirements, project brief, architecture, decisions               |
-| 2. configure and prove the tooling | agent (in parallel with 1)    | `X-001`                                  | `sdlc.config.json`, `AGENTS.md`, every guard tripped               |
-| 3. plan                            | agent, approved by the author | `X-000` (its last PR)                    | `docs/plan/`: foundation items first, then features by journey     |
-| 4. work the plan                   | agents                        | one item each                            | the product                                                        |
+| phase                              | who                           | item                                     | output                                                                |
+| ---------------------------------- | ----------------------------- | ---------------------------------------- | --------------------------------------------------------------------- |
+| 0. create the project              | a person, then the agent      | none (no item can exist before the repo) | a GitHub repo from `ai-sdlc init`, `dev` as default, settings applied |
+| 1. discovery                       | agent with the author         | `X-000`                                  | requirements, project brief, architecture, decisions                  |
+| 2. configure and prove the tooling | agent (in parallel with 1)    | `X-001`                                  | `sdlc.config.json`, `AGENTS.md`, every guard tripped                  |
+| 3. plan                            | agent, approved by the author | `X-000` (its last PR)                    | `docs/plan/`: foundation items first, then features by journey        |
+| 4. work the plan                   | agents                        | one item each                            | the product                                                           |
 
-`X-000-discovery` and `X-001-configure` ship in the starter's `docs/plan/items/`,
+`X-000-discovery` and `X-001-configure` ship in base's `docs/plan/items/`,
 because every project has them. So every commit after Phase 0 has an item to
 name.
 
@@ -28,20 +29,22 @@ write a `Q-` file, and carry on with whatever does not depend on it
 **The person** (the CLIs need a browser login, once per machine):
 
 ```bash
+pnpm dlx github:sramam/ai-sdlc#<tag> init <name>   # base, pnpm install, the first commit on main
+cd <name>
 gh auth login
 wrangler login
-gh repo create sramam/<name> --template sramam/ai-sdlc --private --clone
-cd <name>
-git remote add starter https://github.com/sramam/ai-sdlc.git   # for pnpm sdlc:update
+gh repo create <owner>/<name> --private --source . --push
 ```
 
-A template copy has clean history and its own `origin`, so there is nothing to
-rename.
+`init` refuses a directory that is not empty and touches nothing on GitHub. The
+pre-push hook lets `main` into a repository with no branch at all, once; every
+later update of `main` goes through `pnpm promote:prod`. The project's
+`sdlc.lock.json` records the registry ref it came from, and `pnpm sdlc` runs the
+CLI at that ref.
 
 **The agent**, in that checkout:
 
 ```bash
-pnpm install
 pnpm sdlc:init
 ```
 
@@ -103,7 +106,7 @@ several as sections settle.
 ## Phase 2 — Configure and prove the tooling (`X-001`)
 
 It runs **in parallel with Phase 1**, in another session and worktree
-(`x-001-configure`), in two parts. The starter ships the tooling; this phase
+(`x-001-configure`), in two parts. Base ships the tooling; this phase
 **configures and proves** it, and builds nothing.
 
 - **Part 1, independent of discovery:** trip every guard (the table below),
@@ -122,6 +125,11 @@ It runs **in parallel with Phase 1**, in another session and worktree
   is code.
 - Write the root `AGENTS.md` from `docs/kit/AGENTS.template.md`. Its packages
   section is filled in by the apps-and-packages foundation item.
+- Add the modules kickoff's SDLC defaults call for, one commit each, and trip
+  their guards with the rest: `pnpm sdlc add security coverage` always (the CI
+  steps `secrets`, `supply-chain` and `coverage` arrive with them), and
+  `journeys`, `localdb`, `seed` and `promote` when the plan has journeys, a
+  database, mock data and deployed environments. `pnpm install` after each.
 - Run `pnpm accounts:check`.
 - **Trip every guard**, and paste each refusal into the `X-001` PR:
 
@@ -146,16 +154,16 @@ The commit that lands this phase carries `Closes: X-001`.
 Run **`/plan`** in the `X-000` worktree as discovery's last step. **Foundation
 first, as `X-` items**, in this order, each with its own acceptance and trip tests:
 
-| item                       | does                                                                                                                                                                                                                                                                    |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| platform spike             | verifies everything marked _verify_ in the kit for the chosen stack: framework on Workers, ORM through Hyperdrive, auth library, OTel export, the authorization engine from a Worker and in tests, Base UI coverage. Findings become ADRs and package `agents.md` notes |
-| apps and packages          | instantiates each app and package from kickoff topic 9 from `docs/kit/recipes/`, one commit each, with its tests passing. Where no recipe exists yet, it writes the package directly and offers it upstream as a recipe. Fills in the packages section of `AGENTS.md`   |
-| infrastructure             | the agent writes `pnpm infra:provision`; **a person runs it** per environment; the agent writes `wrangler.jsonc` from its output; `/api/health` confirms                                                                                                                |
-| environments and promotion | env and binding schema, `.dev.vars.example` pattern check, promote scripts, a seed framework that refuses production                                                                                                                                                    |
-| security baseline          | `@<scope>/authz` with the policy and a matrix-test generator (cells arrive with features), headers, CSP, rate limits, sessions                                                                                                                                          |
-| telemetry                  | `@<scope>/telemetry`, span conventions, test exporter, lint against `console.log`                                                                                                                                                                                       |
-| UI foundation              | tokens from the design brief, the shells, the patterns, ⌘K, the component viewer, the UI scan floor                                                                                                                                                                     |
-| test harness               | `createTestDb()`, the database-fake pattern check, the smoke test against the built Worker, journey ports, capture transports                                                                                                                                           |
+| item                       | does                                                                                                                                                                                                                                                                                                                               |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| platform spike             | verifies everything marked _verify_ in the kit for the chosen stack: framework on Workers, ORM through Hyperdrive, auth library, OTel export, the authorization engine from a Worker and in tests, Base UI coverage. Findings become ADRs and package `agents.md` notes                                                            |
+| apps and packages          | adds each app and package from kickoff topic 9 with `pnpm sdlc add <recipe>` (`pnpm sdlc list`), one commit each, then adapts it to the decisions (scope, names) with its tests passing. Where no recipe exists, it writes the package directly and offers it to the registry as one. Fills in the packages section of `AGENTS.md` |
+| infrastructure             | the agent writes `pnpm infra:provision`; **a person runs it** per environment; the agent writes `wrangler.jsonc` from its output; `/api/health` confirms                                                                                                                                                                           |
+| environments and promotion | env and binding schema, `.dev.vars.example` pattern check, `pnpm sdlc add promote seed localdb`, a seed framework that refuses production                                                                                                                                                                                          |
+| security baseline          | `@<scope>/authz` with the policy and a matrix-test generator (cells arrive with features), headers, CSP, rate limits, sessions                                                                                                                                                                                                     |
+| telemetry                  | `@<scope>/telemetry`, span conventions, test exporter, lint against `console.log`                                                                                                                                                                                                                                                  |
+| UI foundation              | tokens from the design brief, the shells, the patterns, ⌘K, the component viewer, the UI scan floor                                                                                                                                                                                                                                |
+| test harness               | `createTestDb()`, the database-fake pattern check, the smoke test against the built Worker, `pnpm sdlc add journeys journeys-adapter`, journey ports, capture transports                                                                                                                                                           |
 
 Then **features, ordered by journey**. Show the plan to the author before code
 starts, and land it with `Closes: X-000`. `plan:check --stage plan` must pass.

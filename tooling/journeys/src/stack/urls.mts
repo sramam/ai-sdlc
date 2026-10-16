@@ -176,7 +176,9 @@ export async function resetStack(
  * #598). So every listener is attributed to a checkout first, and only ours is
  * killed. Another checkout's stops the run (`JOURNEY-002`); one whose working
  * directory cannot be read stops it too (`JOURNEY-003`) — neither safe to kill
- * nor safe to share with.
+ * nor safe to share with. The same answer covers a directory that *was* read
+ * and lies in no checkout at all — a process in `/tmp` holding the port — so the
+ * message names both rather than claiming the read failed.
  *
  * ## And this checkout's own listener is killed only when it is provably abandoned
  *
@@ -257,8 +259,9 @@ export function freeStackPorts(
     }
     if (holder.kind === "unknown") {
       throw new Error(
-        `JOURNEY-003: port ${port} is held by pid ${holder.pids.join(", ")}, whose checkout could not be read ` +
-          `— refusing to kill what cannot be attributed.\n` +
+        `JOURNEY-003: port ${port} is held by pid ${holder.pids.join(", ")}, which belongs to no checkout ` +
+          `that could be found — its working directory could not be read, or lies in no checkout — ` +
+          `refusing to kill what cannot be attributed.\n` +
           move,
       );
     }

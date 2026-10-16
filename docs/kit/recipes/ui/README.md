@@ -7,23 +7,23 @@ header), the role switcher, and the five screen patterns of [ux.md](../../ux.md)
 reference, not an app: the components `shadcn add` writes are **not** copied
 here (they are generated, and regenerating beats a stale copy).
 
-| file                                              | is                                                                                                                      |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `components.json`                                 | what `shadcn init -b base -p nova` wrote: `"style": "base-nova"` is how the project records Base UI                     |
-| `src/kit/tokens.css`                              | the brief's accent on the contract (`--primary`, `--ring`, `--sidebar-primary`, `--chart-1`); brand names alias onto it |
-| `src/kit/shell/app-shell.tsx`                     | `Sidebar collapsible="icon"`, top bar (trigger, ⌘K button, user menu), backoffice band, the command palette             |
-| `src/kit/shell/role-switcher.tsx`                 | `UserMenu` (relationships most recent first, the active one checked and shown in the frame) and `RelationshipChooser`   |
-| `src/kit/shell/command-palette.tsx`               | ⌘K / Ctrl-K: every destination and every relationship switch                                                            |
-| `src/kit/shell/page-header.tsx`                   | title, description, one primary action, breadcrumbs                                                                     |
-| `src/kit/patterns/list.tsx`                       | `useListState(adapter)` (search and sort in the URL) and `DataTable` (TanStack Table v9, sticky header)                 |
-| `src/kit/patterns/form.tsx`                       | `useCapabilityForm(schema, submit)`: RHF + `zodResolver` with the port's schema; a `Refusal.field` lands on its field   |
-| `src/kit/patterns/dashboard.tsx`                  | `KpiTiles`: compact value, exact value as `title`, links to the list behind it; money as integer cents                  |
-| `src/kit/patterns/detail.tsx`                     | header with status badge and actions, sections as tabs                                                                  |
-| `src/kit/patterns/empty.tsx`                      | what it is, why it is empty, the one action                                                                             |
-| `src/kit/patterns/data-state.tsx`                 | `DataState`: loading (a skeleton, `aria-busy`), error with retry, empty, populated                                      |
-| `src/kit/demo.tsx`                                | every pattern inside the shell; what `vite build` compiles so the built CSS can be checked                              |
-| `src/kit/pattern-check.test.ts`                   | no hex or arbitrary colour, and no v3 `[--x]` shorthand, in the kit or in `components/ui`                               |
-| `*.test.tsx`, `test/setup.ts`, `vitest.config.ts` | one suite per pattern and the shell (jsdom); the polyfills jsdom needs, each naming who needs it                        |
+| file                                                  | is                                                                                                                      |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `components.json`                                     | what `shadcn init -b base -p nova` wrote: `"style": "base-nova"` is how the project records Base UI                     |
+| `src/kit/tokens.css`                                  | the brief's accent on the contract (`--primary`, `--ring`, `--sidebar-primary`, `--chart-1`); brand names alias onto it |
+| `src/kit/shell/app-shell.tsx`                         | `Sidebar collapsible="icon"`, top bar (trigger, ⌘K button, user menu), backoffice band, the command palette             |
+| `src/kit/shell/role-switcher.tsx`                     | `UserMenu` (relationships most recent first, the active one checked and shown in the frame) and `RelationshipChooser`   |
+| `src/kit/shell/command-palette.tsx`                   | ⌘K / Ctrl-K: every destination and every relationship switch                                                            |
+| `src/kit/shell/page-header.tsx`                       | title, description, one primary action, breadcrumbs                                                                     |
+| `src/kit/patterns/list.tsx`                           | `useListState(adapter)` (search and sort in the URL) and `DataTable` (TanStack Table v9, sticky header)                 |
+| `src/kit/patterns/form.tsx`                           | `useCapabilityForm(schema, submit)`: RHF + `zodResolver` with the port's schema; a `Refusal.field` lands on its field   |
+| `src/kit/patterns/dashboard.tsx`                      | `KpiTiles`: compact value, exact value as `title`, links to the list behind it; money as integer cents                  |
+| `src/kit/patterns/detail.tsx`                         | header with status badge and actions, sections as tabs                                                                  |
+| `src/kit/patterns/empty.tsx`                          | what it is, why it is empty, the one action                                                                             |
+| `src/kit/patterns/data-state.tsx`                     | `DataState`: loading (a skeleton, `aria-busy`), error with retry, empty, populated                                      |
+| `src/kit/demo.tsx`                                    | every pattern inside the shell; what `vite build` compiles so the built CSS can be checked                              |
+| `src/kit/pattern-check.test.ts`                       | no hex or arbitrary colour, and no v3 `[--x]` shorthand, in the kit or in `components/ui`                               |
+| `*.test.tsx`, `test/setup.ts`, `vitest.kit.config.ts` | one suite per pattern and the shell (jsdom); the polyfills jsdom needs, each naming who needs it                        |
 
 ## Instantiate
 
@@ -31,9 +31,13 @@ here (they are generated, and regenerating beats a stale copy).
 pnpm dlx shadcn@4.21.5 init -b base -p nova          # in the app; -t start for a new TanStack Start app
 pnpm dlx shadcn@4.21.5 add sidebar dropdown-menu command dialog table input label field \
   card badge skeleton empty select tabs breadcrumb tooltip separator sheet avatar sonner alert kbd
-pnpm add @tanstack/react-table@9.3.1 react-hook-form@7.90.0 @hookform/resolvers@5.9.1
-cp -R <recipe>/src/kit src/ && echo '@import "./kit/tokens.css";' >> src/styles.css   # the CSS init wrote
+pnpm sdlc add ui                                     # from the repo root: src/kit, test/setup.ts,
+                                                     # vitest.kit.config.ts and the dependencies, into apps/web
+echo '@import "./kit/tokens.css";' >> src/styles.css # the CSS init wrote
 ```
+
+The kit's tests run with `pnpm exec vitest run -c vitest.kit.config.ts` (jsdom),
+beside the app's own `vitest.config.ts`.
 
 Add `"test"` to `tsconfig.app.json`'s `include` (the jest-dom matchers' types
 load from `test/setup.ts`). Wrap the app in `TooltipProvider` (the sidebar's collapsed tooltips need it).

@@ -1,13 +1,18 @@
-# This project was created from the ai-sdlc starter
+# ai-sdlc — the registry
 
-It has not been set up yet. **Read `docs/kit/BOOTSTRAP.md` and follow it,
-starting with Phase 0**, then `/kickoff`. Phase 2 replaces this file with one
-written from `docs/kit/AGENTS.template.md`.
+This repository is the **registry** `ai-sdlc init` and `ai-sdlc add` copy from.
+It is not a project and not a template. `README.md` says what it is;
+`docs/kit/registry.md` says how it works.
 
-Until then:
-
-- Work in a worktree forked from `origin/dev`. Propose a name, and let the user
-  change it before creating it. The main checkout is read-only to agents.
-- `docs/requirements/` is written only by `/kickoff`, `/idea` and `/add-requirement`.
-- Commit trailers follow `docs/kit/hooks.md`.
-- Run long scripts in the background, in a sub-agent or a background shell.
+- `registry.json` lists every item. Every file here belongs to exactly one item
+  or is excluded there with a reason; `scripts/registry/pattern-check.test.ts`
+  enforces it, with each item's imports and npm dependencies.
+- The CLI is `scripts/registry/cli.mjs`: plain `.mjs` with JSDoc types and no
+  dependencies, because it runs from `node_modules` under `pnpm dlx`, where
+  Node will not strip types.
+- `template/` holds the project-shaped root files (`AGENTS.md`, `CLAUDE.md`,
+  `package.json`, `sdlc.config.json`) that differ from this repository's own.
+- `pnpm test` covers everything here. `pnpm registry:check` (installs) proves
+  `init`, `add`, `diff` and `update` end to end; `pnpm recipes:check` (installs)
+  builds every recipe through `add`.
+- Work in a worktree forked from `origin/dev`, as in any project here.

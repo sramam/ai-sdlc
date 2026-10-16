@@ -1,10 +1,10 @@
 /**
  * Where a project's own source lives: `apps/` and `packages/`, nothing else.
  *
- * Everything else in the starter is either upstream-owned tooling (`tooling/`)
- * or documentation that happens to contain TypeScript (`docs/kit/recipes/`),
+ * Everything else is either the SDLC tooling (`tooling/`) or documentation
+ * that happens to contain TypeScript (`docs/kit/recipes/`, in the registry),
  * and counting either as product source makes "has the project written any
- * code yet" answer yes in the empty starter — so coverage ran there. One
+ * code yet" answer yes in a new project — so coverage ran there. One
  * definition, so ci:local and coverage cannot disagree about it.
  */
 

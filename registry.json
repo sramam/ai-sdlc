@@ -1,0 +1,565 @@
+{
+  "$comment": "Every installable item, and every file of this repository that belongs to none. docs/kit/registry.md describes the format; scripts/registry/pattern-check.test.ts enforces it.",
+  "registryVersion": 1,
+  "repo": "github:sramam/ai-sdlc",
+  "exclude": {
+    "README.md": "this repository's own README; a project's arrives with nothing (AGENTS.md says how to start)",
+    "AGENTS.md": "this repository's agent file; a project's is template/AGENTS.md",
+    "CLAUDE.md": "this repository's agent file; a project's is template/CLAUDE.md",
+    "package.json": "this repository's own; a project's is template/package.json plus each item's package fragment, which the pattern check compares with it",
+    "sdlc.config.json": "this repository's own; a project's is template/sdlc.config.json plus each item's config fragment, which the pattern check compares with it",
+    "pnpm-lock.yaml": "a project resolves its own on its first install",
+    "registry.json": "the registry itself, read by the CLI from the source; never copied",
+    "scripts/registry/": "the CLI and the registry's checks; run with pnpm dlx, never copied",
+    "scripts/recipes-check.mts": "builds every recipe through add; the registry's own check",
+    "docs/kit/recipes/ui/components.json": "what shadcn init -b base -p nova wrote, kept as the record of the flags; in a project shadcn init writes its own"
+  },
+  "registryOnly": {
+    "scripts": {
+      "postinstall": "installs this repository's git hooks; a project uses base's prepare instead, which pnpm refuses to run for a package fetched from git (ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED), so this repository cannot have one",
+      "recipes:check": "builds every recipe through add (manual: installs)",
+      "registry:check": "init, add, diff and update end to end (manual: installs)",
+      "sdlc": "the CLI from this checkout; init writes a project's own, pinned to its source",
+      "registry:patterns": "prints the registry pattern check's table (it also runs in pnpm test)"
+    },
+    "omit": {
+      "prepare": "pnpm dlx github:… fetches this repository as a git dependency and refuses one with a prepare script; postinstall does the same job here and is merely skipped there"
+    }
+  },
+  "items": {
+    "base": {
+      "kind": "base",
+      "description": "The process: the kit (docs/kit), the core skills, the hooks and guards, the plan, local CI and setup. Installed by init.",
+      "files": [
+        ".claude/settings.json",
+        ".claude/skills/kickoff/",
+        ".claude/skills/idea/",
+        ".claude/skills/add-requirement/",
+        ".claude/skills/plan/",
+        ".claude/skills/land/",
+        ".claude/skills/handoff/",
+        ".claude/skills/pickup/",
+        ".claude/skills/progress-report/",
+        ".claude/skills/commit-reviewer/",
+        ".claude/skills/code-reviewer/",
+        ".husky/commit-msg",
+        ".husky/pre-commit",
+        ".husky/pre-push",
+        ".husky/prepare-commit-msg",
+        ".gitattributes",
+        ".npmrc",
+        ".nvmrc",
+        ".prettierignore",
+        ".prettierrc",
+        "eslint.config.mjs",
+        "tsconfig.json",
+        "vitest.config.ts",
+        {
+          "from": ".gitignore",
+          "seed": true
+        },
+        {
+          "from": "pnpm-workspace.yaml",
+          "seed": true
+        },
+        {
+          "from": "template/package.json",
+          "to": "package.json",
+          "seed": true
+        },
+        {
+          "from": "template/sdlc.config.json",
+          "to": "sdlc.config.json",
+          "seed": true
+        },
+        {
+          "from": "template/AGENTS.md",
+          "to": "AGENTS.md"
+        },
+        {
+          "from": "template/CLAUDE.md",
+          "to": "CLAUDE.md"
+        },
+        "apps/.gitkeep",
+        "packages/.gitkeep",
+        "scripts/one-of/README.md",
+        {
+          "from": "docs/kit/",
+          "except": ["docs/kit/recipes/"]
+        },
+        "docs/kit/recipes/README.md",
+        "docs/guardrails.md",
+        "docs/adr/ADR-000-starter-tooling.md",
+        "docs/handoffs/README.md",
+        "docs/plan/README.md",
+        "docs/plan/items/X-000-discovery.md",
+        "docs/plan/items/X-001-configure.md",
+        "docs/plan/questions/.gitkeep",
+        "docs/progress/README.md",
+        "docs/requirements/README.md",
+        "docs/requirements/sources/.gitkeep",
+        "tooling/core/",
+        "tooling/guards/",
+        "tooling/plan/",
+        "tooling/ci/",
+        "tooling/setup/"
+      ],
+      "package": {
+        "scripts": {
+          "prepare": "husky",
+          "lint": "eslint .",
+          "format": "prettier --write .",
+          "format:check": "prettier --check .",
+          "typecheck": "tsc -p tsconfig.json",
+          "test": "vitest run",
+          "test:watch": "vitest",
+          "ci:local": "node tooling/ci/src/ci-local.mts",
+          "plan:check": "node tooling/plan/src/plan-check.mts",
+          "plan:status": "node tooling/plan/src/plan-status.mts",
+          "item-check": "node tooling/plan/src/item-check.mts",
+          "worktrees": "node tooling/guards/src/worktrees.mts",
+          "accounts:check": "node tooling/setup/src/accounts-check.mts",
+          "bootstrap": "node tooling/setup/src/bootstrap.mts",
+          "sdlc:init": "node tooling/setup/src/sdlc-init.mts",
+          "land": "node tooling/ci/src/land.mts",
+          "claim": "node tooling/plan/src/claim.mts",
+          "sources:add": "node tooling/guards/src/sources-manifest.mts --add",
+          "sources:check": "node tooling/guards/src/sources-manifest.mts --check"
+        },
+        "devDependencies": {
+          "@eslint/js": "9.39.5",
+          "@types/node": "24.19.2",
+          "eslint": "9.39.5",
+          "globals": "16.5.0",
+          "husky": "9.1.7",
+          "lint-staged": "16.4.0",
+          "prettier": "3.9.10",
+          "typescript": "5.9.3",
+          "typescript-eslint": "8.71.2",
+          "vitest": "4.1.11"
+        }
+      }
+    },
+    "journeys": {
+      "kind": "module",
+      "description": "Playwright journeys: three-pass recording with learned masks, one-pass testing, delta, drift and the index.",
+      "files": [
+        "tooling/journeys/",
+        ".claude/skills/journey-add/",
+        ".claude/skills/journey-test/",
+        ".claude/skills/journey-ready-for-qa/"
+      ],
+      "package": {
+        "scripts": {
+          "journeys:learn": "node tooling/journeys/src/cli/learn.mts",
+          "journeys:test": "node tooling/journeys/src/cli/run.mts",
+          "journeys:delta": "node tooling/journeys/src/cli/delta.mts",
+          "journeys:drift": "node tooling/journeys/src/cli/drift.mts",
+          "journeys:index": "node tooling/journeys/src/cli/index.mts",
+          "journeys:timing": "node tooling/journeys/src/cli/timing.mts"
+        }
+      },
+      "notes": "Install a browser (pnpm exec playwright install chromium), then write journeys.config.mts and an adapter (tooling/journeys/README.md)."
+    },
+    "localdb": {
+      "kind": "module",
+      "description": "pnpm db:local: a PGlite Postgres per checkout, snapshotted before every migrate or reset.",
+      "files": ["tooling/localdb/"],
+      "package": {
+        "scripts": {
+          "db:local": "node tooling/localdb/src/cli.mts"
+        }
+      },
+      "notes": "Declare databases under localdb.databases in sdlc.config.json (tooling/localdb/README.md)."
+    },
+    "seed": {
+      "kind": "module",
+      "description": "pnpm seed: deterministic mock data, opt-in per app.",
+      "requires": ["localdb"],
+      "files": ["tooling/seed/"],
+      "package": {
+        "scripts": {
+          "seed": "node tooling/seed/src/seed.mts"
+        }
+      },
+      "notes": "Declare each app's seeder under seeds in sdlc.config.json (tooling/seed/README.md)."
+    },
+    "coverage": {
+      "kind": "module",
+      "description": "Merged coverage, per-path floors from sdlc.config.json, and the published report.",
+      "files": ["tooling/coverage/", ".claude/skills/coverage-report/"],
+      "package": {
+        "scripts": {
+          "coverage": "node tooling/coverage/src/coverage.mts",
+          "coverage:report": "node tooling/coverage/src/coverage.mts --report"
+        },
+        "devDependencies": {
+          "@vitest/coverage-v8": "4.1.11"
+        }
+      },
+      "config": {
+        "ci": {
+          "steps": [
+            {
+              "name": "coverage",
+              "run": "node tooling/coverage/src/coverage.mts",
+              "applies": "has-source",
+              "unknownExitCodes": [2]
+            }
+          ]
+        }
+      },
+      "notes": "Floors stay unset until there is code; set coverage.floors in sdlc.config.json then."
+    },
+    "promote": {
+      "kind": "module",
+      "description": "promote:staging, promote:prod, rollback and release: fast-forward only, green local-ci required, smoke-tested.",
+      "files": ["tooling/promote/", ".claude/skills/release/"],
+      "package": {
+        "scripts": {
+          "promote:staging": "node tooling/promote/src/promote.mts staging",
+          "promote:prod": "node tooling/promote/src/promote.mts production",
+          "rollback": "node tooling/promote/src/rollback.mts",
+          "release": "node tooling/promote/src/release.mts"
+        }
+      },
+      "notes": "Declare environments in sdlc.config.json before the first promotion (tooling/promote/README.md)."
+    },
+    "security": {
+      "kind": "module",
+      "description": "security:scan: secrets, dependency audit, licences, install scripts and release age.",
+      "files": ["tooling/security/", ".claude/skills/security-review/", "security.config.json"],
+      "package": {
+        "scripts": {
+          "security:scan": "node tooling/security/src/scan.mts",
+          "security:scan:staged": "node tooling/security/src/scan.mts --staged"
+        }
+      },
+      "config": {
+        "ci": {
+          "steps": [
+            {
+              "name": "secrets",
+              "run": "node tooling/security/src/scan.mts --only secrets",
+              "applies": "always",
+              "unknownExitCodes": [2]
+            },
+            {
+              "name": "supply-chain",
+              "run": "node tooling/security/src/scan.mts --only deps,licenses,install-scripts,release-age",
+              "applies": "always",
+              "unknownExitCodes": [2]
+            }
+          ]
+        }
+      },
+      "notes": "Install trufflehog or gitleaks for the full secrets scan; without either the built-in patterns run and the step says so."
+    },
+    "api": {
+      "kind": "recipe",
+      "description": "The port skeleton: Caller, refusals, invoke (validate, scope, authorize, run), the manifest, a PGlite contract suite.",
+      "files": [
+        "docs/kit/recipes/api/README.md",
+        {
+          "from": "docs/kit/recipes/api/",
+          "to": "packages/api/",
+          "except": ["docs/kit/recipes/api/README.md"]
+        }
+      ],
+      "check": {
+        "dir": "packages/api"
+      },
+      "notes": "Rename @app/api to the project's scope."
+    },
+    "api-bindings": {
+      "kind": "recipe",
+      "description": "The manifest as an HTTP API with OpenAPI, an MCP server and a typed SDK.",
+      "requires": ["api"],
+      "files": [
+        "docs/kit/recipes/api-bindings/README.md",
+        {
+          "from": "docs/kit/recipes/api-bindings/",
+          "to": "packages/bindings/",
+          "except": ["docs/kit/recipes/api-bindings/README.md"]
+        }
+      ],
+      "check": {
+        "dir": "packages/bindings"
+      },
+      "notes": "Rename @app/bindings; imports of ../../api/src become @<scope>/api once api is a dependency."
+    },
+    "app-tanstack-workers": {
+      "kind": "recipe",
+      "description": "TanStack Start on Cloudflare Workers as apps/web: SSR, server functions over a port, Better Auth, four environments.",
+      "requires": ["env-schema", "db-drizzle", "telemetry"],
+      "files": [
+        "docs/kit/recipes/app-tanstack-workers/README.md",
+        {
+          "from": "docs/kit/recipes/app-tanstack-workers/",
+          "to": "apps/web/",
+          "except": ["docs/kit/recipes/app-tanstack-workers/README.md"]
+        }
+      ],
+      "onlyBuiltDependencies": ["esbuild", "sharp", "workerd"],
+      "check": {
+        "dir": "apps/web",
+        "before": ["build"]
+      },
+      "notes": "Rename @app/web; fill in wrangler.jsonc once infrastructure is provisioned (README).",
+      "external": {
+        "./routeTree.gen": "generated by TanStack Router's plugin on the first build"
+      }
+    },
+    "env-schema": {
+      "kind": "recipe",
+      "description": "One Zod schema for a Worker's variables and bindings (apps/web/src/env.ts).",
+      "files": [
+        "docs/kit/recipes/env-schema/README.md",
+        {
+          "from": "docs/kit/recipes/env-schema/src/",
+          "to": "apps/web/src/"
+        }
+      ],
+      "packageJson": "apps/web/package.json",
+      "package": {
+        "dependencies": {
+          "zod": "^4.1.0"
+        },
+        "devDependencies": {
+          "vitest": "3.2.4"
+        }
+      },
+      "check": {
+        "via": "app-tanstack-workers"
+      }
+    },
+    "db-drizzle": {
+      "kind": "recipe",
+      "description": "Drizzle + pg through Hyperdrive, one client per request (apps/web/src/db); the default ORM.",
+      "requires": ["localdb"],
+      "requiresBecause": {
+        "localdb": "its migrations are applied by pnpm db:local migrate"
+      },
+      "conflicts": ["db-prisma"],
+      "files": [
+        "docs/kit/recipes/db-drizzle/README.md",
+        {
+          "from": "docs/kit/recipes/db-drizzle/src/",
+          "to": "apps/web/src/db/"
+        },
+        {
+          "from": "docs/kit/recipes/db-drizzle/drizzle.config.ts",
+          "to": "apps/web/drizzle.config.ts"
+        }
+      ],
+      "config": {
+        "from": "docs/kit/recipes/db-drizzle/sdlc.config.localdb.json"
+      },
+      "packageJson": "apps/web/package.json",
+      "package": {
+        "dependencies": {
+          "drizzle-orm": "0.45.4",
+          "pg": "8.23.1"
+        },
+        "devDependencies": {
+          "@types/pg": "^8.15.0",
+          "drizzle-kit": "0.31.11"
+        }
+      },
+      "check": {
+        "via": "app-tanstack-workers"
+      }
+    },
+    "db-prisma": {
+      "kind": "recipe",
+      "description": "Prisma 7 + @prisma/adapter-pg through Hyperdrive (apps/web/src/db); the alternative to db-drizzle.",
+      "conflicts": ["db-drizzle"],
+      "files": [
+        "docs/kit/recipes/db-prisma/README.md",
+        {
+          "from": "docs/kit/recipes/db-prisma/prisma/",
+          "to": "apps/web/prisma/"
+        },
+        {
+          "from": "docs/kit/recipes/db-prisma/prisma.config.ts",
+          "to": "apps/web/prisma.config.ts"
+        },
+        {
+          "from": "docs/kit/recipes/db-prisma/src/",
+          "to": "apps/web/src/db/"
+        }
+      ],
+      "packageJson": "apps/web/package.json",
+      "package": {
+        "dependencies": {
+          "@prisma/adapter-pg": "7.10.1",
+          "@prisma/client": "7.10.1"
+        },
+        "devDependencies": {
+          "prisma": "7.10.1"
+        }
+      },
+      "external": {
+        "../generated/prisma/": "written by prisma generate"
+      },
+      "check": {
+        "skip": "an alternative app-tanstack-workers does not use (it is written against db-drizzle); nothing here assembles it"
+      }
+    },
+    "telemetry": {
+      "kind": "recipe",
+      "description": "One span per capability call, an attribute registry, a Workers tracer and a test exporter (apps/web/src/telemetry).",
+      "files": [
+        "docs/kit/recipes/telemetry/README.md",
+        {
+          "from": "docs/kit/recipes/telemetry/src/",
+          "to": "apps/web/src/telemetry/"
+        }
+      ],
+      "packageJson": "apps/web/package.json",
+      "package": {
+        "devDependencies": {
+          "vitest": "3.2.4"
+        }
+      },
+      "check": {
+        "via": "app-tanstack-workers"
+      }
+    },
+    "journeys-adapter": {
+      "kind": "recipe",
+      "description": "A journeys StackAdapter for app-tanstack-workers: the built Worker under wrangler dev, localdb through Hyperdrive (e2e/stack.mts).",
+      "requires": ["journeys", "app-tanstack-workers"],
+      "requiresBecause": {
+        "app-tanstack-workers": "it builds and serves apps/web"
+      },
+      "files": [
+        "docs/kit/recipes/journeys-adapter/README.md",
+        {
+          "from": "docs/kit/recipes/journeys-adapter/stack.mts",
+          "to": "e2e/stack.mts"
+        },
+        {
+          "from": "docs/kit/recipes/journeys-adapter/stack.test.ts",
+          "to": "e2e/stack.test.ts"
+        }
+      ],
+      "check": {
+        "dir": ".",
+        "vitest": ["e2e/stack.test.ts"]
+      },
+      "notes": "Name it in journeys.config.mts (adapter: \"e2e/stack.mts\") and set APP_DIR, DB and BINDING at its top."
+    },
+    "dev-session": {
+      "kind": "recipe",
+      "description": "pnpm dev:session: a real passwordless sign-in for a seeded account, for curl and Playwright.",
+      "requires": ["db-drizzle", "app-tanstack-workers"],
+      "requiresBecause": {
+        "app-tanstack-workers": "it signs in to the app's Better Auth"
+      },
+      "files": [
+        "docs/kit/recipes/dev-session/README.md",
+        {
+          "from": "docs/kit/recipes/dev-session/dev-session.mts",
+          "to": "scripts/dev-session.mts"
+        },
+        {
+          "from": "docs/kit/recipes/dev-session/src/",
+          "to": "scripts/dev-session/"
+        }
+      ],
+      "package": {
+        "from": "docs/kit/recipes/dev-session/package.json",
+        "scripts": {
+          "dev:session": "node scripts/dev-session.mts"
+        }
+      },
+      "gitignore": [".dev-session/"],
+      "check": {
+        "dir": ".",
+        "vitest": ["scripts/dev-session"]
+      }
+    },
+    "llm-openrouter": {
+      "kind": "recipe",
+      "description": "@scope/llm: OpenRouter by data class (ZDR for real data), a model per role, cost caps, recordings (packages/llm).",
+      "files": [
+        "docs/kit/recipes/llm-openrouter/README.md",
+        {
+          "from": "docs/kit/recipes/llm-openrouter/",
+          "to": "packages/llm/",
+          "except": ["docs/kit/recipes/llm-openrouter/README.md"]
+        }
+      ],
+      "check": {
+        "dir": "packages/llm"
+      }
+    },
+    "authz-oso": {
+      "kind": "recipe",
+      "description": "@scope/authz over Oso Cloud: a Polar policy, local authorization from Postgres, the matrix test (packages/authz).",
+      "conflicts": ["authz-spicedb"],
+      "files": [
+        "docs/kit/recipes/authz-oso/README.md",
+        {
+          "from": "docs/kit/recipes/authz-oso/",
+          "to": "packages/authz/",
+          "except": ["docs/kit/recipes/authz-oso/README.md"]
+        }
+      ],
+      "check": {
+        "dir": "packages/authz",
+        "test": "test:ci"
+      }
+    },
+    "authz-spicedb": {
+      "kind": "recipe",
+      "description": "@scope/authz over SpiceDB's HTTP API, relationships through an outbox, the matrix test (packages/authz).",
+      "conflicts": ["authz-oso"],
+      "files": [
+        "docs/kit/recipes/authz-spicedb/README.md",
+        {
+          "from": "docs/kit/recipes/authz-spicedb/",
+          "to": "packages/authz/",
+          "except": ["docs/kit/recipes/authz-spicedb/README.md"]
+        }
+      ],
+      "check": {
+        "dir": "packages/authz",
+        "test": "test:ci"
+      }
+    },
+    "ui": {
+      "kind": "recipe",
+      "description": "shadcn on Base UI: tokens, the shell with ⌘K and the role switcher, the five screen patterns (apps/web/src/kit).",
+      "files": [
+        "docs/kit/recipes/ui/README.md",
+        {
+          "from": "docs/kit/recipes/ui/src/kit/",
+          "to": "apps/web/src/kit/"
+        },
+        {
+          "from": "docs/kit/recipes/ui/test/setup.ts",
+          "to": "apps/web/test/setup.ts"
+        },
+        {
+          "from": "docs/kit/recipes/ui/vitest.kit.config.ts",
+          "to": "apps/web/vitest.kit.config.ts"
+        }
+      ],
+      "packageJson": "apps/web/package.json",
+      "package": {
+        "from": "docs/kit/recipes/ui/package.json"
+      },
+      "external": {
+        "@/": "components shadcn add writes into the app (README § Instantiate)",
+        "react": "installed into the app by shadcn init",
+        "lucide-react": "installed into the app by shadcn init"
+      },
+      "check": {
+        "skip": "needs an app scaffolded by shadcn init (README § Instantiate)"
+      },
+      "notes": "Run shadcn init and add first (README § Instantiate); the kit's tests run with vitest -c vitest.kit.config.ts."
+    }
+  }
+}

@@ -1,5 +1,5 @@
 packages:
-  # The SDLC tooling: one package per module, upstream-owned (docs/kit/starter-repo.md).
+  # The SDLC tooling: one package per module, the project's own (docs/kit/registry.md).
   - "tooling/*"
   # The product, decided in /kickoff (topic 9).
   - "apps/*"

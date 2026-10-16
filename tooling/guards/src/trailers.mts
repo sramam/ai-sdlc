@@ -21,7 +21,7 @@
  *   - a `No-Item:` gives no real reason (under three words), or sits beside a
  *     `Closes:` — a commit cannot both finish an item and have none
  *   - a `Co-Authored-By:` differs from `.claude/settings.json` attribution.commit
- * and warns when an upstream-owned path is staged. One line per check.
+ * One line per check.
  *
  * `--range` checks base..HEAD (default origin/<integration>..HEAD, falling back
  * to the local integration branch and saying so), **every commit and the
@@ -58,10 +58,8 @@
  * */
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { findRoot, loadConfig, upstreamPaths } from "../../core/src/config.mts";
-import { loadManifest } from "../../core/src/manifest.mts";
-import type { StarterManifest } from "../../core/src/manifest.mts";
-import { exec, isEntry } from "../../core/src/exec.mts";
+import { findRoot, loadConfig } from "../../core/src/config.mts";
+import { isEntry } from "../../core/src/exec.mts";
 import {
   DEFAULT_DIRS,
   git,
@@ -86,8 +84,6 @@ export interface CheckLine {
 }
 
 export const REQUIREMENTS_SKILLS = ["kickoff", "idea", "add-requirement"];
-
-export const UPSTREAM_PATHS = upstreamPaths();
 
 /**
  * `paths` are the change's own paths. For a merge (`merging`), the caller has
@@ -194,22 +190,6 @@ export function checkAttribution(trailers: Trailer[], setting: AttributionSettin
       text: `Co-Authored-By: ${wrong.map((t) => t.value).join("; ")} differs from .claude/settings.json attribution.commit "${setting.line}". Use it exactly`,
     };
   return { name: "attribution", state: "ok", text: `matches attribution.commit` };
-}
-
-export function upstreamWarnings(
-  staged: string[],
-  upstream: string[] = UPSTREAM_PATHS,
-): CheckLine[] {
-  const hits = staged.filter((p) => upstream.some((u) => p.startsWith(u)));
-  if (!hits.length)
-    return [{ name: "upstream", state: "ok", text: "no upstream-owned path staged" }];
-  return [
-    {
-      name: "upstream",
-      state: "warn",
-      text: `${hits.length} upstream-owned path(s) changed (${hits.slice(0, 3).join(", ")}${hits.length > 3 ? ", …" : ""}). pnpm sdlc:update will overwrite them: change the starter instead, or list the module in modules.replaced`,
-    },
-  ];
 }
 
 export function checkRangeHasItem(commits: CommitTrailers[]): CheckLine {
@@ -467,33 +447,20 @@ function print(lines: CheckLine[]): void {
     console.log(`  ${label[l.state].padEnd(13)} ${l.name.padEnd(13)} ${l.text}`);
 }
 
-/** The project's copy of the starter manifest; an unreadable one falls back to the derived list. */
-function manifestOrNull(root: string): StarterManifest | null {
-  try {
-    return loadManifest(root);
-  } catch {
-    return null;
-  }
-}
-
-async function dirsFor(
-  root: string,
-): Promise<{ dirs: Dirs; integration: string; upstream: string[] }> {
-  const manifest = manifestOrNull(root);
+async function dirsFor(root: string): Promise<{ dirs: Dirs; integration: string }> {
   try {
     const cfg = await loadConfig(root);
     return {
       dirs: { requirements: cfg.dirs.requirements, plan: cfg.dirs.plan, adr: cfg.dirs.adr },
       integration: cfg.branches.integration,
-      upstream: upstreamPaths(cfg.modules?.replaced ?? [], manifest),
     };
   } catch {
-    return { dirs: DEFAULT_DIRS, integration: "dev", upstream: upstreamPaths([], manifest) };
+    return { dirs: DEFAULT_DIRS, integration: "dev" };
   }
 }
 
 export async function messageMode(root: string, file: string): Promise<number> {
-  const { dirs, upstream } = await dirsFor(root);
+  const { dirs } = await dirsFor(root);
   console.log("trailers: commit-msg");
   const parsed = git(root, ["interpret-trailers", "--parse", file]);
   if (!parsed.ok) {
@@ -547,23 +514,6 @@ export async function messageMode(root: string, file: string): Promise<number> {
       text: `could not ask git for the items: ${items.reason}`,
     });
   lines.push(checkAttribution(trailers, readAttribution(root)));
-  // Only a project (which has a `starter` remote, added in Phase 0) is downstream.
-  // In the starter itself these paths are the source, so there is nothing to warn about.
-  if (staged.ok) {
-    const isProject =
-      (await exec("git", ["remote", "get-url", "starter"], { cwd: root })).code === 0;
-    lines.push(
-      ...(isProject
-        ? upstreamWarnings(paths, upstream)
-        : [
-            {
-              name: "upstream",
-              state: "ok" as const,
-              text: "no starter remote: this is the starter, or not yet a project",
-            },
-          ]),
-    );
-  }
   print(lines);
   const bad = lines.filter((l) => l.state === "refused" || l.state === "unknown");
   if (bad.length) {

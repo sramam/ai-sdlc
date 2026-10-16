@@ -3,7 +3,7 @@
 A skill holds the **procedure and the remembering**, not the judgement. Each one
 below exists because doing its job by hand went wrong.
 
-## In the starter (generalised from door_nexa; the skills are in [`.claude/skills/`](../../.claude/skills/))
+## In the kit (generalised from door_nexa; base ships ten, the modules the rest; the skills are in [`.claude/skills/`](../../.claude/skills/))
 
 **Discovery and planning**
 

@@ -74,9 +74,9 @@ non-deterministic output fails on noise, and people learn to ignore it.
 ## Journeys: recorded three times, tested once
 
 Journeys are the unit of QA. Each one is a persona, plus a sequence, plus every
-refusal that persona can reach. The journey machinery ships in the starter repo
-(the `@ai-sdlc/journeys` package in `tooling/journeys/`), so a project writes specs,
-not infrastructure ([starter-repo.md](starter-repo.md)).
+refusal that persona can reach. The journey machinery is the `journeys` module
+(`pnpm sdlc add journeys`: the `@ai-sdlc/journeys` package in `tooling/journeys/`),
+so a project writes specs, not infrastructure ([registry.md](registry.md)).
 
 ### The evidence
 

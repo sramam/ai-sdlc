@@ -22,7 +22,6 @@ import {
   messageMode,
   rangeMode,
   readAttribution,
-  upstreamWarnings,
 } from "./trailers.mts";
 import { DEFAULT_DIRS } from "../../plan/src/plan-lib.mts";
 
@@ -102,13 +101,6 @@ describe("pure checks", () => {
     expect(
       checkRequirementsTrailer(["docs/requirements/brd.md"], [], "docs/requirements", false).state,
     ).toBe("refused");
-  });
-  it("upstream: warns, never refuses", () => {
-    expect(
-      upstreamWarnings(["tooling/guards/src/x.mts", ".claude/skills/land/SKILL.md", "src/a.ts"])[0]
-        ?.state,
-    ).toBe("warn");
-    expect(upstreamWarnings([".claude/skills/mine/SKILL.md"])[0]?.state).toBe("ok");
   });
   it("range: needs one Progress: or No-Item:", () => {
     const c = (trailers: Array<{ key: string; value: string }>) => ({

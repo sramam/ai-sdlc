@@ -2,14 +2,17 @@
   "name": "ai-sdlc",
   "version": "0.1.0",
   "private": true,
-  "description": "Starter for agent-driven projects: SDLC tooling, skills, hooks and docs. No product code.",
+  "description": "The ai-sdlc registry: the kit, its tooling and recipes, and the CLI that copies them into a project. No product code.",
   "type": "module",
+  "bin": {
+    "ai-sdlc": "scripts/registry/cli.mjs"
+  },
   "packageManager": "pnpm@10.28.2",
   "engines": {
     "node": ">=24"
   },
   "scripts": {
-    "prepare": "husky",
+    "postinstall": "husky",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -26,7 +29,6 @@
     "accounts:check": "node tooling/setup/src/accounts-check.mts",
     "bootstrap": "node tooling/setup/src/bootstrap.mts",
     "sdlc:init": "node tooling/setup/src/sdlc-init.mts",
-    "sdlc:update": "node tooling/setup/src/sdlc-update.mts",
     "land": "node tooling/ci/src/land.mts",
     "claim": "node tooling/plan/src/claim.mts",
     "sources:add": "node tooling/guards/src/sources-manifest.mts --add",
@@ -45,7 +47,10 @@
     "release": "node tooling/promote/src/release.mts",
     "security:scan": "node tooling/security/src/scan.mts",
     "security:scan:staged": "node tooling/security/src/scan.mts --staged",
-    "recipes:check": "node scripts/recipes-check.mts"
+    "recipes:check": "node scripts/recipes-check.mts",
+    "sdlc": "node scripts/registry/cli.mjs",
+    "registry:check": "node scripts/registry/e2e.mts",
+    "registry:patterns": "node scripts/registry/pattern-check.mts"
   },
   "lint-staged": {
     "*.{ts,mts,tsx,js,mjs}": [

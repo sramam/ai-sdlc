@@ -79,4 +79,4 @@ const address = fromCaptured(ADDRESSES, 7); // captured real values, index wraps
 isSeedId(id); // true — find and delete seed-owned rows
 ```
 
-Upstream-owned: changed in the ai-sdlc starter, pulled with `pnpm sdlc:update`.
+The project's own: it arrives with `pnpm sdlc add seed`, and is changed here when the project needs it. `pnpm sdlc diff seed` shows what changed upstream; `pnpm sdlc update seed` takes it without overwriting a local edit (docs/kit/registry.md).

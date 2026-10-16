@@ -31,7 +31,8 @@ It can be generated because every commit body ends with a `Progress:` block, so
 4. **Promote** (docs/kit/memory.md): for each _Cost a day_ entry, check that its
    lesson is written where it will be read (guardrails, `AGENTS.md`, a package
    `agents.md`, an ADR) and guarded if it can be. Ask whether every project would
-   want it; if so, draft the change for the `ai-sdlc` starter.
+   want it; if so, fix it here (the project owns the code) and draft the same
+   change for the `ai-sdlc` registry, which other projects take with `pnpm sdlc update`.
 5. Update the pointer to the latest report in `README.md`. The report lands like
    any change: on its own branch, with a `No-Item: progress report` trailer, via
    `/land`.

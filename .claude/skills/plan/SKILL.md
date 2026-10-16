@@ -18,7 +18,8 @@ The structure, IDs and `plan:check` stages are in
 2. **Foundation first, as `X-` items**, in the order in `docs/kit/BOOTSTRAP.md`
    Phase 3:
    - the platform spike
-   - apps and packages from recipes
+   - apps and packages from recipes (`pnpm sdlc add <recipe>`, naming each item
+     kickoff topic 9 listed), and the modules it listed
    - infrastructure
    - environments and promotion
    - security baseline

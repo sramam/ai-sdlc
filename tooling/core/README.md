@@ -1,8 +1,8 @@
 # @ai-sdlc/core
 
-Shared by every other module: the `sdlc.config.json` loader (with the module list and the upstream-owned paths), the starter manifest (`starter-manifest.json`), the command runner (`exec`), and the one git-command parser every guard uses.
+Shared by every other module: the `sdlc.config.json` loader, the command runner (`exec`), and the one git-command parser every guard uses.
 
-Upstream-owned: changed in the ai-sdlc starter, pulled with `pnpm sdlc:update`. A project that needs different behaviour replaces the module and lists it in `sdlc.config.json` `modules.replaced` (docs/kit/starter-repo.md).
+The project's own: it arrives with `ai-sdlc init`, and is changed here when the project needs it. `pnpm sdlc diff base` shows what changed upstream; `pnpm sdlc update base` takes it without overwriting a local edit (docs/kit/registry.md).
 
 ## `sdlc.config.json`
 
@@ -11,7 +11,7 @@ Upstream-owned: changed in the ai-sdlc starter, pulled with `pnpm sdlc:update`. 
 - **An unknown key is an error** naming the key and where it is (`ci.steps[2]: unknown key "histroy"`); a wrong type names the path (`claimStaleDays: expected a number, got string`). A typo is refused rather than ignored.
 - **`src/config.schema.json`** is generated from the validator's shape for editors: `node tooling/core/src/config-schema.mts --write` after changing `SHAPE`; `--check` and `config.test.ts` fail when it is stale or disagrees with the validator.
 - **`loadConfig(root)`** reads the working tree's file; **`loadConfigAt(root, ref)`** reads it as committed at a ref (`null` when that commit has none).
-- **`configVersion`** (default 1) is the file's format. A starter release that changes the format raises it, and `sdlc:update` refuses a project behind the manifest's `minConfigVersion`, printing the migration from docs/kit/MIGRATIONS.md.
+- **`configVersion`** (default 1) is the file's format. A release that changes the format raises it, and the item's notes (printed by `pnpm sdlc update`) say how to convert.
 
 JSON has no comments, so the documented examples live here.
 
@@ -79,17 +79,12 @@ JSON has no comments, so the documented examples live here.
 }
 ```
 
-**Coverage floors and replaced modules:**
+**Coverage floors:**
 
 ```json
 {
-  "coverage": { "floors": { "packages/db": { "lines": 95, "branches": 90 } } },
-  "modules": { "replaced": ["journeys"] }
+  "coverage": { "floors": { "packages/db": { "lines": 95, "branches": 90 } } }
 }
 ```
 
 `cadence.progressReportWeekdays` counts 0 = Sunday … 6 = Saturday (`[1, 4]` is Monday and Thursday).
-
-## `starter-manifest.json`
-
-What the starter owns in a project, and how `sdlc:update` brings each path up to date — `replace`, `merge-json` (optionally limited to named `keys`) or `merge-lines`. See `src/manifest.mts` and docs/kit/starter-repo.md § Updating from upstream. Its `replace` entries are the upstream-owned paths the commit hook warns about.

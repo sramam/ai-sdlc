@@ -58,4 +58,4 @@ Absent means the defaults. Every exception needs a `reason` of at least three wo
 
 `pattern` is a regex tested against the offending line and against the rule id; `path` is a glob (`**` crosses directories). `licenses.allow`/`warn` replace the defaults when given.
 
-The `/security-review` skill runs this in the background and then reviews the diff by hand. Upstream-owned (docs/kit/starter-repo.md).
+The `/security-review` skill runs this in the background and then reviews the diff by hand. The project's own: it arrives with `pnpm sdlc add security`, and is changed here when the project needs it. `pnpm sdlc diff security` shows what changed upstream; `pnpm sdlc update security` takes it without overwriting a local edit (docs/kit/registry.md).

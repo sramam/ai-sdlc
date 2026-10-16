@@ -125,8 +125,8 @@ export function portsForSlot(
  * Who holds a port.
  *
  * `unknown` is the third answer and is deliberately not folded into either of
- * the others: a listener whose working directory cannot be read is neither
- * safe to kill nor safe to share with.
+ * the others: a listener whose working directory cannot be read — or can, and
+ * lies in no checkout — is neither safe to kill nor safe to share with.
  */
 export type PortHolder =
   | { kind: "free" }

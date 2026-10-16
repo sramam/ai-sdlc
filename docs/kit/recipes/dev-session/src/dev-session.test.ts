@@ -9,8 +9,14 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 import { generateDrizzleJson, generateMigration } from "drizzle-kit/api";
 import { beforeAll, describe, expect, it } from "vitest";
-import * as authSchema from "../../db-drizzle/src/auth-schema";
-import { curlJar, devSignIn, envVerdict, storageState, type DevSessionDeps } from "./dev-session";
+import * as authSchema from "../../apps/web/src/db/auth-schema.ts";
+import {
+  curlJar,
+  devSignIn,
+  envVerdict,
+  storageState,
+  type DevSessionDeps,
+} from "./dev-session.ts";
 
 const BASE = "http://127.0.0.1:3100";
 let auth: ReturnType<typeof makeAuth>;

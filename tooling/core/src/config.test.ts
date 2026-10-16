@@ -7,13 +7,10 @@ import {
   CONFIG_FILE,
   ConfigError,
   FIXED_BRANCHES,
-  STARTER_MODULES,
-  STARTER_SKILLS,
   findRoot,
   loadConfig,
   loadConfigAt,
   parseConfig,
-  upstreamPaths,
   validateConfig,
 } from "./config.mts";
 import { SCHEMA_PATH, configSchema } from "./config-schema.mts";
@@ -60,7 +57,6 @@ describe("validation", () => {
       c.ci.steps = [{ name: "t", run: "x", applies: "has-source", env: ["A"], history: true }];
       c.ci.container = { image: "node:24", engine: "podman", network: "none" };
       c.coverage.floors = { "packages/db": { lines: 95, branches: 90 } };
-      c.modules = { replaced: ["journeys"] };
       c.localdb = { databases: [{ name: "app", migrate: "m", env: ["E"] }] };
       c.seeds = [{ app: "web", run: "s", database: "app", sizes: ["dev"] }];
       c.environments = {
@@ -138,10 +134,9 @@ describe("validation", () => {
     expect(all.map((p) => p.split(":")[0])).toEqual(["branches.integration", "branches.staging"]);
   });
 
-  it("a replaced module must be one of the starter's", () => {
-    expect(problems(edited((c) => (c.modules = { replaced: ["gaurds"] })))[0]).toMatch(
-      /^modules\.replaced\[0\]: expected one of "core"/,
-    );
+  it("the retired `modules` key is refused, not ignored: a project owns every module", () => {
+    const withModules = edited((c) => ((c as Record<string, unknown>).modules = { replaced: [] }));
+    expect(problems(withModules)[0]).toBe(`(root): unknown key "modules"`);
   });
 
   it("a seed's database must be a declared localdb database", () => {
@@ -225,32 +220,6 @@ describe("finding and loading", () => {
     writeFileSync(join(dir, CONFIG_FILE), '{ "bogus": 1 }');
     g("commit", "-q", "--no-verify", "-am", "bad config");
     await expect(loadConfigAt(dir, "HEAD")).rejects.toThrow(/at HEAD is not a valid configuration/);
-  });
-});
-
-describe("upstreamPaths", () => {
-  it("without a manifest: the modules, docs/kit and the starter skills, less replaced modules", () => {
-    const all = upstreamPaths();
-    expect(all).toHaveLength(STARTER_MODULES.length + 1 + STARTER_SKILLS.length);
-    expect(upstreamPaths(["journeys"])).not.toContain("tooling/journeys/");
-  });
-
-  it("with a manifest: its replace entries, less replaced modules", () => {
-    const manifest = {
-      version: "0.1.0",
-      owned: [
-        { path: "tooling/core/", kind: "replace" as const },
-        { path: "tooling/journeys/", kind: "replace" as const },
-        { path: ".husky/pre-push", kind: "replace" as const },
-        { path: ".gitignore", kind: "merge-lines" as const },
-      ],
-    };
-    expect(upstreamPaths([], manifest)).toEqual([
-      "tooling/core/",
-      "tooling/journeys/",
-      ".husky/pre-push",
-    ]);
-    expect(upstreamPaths(["journeys"], manifest)).toEqual(["tooling/core/", ".husky/pre-push"]);
   });
 });
 
@@ -382,8 +351,10 @@ describe("config.schema.json", () => {
       edited((c) => (c.coverage = { floors: { a: { line: 90, branches: 80 } } })),
     ],
     ["a bad database name", edited((c) => (c.localdb = { databases: [{ name: "a b" }] }))],
-    ["a replaced module", edited((c) => (c.modules = { replaced: ["seed"] }))],
-    ["an unknown replaced module", edited((c) => (c.modules = { replaced: ["nope"] }))],
+    [
+      "the retired modules key",
+      edited((c) => ((c as Record<string, unknown>).modules = { replaced: ["seed"] })),
+    ],
     ["configVersion 0", edited((c) => (c.configVersion = 0))],
     [
       "an environment",

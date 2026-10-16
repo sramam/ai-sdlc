@@ -28,4 +28,4 @@ estimate: unknown
 
 ## Notes
 
-Shipped by the starter: every project has it (docs/kit/BOOTSTRAP.md Phase 1 and 3).
+Shipped in base (`ai-sdlc init`): every project has it (docs/kit/BOOTSTRAP.md Phase 1 and 3).

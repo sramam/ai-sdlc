@@ -51,16 +51,18 @@ pays for it twice:
 `/progress-report` ends with a **promote** step. For each _Cost a day_ entry, is
 its lesson written where it will be read (step 2), and is it guarded (step 1)?
 
-## Across projects: lessons flow back to the starter
+## Across projects: lessons flow back to the registry
 
 A lesson that is not about this project's domain belongs to every project.
 
-- **Upstream-owned paths** (`docs/kit/`, `tooling/<module>/`,
-  the starter's skills) are never edited in a project. A general lesson is a
-  **pull request to `ai-sdlc`**: a kit doc, a guard, a skill step.
+- A project owns everything it was given (`docs/kit/`, `tooling/<module>/`, the
+  skills), so it fixes a problem where it finds it. A general lesson is then
+  **also a pull request to `ai-sdlc`**: a kit doc, a guard, a skill step.
 - `/progress-report`'s promote step asks a second question: **would every
-  project want this?** If so, it drafts the upstream change, and a person opens
-  it against the starter.
-- Projects pull improvements with `pnpm sdlc:update`, which shows the diff for
-  review. So a lesson learned once reaches every project, and the starter stays
-  the single source of how projects are run.
+  project want this?** If so, it drafts the change, and a person opens it
+  against the registry.
+- Projects take improvements with `pnpm sdlc diff <item>` and
+  `pnpm sdlc update <item>`, which apply an upstream change only to a file the
+  project has not changed, and show the upstream diff for the rest
+  ([registry.md](registry.md)). So a lesson learned once reaches every project
+  that wants it, and no project loses its own changes to it.

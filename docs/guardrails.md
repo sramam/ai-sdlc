@@ -1,11 +1,11 @@
 # Guardrails
 
 The project's non-negotiables, short enough to import into every session. The
-first block ships with the starter; the second is the project's own, added by
+first block arrives with `ai-sdlc init`; the second is the project's own, added by
 `/kickoff` (working agreements) or by an ADR. A rule here is enforced by
 something wherever possible, and says by what.
 
-## From the starter
+## From the kit
 
 - **Default to the most private option; relax on evidence, never in
   anticipation.** A relaxation is an ADR with a reason and a date.

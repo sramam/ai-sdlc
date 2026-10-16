@@ -1,5 +1,5 @@
 # The trailer grammar (docs/kit/hooks.md): attribution, Progress/Closes naming
-# real items, Requirements on requirement changes, upstream-path warning.
+# real items, Requirements on requirement changes.
 # `node`, never `pnpm exec tsx`: a fresh worktree has no node_modules, and a
 # hook that cannot start fails open.
 node tooling/guards/src/trailers.mts --message "$1"

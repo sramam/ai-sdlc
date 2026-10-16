@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { mergeJsonText, mergeLines, ownedKeysJson, unionJson } from "./merge.mts";
+import {
+  addBuiltDependencies,
+  differences,
+  mergeConfig,
+  mergeLines,
+  mergePackage,
+  unionJson,
+} from "./merge.mjs";
 
-describe("merge-json (union)", () => {
+describe("unionJson", () => {
   const project = {
     model: "mine",
     permissions: { allow: ["A", "Mine"], deny: ["D"] },
@@ -53,50 +60,97 @@ describe("merge-json (union)", () => {
   it("is idempotent", () => {
     const once = unionJson(project, starter);
     expect(unionJson(once, starter)).toEqual(once);
-    const text = mergeJsonText(JSON.stringify(project), JSON.stringify(starter));
-    expect(mergeJsonText(text, JSON.stringify(starter))).toBe(text);
   });
 
-  it("leaves an already-merged file's formatting alone", () => {
-    const text = '{"a": [1,2],   "b": 1}';
-    expect(mergeJsonText(text, '{"a":[2]}')).toBe(text);
-  });
-
-  it("creates the file from the starter's when the project has none", () => {
-    expect(JSON.parse(mergeJsonText(null, '{"a":1}'))).toEqual({ a: 1 });
-  });
-
-  it("refuses a project file that is not JSON rather than overwriting it", () => {
-    expect(() => mergeJsonText("{ x", "{}")).toThrow(/not valid JSON/);
+  it("matches CI steps and databases by name", () => {
+    const config = { ci: { steps: [{ name: "lint", run: "mine" }] } };
+    const item = {
+      ci: {
+        steps: [
+          { name: "lint", run: "theirs" },
+          { name: "cov", run: "c" },
+        ],
+      },
+    };
+    expect(unionJson(config, item)).toEqual({
+      ci: {
+        steps: [
+          { name: "lint", run: "mine" },
+          { name: "cov", run: "c" },
+        ],
+      },
+    });
   });
 });
 
-describe("merge-json (owned keys)", () => {
-  const keys = { scripts: ["ci:local", "gone"], devDependencies: ["vitest"] };
-  it("sets only the starter's keys, to the starter's values", () => {
-    const out = ownedKeysJson(
+describe("mergeConfig", () => {
+  it("adds what is missing and names what the project kept", () => {
+    const { config, kept } = mergeConfig(
+      { ci: { steps: [{ name: "lint", run: "mine" }] }, coverage: { floors: {} } },
       {
-        name: "p",
-        scripts: { "ci:local": "old", test: "jest", gone: "keep" },
-        devDependencies: {},
+        ci: {
+          steps: [
+            { name: "lint", run: "theirs" },
+            { name: "cov", run: "c" },
+          ],
+        },
       },
-      {
-        name: "s",
-        scripts: { "ci:local": "new", test: "vitest" },
-        devDependencies: { vitest: "4", eslint: "9" },
-      },
-      keys,
     );
-    expect(out).toEqual({
-      name: "p",
-      scripts: { "ci:local": "new", test: "jest", gone: "keep" },
-      devDependencies: { vitest: "4" },
+    expect(config).toEqual({
+      ci: {
+        steps: [
+          { name: "lint", run: "mine" },
+          { name: "cov", run: "c" },
+        ],
+      },
+      coverage: { floors: {} },
     });
+    expect(kept).toEqual(["ci.steps[lint].run"]);
+  });
+  it("reports nothing when the fragment is already contained", () => {
+    expect(differences({ a: [1, 2], b: { c: 1, d: 2 } }, { a: [2], b: { c: 1 } })).toEqual([]);
+  });
+});
+
+describe("mergePackage", () => {
+  it("adds missing keys, keeps the project's differing values and reports them", () => {
+    const { pkg, added, kept } = mergePackage(
+      { name: "p", scripts: { test: "jest" } },
+      { scripts: { test: "vitest run", lint: "eslint ." }, devDependencies: { vitest: "4.1.11" } },
+    );
+    expect(pkg).toEqual({
+      name: "p",
+      scripts: { test: "jest", lint: "eslint ." },
+      devDependencies: { vitest: "4.1.11" },
+    });
+    expect(added).toEqual(["scripts.lint", "devDependencies.vitest"]);
+    expect(kept).toEqual(['scripts.test: kept "jest", the item has "vitest run"']);
   });
   it("is idempotent", () => {
-    const s = JSON.stringify({ scripts: { "ci:local": "new" }, devDependencies: { vitest: "4" } });
-    const once = mergeJsonText('{"scripts":{"x":"y"}}', s, keys);
-    expect(mergeJsonText(once, s, keys)).toBe(once);
+    const frag = { scripts: { a: "x" } };
+    const once = mergePackage({}, frag).pkg;
+    expect(mergePackage(once, frag)).toEqual({ pkg: once, added: [], kept: [] });
+  });
+});
+
+describe("addBuiltDependencies", () => {
+  it("turns an inline empty list into a block list", () => {
+    expect(
+      addBuiltDependencies("packages: []\nonlyBuiltDependencies: []\nx: 1\n", ["b", "a"]),
+    ).toBe("packages: []\nonlyBuiltDependencies:\n  - b\n  - a\nx: 1\n");
+  });
+  it("extends a block list without duplicates, and is idempotent", () => {
+    const once = addBuiltDependencies("onlyBuiltDependencies:\n  - esbuild\n# end\n", [
+      "esbuild",
+      "sharp",
+    ]);
+    expect(once).toBe("onlyBuiltDependencies:\n  - esbuild\n  - sharp\n# end\n");
+    expect(addBuiltDependencies(once, ["sharp"])).toBe(once);
+  });
+  it("adds the key when the file has none", () => {
+    expect(addBuiltDependencies("packages: []\n", ["x"])).toBe(
+      "packages: []\n\nonlyBuiltDependencies:\n  - x\n",
+    );
   });
 });
 

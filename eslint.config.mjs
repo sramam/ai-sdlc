@@ -18,7 +18,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["**/*.{ts,mts,tsx}"],
+    files: ["**/*.{ts,mts,tsx,mjs}"],
     languageOptions: { globals: { ...globals.node } },
     rules: {
       // Telemetry is structured (docs/kit/observability.md). Scripts print on purpose.

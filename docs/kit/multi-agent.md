@@ -31,7 +31,7 @@ listener on its ports with that process's start time. The next sweep then:
 | finds on a port                                                        | does                                                   |
 | ---------------------------------------------------------------------- | ------------------------------------------------------ |
 | another checkout's listener                                            | refuses, `JOURNEY-002`                                 |
-| a listener whose checkout cannot be read                               | refuses, `JOURNEY-003`                                 |
+| a listener in no checkout, or whose cwd cannot be read                 | refuses, `JOURNEY-003`                                 |
 | this checkout's, and the stamped host answers `/whoami`                | refuses, `JOURNEY-005`: a live run owns it             |
 | this checkout's, not recorded by an abandoned stack, or its pid reused | refuses, `JOURNEY-006`, naming the pid to stop by hand |
 | this checkout's, and the host could not be asked (a timeout)           | refuses, `JOURNEY-007`                                 |

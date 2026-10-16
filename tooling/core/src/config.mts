@@ -1,8 +1,9 @@
 /**
  * The shape of `sdlc.config.json` and the one loader every script uses.
  *
- * A project changes the tooling's behaviour here and nowhere else: the
- * packages under `tooling/` are upstream-owned (docs/kit/starter-repo.md).
+ * A project configures the tooling here. It owns the packages under
+ * `tooling/` too, and may change them (docs/kit/registry.md); this file is for
+ * what changes between projects without changing code.
  *
  * **Declarative, never executed.** The configuration used to be a TypeScript
  * module that was `import()`ed, and ci:local imported it from the commit under
@@ -20,10 +21,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { exec as realExec } from "./exec.mts";
 import type { Exec } from "./exec.mts";
-import { manifestUpstreamPaths } from "./manifest.mts";
 import { check } from "./shape.mts";
 import type { Field, Shape } from "./shape.mts";
-import type { StarterManifest } from "./manifest.mts";
 
 export const CONFIG_FILE = "sdlc.config.json";
 
@@ -47,7 +46,7 @@ export interface CiStep {
   /**
    * Exit codes that mean the step *could not run* (a missing tool, a network
    * failure) rather than failed. Opt-in per step, because many tools use 2 for a
-   * real error; the starter's own tools use 2 for could-not-run.
+   * real error; the kit's own tools use 2 for could-not-run.
    */
   unknownExitCodes?: number[];
 }
@@ -86,61 +85,6 @@ export const FIXED_BRANCHES = {
   staging: "staging",
   production: "main",
 } as const;
-
-/** The starter's tooling modules, one workspace package each under tooling/. */
-export const STARTER_MODULES = [
-  "core",
-  "guards",
-  "plan",
-  "ci",
-  "setup",
-  "journeys",
-  "localdb",
-  "seed",
-  "coverage",
-  "promote",
-  "security",
-];
-
-/** Skills the starter ships, upstream-owned like the modules. */
-export const STARTER_SKILLS = [
-  "kickoff",
-  "idea",
-  "add-requirement",
-  "plan",
-  "land",
-  "handoff",
-  "pickup",
-  "progress-report",
-  "commit-reviewer",
-  "code-reviewer",
-  "journey-add",
-  "journey-test",
-  "journey-ready-for-qa",
-  "coverage-report",
-  "release",
-  "security-review",
-];
-
-/**
- * The paths a project never edits in place: `pnpm sdlc:update` overwrites them,
- * and the commit hook warns when one changes. A module the project has taken
- * over (`modules.replaced`) is the project's from then on, and leaves this list.
- *
- * With a starter manifest (`starter-manifest.json`) the list is its `replace`
- * entries; without one, it is derived from the module and skill lists above.
- */
-export function upstreamPaths(
-  replaced: string[] = [],
-  manifest: StarterManifest | null = null,
-): string[] {
-  if (manifest) return manifestUpstreamPaths(manifest, replaced);
-  return [
-    ...STARTER_MODULES.filter((m) => !replaced.includes(m)).map((m) => `tooling/${m}/`),
-    "docs/kit/",
-    ...STARTER_SKILLS.map((s) => `.claude/skills/${s}/`),
-  ];
-}
 
 /** One per-checkout PGlite database served by `pnpm db:local` (tooling/localdb). */
 export interface LocaldbDatabase {
@@ -192,9 +136,9 @@ export interface EnvironmentConfig {
 
 export interface SdlcConfig {
   /**
-   * Which config format this file is written in. Default 1. The starter's
-   * manifest names the oldest it understands (`minConfigVersion`), and
-   * sdlc:update refuses a project behind it, printing the migration.
+   * Which config format this file is written in. Default 1. A release that
+   * changes the format raises it, and says how to convert in the notes
+   * `pnpm sdlc update` prints for the item.
    */
   configVersion?: number;
   branches: { integration: string; staging: string; production: string };
@@ -207,13 +151,6 @@ export interface SdlcConfig {
   ci: { steps: CiStep[]; container?: CiContainer };
   /** Per-path coverage floors; empty until there is code to cover. */
   coverage: { floors: Record<string, { lines: number; branches: number }> };
-  /**
-   * Modules (tooling/<name>) the project has replaced with its own. They stop
-   * being upstream-owned: sdlc:update skips them and the commit hook stops
-   * warning. Removing a module entirely also means removing its hooks from
-   * .claude/settings.json and .husky/, and its steps from ci.steps.
-   */
-  modules?: { replaced: string[] };
   /** Per-checkout local databases (`pnpm db:local`). Absent: none. */
   localdb?: { databases: LocaldbDatabase[] };
   /** Applications with deterministic mock data (`pnpm seed`). Absent: none. */
@@ -240,7 +177,7 @@ const obj = (props: Record<string, Field>): Shape => ({ t: "object", props });
 export const SHAPE: Shape = obj({
   configVersion: opt(
     { t: "integer", min: 1 },
-    "The config format version; default 1. sdlc:update refuses a project behind the starter's minConfigVersion.",
+    "The config format version; default 1. A release that changes the format raises it.",
   ),
   branches: req(
     obj({
@@ -317,9 +254,6 @@ export const SHAPE: Shape = obj({
         }),
       }),
     }),
-  ),
-  modules: opt(
-    obj({ replaced: req({ t: "array", items: { t: "enum", values: STARTER_MODULES } }) }),
   ),
   localdb: opt(
     obj({

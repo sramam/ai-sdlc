@@ -106,4 +106,4 @@ Automatic snapshots (`pre-migrate-…`, `pre-reset-…`) are pruned to the newes
 client, also runnable: `DATABASE_URL=… node tooling/localdb/src/wire.mts "select 1"`),
 `src/localdb.mts` (the operations; `runningUrl(root, db)` is what `pnpm seed` uses).
 
-Upstream-owned: changed in the ai-sdlc starter, pulled with `pnpm sdlc:update`.
+The project's own: it arrives with `pnpm sdlc add localdb`, and is changed here when the project needs it. `pnpm sdlc diff localdb` shows what changed upstream; `pnpm sdlc update localdb` takes it without overwriting a local edit (docs/kit/registry.md).

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Project setup and environment: sdlc:init, sdlc:update, bootstrap, accounts:check, env loading.",
+  "description": "Project setup and environment: sdlc:init, bootstrap, accounts:check, env loading.",
   "dependencies": {
     "@ai-sdlc/core": "workspace:*"
   }

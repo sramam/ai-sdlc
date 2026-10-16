@@ -14,8 +14,16 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noEmit": true,
-    "types": ["node"]
+    "types": ["node"],
+    "allowJs": true,
+    "checkJs": true
   },
-  "include": ["tooling/**/*.mts", "tooling/**/*.ts", "scripts/**/*.mts", "scripts/**/*.ts"],
+  "include": [
+    "tooling/**/*.mts",
+    "tooling/**/*.ts",
+    "scripts/**/*.mts",
+    "scripts/**/*.mjs",
+    "scripts/**/*.ts"
+  ],
   "exclude": ["node_modules", "scripts/one-of/**", ".claude/worktrees/**"]
 }

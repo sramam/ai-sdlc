@@ -78,9 +78,10 @@ Packages (each has its own `agents.md`):
 - **`scripts/` is durable; `scripts/one-of/` is throwaway and gitignored.** Put
   a script in `scripts/` when it will run twice or be run by anyone else,
   linted, typechecked and tested. Promote a one-of the second time you need it.
-  Never edit `tooling/` (unless the module is listed in `modules.replaced`), `docs/kit/` or the starter's
-  skills in `.claude/skills/`; those are
-  upstream-owned and change in the starter repo.
+  `tooling/`, `docs/kit/` and the skills are this project's too: change them
+  when the project needs it, and offer a general fix to the registry.
+  `pnpm sdlc diff <item>` shows what changed upstream; `pnpm sdlc update <item>`
+  takes it without overwriting a local edit.
 - **Stage by path.** Never `git add -A`. Never `git stash`. The stash is shared by
   every worktree.
 - **Commit bodies end with `Progress: <item> — covered; remains`**, plus

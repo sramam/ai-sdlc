@@ -12,6 +12,9 @@ export default defineConfig({
       "scripts/**/*.test.{ts,mts}",
       "packages/**/*.test.ts",
       "apps/**/*.test.ts",
+      // The project's journey specs live in e2e/; their unit tests (an
+      // adapter's, say) run here like any other.
+      "e2e/**/*.test.{ts,mts}",
     ],
     // Other agents' worktrees live inside the repo; never collect their tests.
     exclude: ["**/node_modules/**", "**/.claude/worktrees/**", "scripts/one-of/**"],

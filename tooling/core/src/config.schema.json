@@ -6,7 +6,7 @@
   "properties": {
     "configVersion": {
       "type": "integer",
-      "description": "The config format version; default 1. sdlc:update refuses a project behind the starter's minConfigVersion.",
+      "description": "The config format version; default 1. A release that changes the format raises it.",
       "minimum": 1
     },
     "branches": {
@@ -212,32 +212,6 @@
         }
       },
       "required": ["floors"],
-      "additionalProperties": false
-    },
-    "modules": {
-      "type": "object",
-      "properties": {
-        "replaced": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": [
-              "core",
-              "guards",
-              "plan",
-              "ci",
-              "setup",
-              "journeys",
-              "localdb",
-              "seed",
-              "coverage",
-              "promote",
-              "security"
-            ]
-          }
-        }
-      },
-      "required": ["replaced"],
       "additionalProperties": false
     },
     "localdb": {

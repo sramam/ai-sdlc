@@ -1,0 +1,78 @@
+{
+  "configVersion": 1,
+  "branches": {
+    "integration": "dev",
+    "staging": "staging",
+    "production": "main"
+  },
+  "dirs": {
+    "requirements": "docs/requirements",
+    "plan": "docs/plan",
+    "progress": "docs/progress",
+    "adr": "docs/adr",
+    "handoffs": "docs/handoffs"
+  },
+  "claimStaleDays": 7,
+  "cadence": {
+    "progressReportWeekdays": [1, 4],
+    "planSyncDays": 7
+  },
+  "accounts": [
+    {
+      "name": "GitHub",
+      "cli": "gh",
+      "check": ["auth", "status", "--active"]
+    },
+    {
+      "name": "Cloudflare",
+      "cli": "wrangler",
+      "check": ["whoami"]
+    }
+  ],
+  "ci": {
+    "steps": [
+      {
+        "name": "plan:check",
+        "run": "node tooling/plan/src/plan-check.mts",
+        "applies": "always",
+        "unknownExitCodes": [2]
+      },
+      {
+        "name": "sources",
+        "run": "node tooling/guards/src/sources-manifest.mts --check",
+        "applies": "always",
+        "unknownExitCodes": [2]
+      },
+      {
+        "name": "trailers",
+        "run": "node tooling/guards/src/trailers.mts --range",
+        "applies": "always",
+        "history": true,
+        "unknownExitCodes": [2]
+      },
+      {
+        "name": "lint",
+        "run": "pnpm run lint",
+        "applies": "always"
+      },
+      {
+        "name": "typecheck",
+        "run": "pnpm run typecheck",
+        "applies": "always"
+      },
+      {
+        "name": "unit",
+        "run": "pnpm run test",
+        "applies": "always"
+      },
+      {
+        "name": "format",
+        "run": "pnpm run format:check",
+        "applies": "always"
+      }
+    ]
+  },
+  "coverage": {
+    "floors": {}
+  }
+}

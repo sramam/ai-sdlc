@@ -3,9 +3,9 @@
  *
  * **A file of its own, `journeys.config.mts` at the repository root**, rather
  * than a `journeys` key in `sdlc.config.json`. That key would be the natural home
- * and is the long-term one, but `SdlcConfig` lives in `tooling/core`, which is
- * upstream-owned and outside this module — adding a field there is a change to
- * every project's config type, not this module's to make in passing. A separate
+ * and is the long-term one, but `SdlcConfig` lives in `tooling/core`, part of
+ * base and outside this module — adding a field there is a change to every
+ * project's config type, not this module's to make in passing. A separate
  * file costs one more file at the root and nothing else: absent, every default
  * below applies; present, it overrides field by field. Moving it under
  * `sdlc.config.json` later is a loader change here and a one-line move in a project.

@@ -2,7 +2,7 @@
 
 Journey testing: recording what a person does in the product as reviewable evidence — a screenshot per step, a narrative, the emails and documents it produced — and comparing later runs against it with the volatile regions masked out. Extracted from door_nexa, where each part below was paid for; the comments in the source carry what each cost.
 
-Upstream-owned: changed in the ai-sdlc starter, pulled with `pnpm sdlc:update`. A project that needs different behaviour configures it (below) or replaces the module and lists it in `sdlc.config.json` `modules.replaced` (docs/kit/starter-repo.md). The strategy is docs/kit/testing.md § Journeys; the procedures are the `/journey-add`, `/journey-test` and `/journey-ready-for-qa` skills.
+The project's own: it arrives with `pnpm sdlc add journeys`, and is changed here when the project needs it. `pnpm sdlc diff journeys` shows what changed upstream; `pnpm sdlc update journeys` takes it without overwriting a local edit (docs/kit/registry.md).
 
 ## Commands
 

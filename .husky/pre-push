@@ -29,6 +29,18 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   esac
   target=${remote_ref#refs/heads/}
 
+  # A new project's first push: main into a repository with no branch at all
+  # (ai-sdlc init, then gh repo create --source . --push). There is nothing on
+  # the remote to protect yet, and sdlc:init needs main there to create dev
+  # from. Asked of the remote itself; a remote that cannot be asked, or that has
+  # any branch, falls through to the refusal below.
+  if [ "$target" = main ] && zero_only "$remote_sha" && ! zero_only "$local_sha"; then
+    if heads=$(git ls-remote --heads "$1" </dev/null 2>/dev/null) && [ -z "$heads" ]; then
+      echo "pre-push: first push of main to an empty repository ($1)"
+      continue
+    fi
+  fi
+
   if [ "$target" != dev ] && [ -n "${SDLC_PROMOTE_NONCE:-}" ] && [ -n "$handoff" ] && [ -f "$handoff" ]; then
     h_nonce= h_sha= h_ref=
     read -r h_nonce h_sha h_ref <"$handoff" || true

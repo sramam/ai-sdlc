@@ -78,4 +78,4 @@ So promote hands each push to the hook. Before it, `armPush` (shared.mts) writes
 
 It is a guardrail, not a boundary: anything that can write `.git/` and set a variable can forge a handoff. A GitHub ruleset on `staging` and `main` is the stronger layer where the plan offers one (docs/kit/environments.md).
 
-Upstream-owned: changed in the ai-sdlc starter, pulled with `pnpm sdlc:update`. A project that needs different behaviour replaces the module (docs/kit/starter-repo.md).
+The project's own: it arrives with `pnpm sdlc add promote`, and is changed here when the project needs it. `pnpm sdlc diff promote` shows what changed upstream; `pnpm sdlc update promote` takes it without overwriting a local edit (docs/kit/registry.md).

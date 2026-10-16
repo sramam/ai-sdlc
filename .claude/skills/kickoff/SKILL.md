@@ -208,7 +208,7 @@ Kickoff decides **how** the project will be built. **What** is built belongs to
    Every non-negotiable that comes out of this becomes one line under
    _This project's own_ in `docs/guardrails.md`, with what enforces it.
 
-9. **Apps and packages**: decided here, never assumed. The starter ships none.
+9. **Apps and packages**: decided here, never assumed. Base ships none.
    Derive the surfaces from the personas and journeys, for example: one web app
    with role-based areas, or a separate admin app, a public marketing site, a
    public API, a mobile app, a background-worker app, a design-system viewer.
@@ -223,6 +223,14 @@ Kickoff decides **how** the project will be built. **What** is built belongs to
    only) suits sensitive or high-power operations, while a separate shell in the
    same app suits light administration. Whichever is chosen, the backoffice
    never shares a shell with the customer front.
+   **Name the items each one starts from** (`pnpm sdlc list`): the recipe per
+   package or app (`app-tanstack-workers`, `api`, `api-bindings`, `db-drizzle`
+   or `db-prisma`, `authz-oso` or `authz-spicedb`, `llm-openrouter`, `ui`,
+   `dev-session`, `journeys-adapter`), and the modules the SDLC defaults need
+   (`security` and `coverage` always; `localdb` for a database, `seed` for mock
+   data, `journeys` for journeys, `promote` for deployed environments). Record
+   the list in the brief; the foundation items run `pnpm sdlc add` for it, so
+   nothing is added before it is decided.
 10. **Architecture**: write `docs/architecture.md` from everything decided:
     - the apps, packages and runtime
     - the data store and how it is reached

@@ -1,9 +1,11 @@
 # Recipes
 
-Reference implementations of the packages most projects need. **Not wired into
-the build**: the foundation items instantiate the ones `/kickoff` chose into
-`apps/` and `packages/`, and the project owns them from then on
-(docs/kit/starter-repo.md).
+Reference implementations of the packages most projects need. Each is an item:
+the foundation items add the ones `/kickoff` chose with `pnpm sdlc add <recipe>`,
+which copies it to the place its README names (`packages/api`, `apps/web`, …)
+along with the recipes it requires, and the project owns it from then on
+([../registry.md](../registry.md)). A recipe's README arrives beside this index
+when the recipe is added; until then the links below resolve in the registry.
 
 Built from the October 2026 platform spike ([../spike-2026-10.md](../spike-2026-10.md)),
 which assembled them into a scratch project and ran them on workerd:
@@ -28,9 +30,9 @@ The second group was built after the spike, against current vendor docs and,
 where one could run, the vendor's local engine; each README says what was run
 and what was not ([../spike-2026-10.md](../spike-2026-10.md) § _Addendum_).
 
-`pnpm recipes:check` (`scripts/recipes-check.mts`) builds each recipe in a
-scratch workspace (install, typecheck, its own tests) and answers _pass_,
-_fail_, _could not run_ or _not checked_ per recipe, with the reason. It needs
-the network and is run by hand when a recipe changes; the authorization
-recipes report _could not run_ unless their engine is started
-([../starter-repo.md](../starter-repo.md)).
+In the registry, `pnpm recipes:check` installs each recipe into a scratch
+project through `init` and `add`, then installs, typechecks and runs its own
+tests, and answers _pass_, _fail_, _could not run_ or _not checked_ per recipe,
+with the reason. It needs the network and is run by hand when a recipe changes;
+the authorization recipes report _could not run_ unless their engine is started
+([../registry.md](../registry.md)).

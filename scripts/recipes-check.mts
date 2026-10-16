@@ -1,95 +1,33 @@
 // pnpm recipes:check [--only a,b] [--keep] [--out <dir>]
 //
-// Builds each recipe in docs/kit/recipes into its own scratch workspace and runs
-// what the recipe declares: install, typecheck, tests. Recipes are not wired
-// into the starter's build (docs/kit/starter-repo.md), so this is the check that
-// keeps them correct. It needs the network (pnpm install), so it is manual and
-// never part of `pnpm test`. Each workspace gets the starter's minimumReleaseAge,
-// so a recipe pinning a too-new version fails here as it would in a project.
+// Installs each recipe into a scratch project the way a project gets it —
+// `ai-sdlc init`, then `ai-sdlc add <recipe>` — and runs what its `check` in
+// registry.json declares: install, typecheck, tests. Recipes are not built in
+// this repository, so this is the check that keeps them correct, and it proves
+// each one installs through `add` (its targets, its requirements, its merges)
+// rather than in a layout of its own. It needs the network or a warm pnpm
+// store, so it is manual and never part of `pnpm test`. Each project gets the
+// kit's minimumReleaseAge from base, so a recipe pinning a too-new version
+// fails here as it would in a project.
 //
 // Every recipe gets one of four answers, never a silent pass:
-//   pass           installed, typechecked (where declared), tests passed
+//   pass           installed, typechecked, tests passed
 //   fail           a step failed
 //   could-not-run  a step reported exit 2 (an engine or service was unreachable)
-//   not-checked    the recipe is not a standalone package; the reason is printed
+//   not-checked    the recipe's check says why (a fragment checked inside the
+//                  recipe that requires it, or one that needs a scaffold)
 //
 // Exit: 1 if anything failed, 2 if nothing failed but something could not run,
 // 0 otherwise.
 import { spawnSync } from "node:child_process";
-import {
-  cpSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { add, init } from "./registry/commands.mjs";
+import { loadRegistry } from "./registry/registry.mjs";
 
 const root = resolve(import.meta.dirname, "..");
-const recipesDir = join(root, "docs/kit/recipes");
-
-/**
- * Recipes the harness cannot build as they stand, each with the reason.
- */
-const NOT_STANDALONE: Record<string, string> = {
-  ui: "a kit copied into an app that `shadcn init` scaffolds (README § Instantiate); its package.json lists only what it adds",
-};
-
-/**
- * Recipes that are instantiated INTO another one (its README's table), and the
- * scripts run before typecheck. The fragments without a package.json are
- * checked here, inside the recipe that assembles them.
- */
-const ASSEMBLE: Record<
-  string,
-  { copy: [from: string, to: string][]; before: string[]; workspace?: string }
-> = {
-  "app-tanstack-workers": {
-    copy: [
-      ["env-schema/src", "src"],
-      ["db-drizzle/src", "src/db"],
-      ["db-drizzle/drizzle.config.ts", "drizzle.config.ts"],
-      ["telemetry/src", "src/telemetry"],
-    ],
-    // routeTree.gen.ts comes from the build; `typecheck` runs `wrangler types` itself.
-    before: ["build"],
-    // Exactly the root pnpm-workspace.yaml patch its README prescribes.
-    workspace: "onlyBuiltDependencies:\n  - esbuild\n  - workerd\n  - sharp\n",
-  },
-};
-/**
- * Recipes whose tests import a sibling recipe by its path in docs/kit/recipes
- * (`../../db-drizzle/src/…`). The sibling is copied beside the scratch
- * workspace, sharing its node_modules, so the relative import resolves.
- */
-const SIBLINGS: Record<string, string[]> = {
-  "dev-session": ["db-drizzle"],
-  "api-bindings": ["api"],
-};
-
-/**
- * Files left out of the harness's typecheck, each with the reason. A CLI whose
- * imports are the paths it is instantiated at cannot resolve them here; it is
- * typechecked by the project once it is in place.
- */
-const TS_EXCLUDE: Record<string, { files: string[]; reason: string }> = {
-  "dev-session": {
-    files: ["dev-session.mts"],
-    reason:
-      "dev-session.mts not typechecked: it imports tooling/ and apps/ at its instantiated path",
-  },
-};
-
-const ASSEMBLED_INTO: Record<string, string> = Object.fromEntries(
-  Object.entries(ASSEMBLE).flatMap(([into, a]) =>
-    a.copy.map(([from]) => [from.split("/")[0]!, into]),
-  ),
-);
+const reg = loadRegistry(root);
 
 type Answer = "pass" | "fail" | "could-not-run" | "not-checked";
 type Row = { recipe: string; answer: Answer; detail: string };
@@ -105,7 +43,7 @@ const keep = flag("--keep");
 const out = value("--out") ?? mkdtempSync(join(tmpdir(), "recipes-check-"));
 mkdirSync(out, { recursive: true });
 
-// When a recipe ships no tsconfig, its source is checked under the settings a
+// When a package ships no tsconfig, its source is checked under the settings a
 // project package gets: strict, bundler resolution (recipes import "./x").
 const DEFAULT_TSCONFIG = {
   compilerOptions: {
@@ -124,15 +62,10 @@ const DEFAULT_TSCONFIG = {
 };
 
 // The answer must not depend on how this was invoked: `pnpm run` hands its
-// own settings to children as npm_config_* / pnpm_config_*, so those are dropped
-// and the starter's supply-chain rule is written into each workspace instead.
+// own settings to children as npm_config_* / pnpm_config_*.
 const childEnv = Object.fromEntries(
   Object.entries(process.env).filter(([k]) => !/^(npm|pnpm)_config_/i.test(k)),
 );
-const releaseAge = /^minimumReleaseAge:\s*(\d+)/m.exec(
-  readFileSync(join(root, "pnpm-workspace.yaml"), "utf8"),
-)?.[1];
-const SUPPLY_CHAIN = releaseAge ? `minimumReleaseAge: ${releaseAge}\n` : "";
 
 function step(cwd: string, cmd: string, cmdArgs: string[]): { code: number; tail: string } {
   console.log(`  $ ${cmd} ${cmdArgs.join(" ")}`);
@@ -145,93 +78,83 @@ function step(cwd: string, cmd: string, cmdArgs: string[]): { code: number; tail
   // A spawn that could not finish (buffer, signal) has no exit code; say why.
   const why = r.error ? `\n${r.error.message}` : r.signal ? `\nkilled by ${r.signal}` : "";
   const text = `${r.stdout ?? ""}${r.stderr ?? ""}${why}`;
-  const tail = text.trim().split("\n").slice(-15).join("\n");
-  return { code: r.status ?? 1, tail };
+  return { code: r.status ?? 1, tail: text.trim().split("\n").slice(-15).join("\n") };
 }
 
 function check(recipe: string): Row {
-  const src = join(recipesDir, recipe);
-  const pkgPath = join(src, "package.json");
-  if (!existsSync(pkgPath)) {
-    const into = ASSEMBLED_INTO[recipe];
-    return {
-      recipe,
-      answer: "not-checked",
-      detail: into
-        ? `no package.json: checked inside ${into}, which assembles it`
-        : "no package.json: a fragment adapted into another package (README)",
-    };
-  }
-  if (NOT_STANDALONE[recipe])
-    return { recipe, answer: "not-checked", detail: NOT_STANDALONE[recipe] };
-
-  const dir = join(out, recipe);
-  rmSync(dir, { recursive: true, force: true });
-  cpSync(src, dir, { recursive: true, filter: (p) => !p.includes("node_modules") });
-  for (const [from, to] of ASSEMBLE[recipe]?.copy ?? []) {
-    cpSync(join(recipesDir, from), join(dir, to), { recursive: true });
-  }
-  for (const sibling of SIBLINGS[recipe] ?? []) {
-    const to = join(out, sibling);
-    rmSync(to, { recursive: true, force: true });
-    cpSync(join(recipesDir, sibling), to, {
-      recursive: true,
-      filter: (p) => !p.includes("node_modules"),
-    });
-    symlinkSync(join(dir, "node_modules"), join(to, "node_modules"));
-  }
-  // A workspace of its own, so the starter's workspace settings do not apply.
-  writeFileSync(
-    join(dir, "pnpm-workspace.yaml"),
-    `packages: []\n${SUPPLY_CHAIN}${ASSEMBLE[recipe]?.workspace ?? ""}`,
-  );
-  const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as { scripts?: Record<string, string> };
-  const scripts = pkg.scripts ?? {};
+  const c = reg.items[recipe]?.check ?? {};
+  if (c.skip) return { recipe, answer: "not-checked", detail: c.skip };
+  if (c.via)
+    return { recipe, answer: "not-checked", detail: `checked inside ${c.via}, which requires it` };
+  if (!c.dir) return { recipe, answer: "not-checked", detail: "registry.json gives it no check" };
 
   console.log(`\n${recipe}`);
-  const install = step(dir, "pnpm", ["install", "--no-frozen-lockfile"]);
+  const logs: string[] = [];
+  const ctx = {
+    cwd: out,
+    log: (l: string) => logs.push(l),
+    version: "0.0.0",
+    cliPath: join(root, "scripts/registry/cli.mjs"),
+  };
+  rmSync(join(out, recipe), { recursive: true, force: true });
+  if (init(ctx, recipe, { from: root, install: false, commit: false }) !== 0)
+    return { recipe, answer: "fail", detail: `init failed\n${logs.slice(-10).join("\n")}` };
+  const proj = join(out, recipe);
+  const items = [...(c.with ?? []), recipe];
+  console.log(`  $ ai-sdlc add ${items.join(" ")}`);
+  if (add({ ...ctx, cwd: proj }, items, {}) !== 0)
+    return { recipe, answer: "fail", detail: `add failed\n${logs.slice(-10).join("\n")}` };
+
+  const install = step(proj, "pnpm", ["install", "--no-frozen-lockfile"]);
   if (install.code !== 0)
     return { recipe, answer: "fail", detail: `install failed\n${install.tail}` };
-
-  for (const name of ASSEMBLE[recipe]?.before ?? []) {
+  const dir = join(proj, c.dir);
+  for (const name of c.before ?? []) {
     const r = step(dir, "pnpm", ["run", name]);
     if (r.code !== 0) return { recipe, answer: "fail", detail: `${name} failed\n${r.tail}` };
   }
 
   const notes: string[] = [];
-  if (!existsSync(join(dir, "tsconfig.json"))) {
-    const excluded = TS_EXCLUDE[recipe];
-    const tsconfig = {
-      ...DEFAULT_TSCONFIG,
-      exclude: [...DEFAULT_TSCONFIG.exclude, ...(excluded?.files ?? [])],
-    };
-    writeFileSync(join(dir, "tsconfig.json"), JSON.stringify(tsconfig, null, 2));
-    notes.push("typecheck used the harness's default tsconfig (the recipe ships none)");
-    if (excluded) notes.push(excluded.reason);
+  const atRoot = c.dir === ".";
+  const scripts = atRoot
+    ? {}
+    : ((
+        JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as {
+          scripts?: Record<string, string>;
+        }
+      ).scripts ?? {});
+  let tc;
+  if (atRoot) tc = step(dir, "pnpm", ["exec", "tsc", "--noEmit", "-p", "tsconfig.json"]);
+  else if (scripts.typecheck) tc = step(dir, "pnpm", ["run", "typecheck"]);
+  else {
+    if (!existsSync(join(dir, "tsconfig.json"))) {
+      writeFileSync(join(dir, "tsconfig.json"), JSON.stringify(DEFAULT_TSCONFIG, null, 2));
+      notes.push("typecheck used the harness's default tsconfig (the recipe ships none)");
+    }
+    tc = step(dir, "pnpm", ["exec", "tsc", "--noEmit"]);
   }
-  const tc = scripts.typecheck
-    ? step(dir, "pnpm", ["run", "typecheck"])
-    : step(dir, "pnpm", ["exec", "tsc", "--noEmit"]);
   if (tc.code !== 0) return { recipe, answer: "fail", detail: `typecheck failed\n${tc.tail}` };
 
-  const testScript = scripts["test:ci"] ? "test:ci" : "test";
-  const t = step(dir, "pnpm", ["run", testScript]);
+  const testScript = c.test ?? (scripts["test:ci"] ? "test:ci" : "test");
+  const t = c.vitest
+    ? step(dir, "pnpm", ["exec", "vitest", "run", ...c.vitest])
+    : step(dir, "pnpm", ["run", testScript]);
+  const label = c.vitest ? `vitest run ${c.vitest.join(" ")}` : testScript;
   const summary = t.tail
     .split("\n")
     .filter((l) => /Tests |Test Files |COULD NOT RUN/.test(l))
     .map((l) => l.trim())
     .join("; ");
-  if (t.code === 2) return { recipe, answer: "could-not-run", detail: `${testScript}: ${summary}` };
-  if (t.code !== 0) return { recipe, answer: "fail", detail: `${testScript} failed\n${t.tail}` };
+  if (t.code === 2) return { recipe, answer: "could-not-run", detail: `${label}: ${summary}` };
+  if (t.code !== 0) return { recipe, answer: "fail", detail: `${label} failed\n${t.tail}` };
   return { recipe, answer: "pass", detail: [summary, ...notes].filter(Boolean).join("; ") };
 }
 
-const recipes = readdirSync(recipesDir, { withFileTypes: true })
-  .filter((d) => d.isDirectory())
-  .map((d) => d.name)
-  .filter((n) => !only || only.includes(n))
+const recipes = Object.entries(reg.items)
+  .filter(([n, i]) => i.kind === "recipe" && (!only || only.includes(n)))
+  .map(([n]) => n)
   .sort();
-const unknown = (only ?? []).filter((n) => !recipes.includes(n));
+const unknown = (only ?? []).filter((n) => reg.items[n]?.kind !== "recipe");
 if (unknown.length) {
   console.error(`recipes-check: no such recipe: ${unknown.join(", ")}`);
   process.exit(1);
@@ -244,7 +167,7 @@ for (const r of rows) {
   console.log(`${r.recipe.padEnd(22)} ${r.answer.padEnd(15)} ${first ?? ""}`);
   if (r.answer === "fail") for (const l of rest) console.log(`${" ".repeat(39)}${l}`);
 }
-console.log(`\nscratch workspaces: ${out}${keep ? "" : " (removed)"}`);
+console.log(`\nscratch projects: ${out}${keep ? "" : " (removed)"}`);
 if (!keep) rmSync(out, { recursive: true, force: true });
 
 if (rows.some((r) => r.answer === "fail")) process.exit(1);

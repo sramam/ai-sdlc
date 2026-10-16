@@ -18,8 +18,11 @@ curl -b .dev-session/admin@example.test.cookies.txt http://127.0.0.1:8787/api/au
 | `src/dev-session.ts`      | `scripts/dev-session/dev-session.ts` | `envVerdict`, `devSignIn`, `curlJar`, `storageState`; runtime-free, dependencies passed in |
 | `src/dev-session.test.ts` | beside it                            | the whole flow against an in-process Better Auth over PGlite                               |
 
-Add `"dev:session": "node scripts/dev-session.mts"` to the root `package.json`,
-and `.dev-session/` to `.gitignore` (the files are live sessions, written `0600`).
+`pnpm sdlc add dev-session` puts them there, adds `"dev:session"` and the
+dependencies (`package.json` here) to the root `package.json`, and
+`.dev-session/` to `.gitignore` (the files are live sessions, written `0600`).
+The test imports the app's `apps/web/src/db/auth-schema.ts` (db-drizzle) at
+its installed path, so it runs in a project, not in this directory.
 
 ## What it refuses
 

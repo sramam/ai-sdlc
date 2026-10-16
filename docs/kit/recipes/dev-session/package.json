@@ -1,10 +1,5 @@
 {
-  "name": "dev-session-recipe",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "test": "vitest run"
-  },
+  "//": "Merged into the project's root package.json by `pnpm sdlc add dev-session`: the CLI and its test live under scripts/, which is the root package. vitest, typescript and @types/node come from the base item.",
   "dependencies": {
     "@better-auth/drizzle-adapter": "1.7.9",
     "better-auth": "1.7.9",
@@ -13,10 +8,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.10",
-    "@types/node": "^24.0.0",
     "@types/pg": "^8.15.0",
-    "drizzle-kit": "0.31.11",
-    "typescript": "^5.9.0",
-    "vitest": "3.2.4"
+    "drizzle-kit": "0.31.11"
   }
 }

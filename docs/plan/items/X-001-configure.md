@@ -20,5 +20,5 @@ estimate: unknown
 
 ## Notes
 
-Shipped by the starter. Independent of the product, so it runs in parallel with
+Shipped in base (`ai-sdlc init`). Independent of the product, so it runs in parallel with
 X-000 (docs/kit/BOOTSTRAP.md Phase 2).

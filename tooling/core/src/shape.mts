@@ -1,6 +1,6 @@
 /**
  * A small description language for the JSON files the tooling reads
- * (sdlc.config.json, starter-manifest.json), and the one validator built from
+ * (sdlc.config.json), and the one validator built from
  * it. Hand-written, with no dependency, so hooks keep running with plain
  * `node` before `pnpm install`. The validator and the JSON Schema are both
  * derived from a shape, so they cannot describe two different files.
