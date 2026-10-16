@@ -172,7 +172,10 @@ think they should want. Within that:
    - auth provider
    - **authorization engine**: Oso or SpiceDB, starting from stage 2's
      recommendation in `technology.md`
-   - OTel backend
+   - OTel backend for production (Grafana Cloud's free tier unless there is a
+     reason; local is always VictoriaLogs, `docs/kit/observability.md`
+     § _Backends_), with its ingestion and retention limits written in the
+     brief
    - email, SMS and payments
    - whether GPUs are needed, and for which data class (vast.ai rules in
      `docs/kit/security.md`)
