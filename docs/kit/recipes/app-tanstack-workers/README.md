@@ -39,17 +39,52 @@ In a project the port (`src/port/`) moves to `packages/api`, and `db`,
 
 ## Run it
 
+Every command runs from the **repository root**; the app's own commands go
+through `pnpm --filter @app/web`, which runs them in `apps/web`.
+
+First, allow the install scripts this app needs. pnpm reads
+`onlyBuiltDependencies` **only from the workspace root**, so it goes in the
+root `pnpm-workspace.yaml` (whose starter default is `[]`), reviewed like any
+change to that list ([security.md](../../security.md) § _Supply chain_):
+
+```diff
+-onlyBuiltDependencies: []
++onlyBuiltDependencies:
++  - esbuild
++  - workerd
++  - sharp
+```
+
+Merge `../db-drizzle/sdlc.config.localdb.json` into `sdlc.config.json` so
+`pnpm db:local migrate` knows the app's migration command. Then:
+
 ```bash
 pnpm install
-pnpm exec drizzle-kit generate --name=init     # from src/db/schema.ts
-pnpm db:local start && pnpm db:local migrate   # this checkout's PGlite (repo root)
-pnpm exec vite build
+pnpm --filter @app/web exec drizzle-kit generate --name=init   # from src/db/schema.ts, into apps/web/drizzle/
+pnpm db:local start && pnpm db:local migrate                   # this checkout's PGlite
+pnpm --filter @app/web build                                   # vite build; also writes src/routeTree.gen.ts
+pnpm --filter @app/web typecheck                               # wrangler types, then tsc --noEmit
+pnpm --filter @app/web test
 CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE="$(pnpm -s db:local url | sed 's#postgres@#postgres:localdb@#')" \
-  pnpm exec wrangler dev --config dist/server/wrangler.json
+  pnpm --filter @app/web start:worker                          # wrangler dev on the built Worker
 ```
+
+**Two generated files, treated differently.** `worker-configuration.d.ts` (the
+`Env` type `tsconfig.json` loads) is written by `wrangler types` from
+`wrangler.jsonc`; `typecheck` regenerates it every run, so it is gitignored
+(the recipe's `.gitignore`) and can never describe a stale config.
+`src/routeTree.gen.ts` is written by TanStack Router's Vite plugin on
+`vite dev` and `vite build`; commit it, so a fresh clone typechecks without a
+build first.
 
 `vite dev` also runs SSR in workerd (with the same variable set), but smoke-test
 the **built** Worker: it is what deploys.
+
+**Verified** 2026-10-16 by `pnpm recipes:check`, which assembles this recipe with
+`env-schema`, `db-drizzle` and `telemetry` in a scratch workspace whose
+`pnpm-workspace.yaml` carries exactly the patch above, then runs `build`,
+`typecheck` and `test` (10 pass). The database and `wrangler dev` steps were
+not re-run there (they need localdb and workerd ports); the spike ran them.
 
 ## Traps the spike hit
 
@@ -73,9 +108,9 @@ exist`: localdb multiplexes connections onto one PGlite session. Real
   Postgres does not do this. See the spike report.
 - **Sign-in needs `Origin` equal to `BETTER_AUTH_URL`** (403 `INVALID_ORIGIN`
   otherwise). The journeys adapter passes `--var BETTER_AUTH_URL:<appUrl>`.
-- `pnpm.onlyBuiltDependencies` belongs in the workspace root (or
-  `pnpm-workspace.yaml`); it is in this `package.json` only so the recipe
-  installs on its own.
+- **`onlyBuiltDependencies` in this `package.json` would be ignored**: pnpm
+  reads it only at the workspace root, so it lives in the root
+  `pnpm-workspace.yaml` (§ _Run it_).
 
 ## Not here
 

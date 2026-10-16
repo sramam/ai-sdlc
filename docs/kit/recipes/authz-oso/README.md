@@ -6,15 +6,16 @@ matrix test generated from the access model, and the Oso Dev Server for local
 runs. Choose it over `authz-spicedb` when the access model is roles within
 tenants plus attribute rules ([security.md](../../security.md) § _Authorization_).
 
-| file                      | is                                                                                                                |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `policy.polar`            | the policy, with a Polar `test` block; the Dev Server and Oso Cloud run it on load and refuse a failing policy    |
-| `data-bindings.yaml`      | **local authorization**: each fact in the policy, as a `SELECT` over our own tables                               |
-| `access-model.example.md` | a tiny access model; the matrix test reads its `capability × persona` table                                       |
-| `src/authz.ts`            | the shared interface (`Authz`, `Decision`, `ListFilter`), and `checkVocabulary` for default deny                  |
-| `src/oso.ts`              | `osoAuthz(config)`: Oso's HTTP API over `fetch`, local or centralized facts; `CATALOGUE` of every action          |
-| `src/matrix.ts`           | parses the access model and generates a check case per cell and a list case per row (shared with `authz-spicedb`) |
-| `src/oso.matrix.test.ts`  | the matrix, in both fact modes, plus default deny, could-not-ask, a failing Polar test, and SQL quoting           |
+| file                                  | is                                                                                                                |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `policy.polar`                        | the policy, with a Polar `test` block; the Dev Server and Oso Cloud run it on load and refuse a failing policy    |
+| `data-bindings.yaml`                  | **local authorization**: each fact in the policy, as a `SELECT` over our own tables                               |
+| `access-model.example.md`             | a tiny access model; the matrix test reads its `capability × persona` table                                       |
+| `src/authz.ts`                        | the shared interface (`Authz`, `Decision`, `ListFilter`), and `checkVocabulary` for default deny                  |
+| `src/oso.ts`                          | `osoAuthz(config)`: Oso's HTTP API over `fetch`, local or centralized facts; `CATALOGUE` of every action          |
+| `src/matrix.ts`                       | parses the access model and generates a check case per cell and a list case per row (shared with `authz-spicedb`) |
+| `src/oso.matrix.test.ts`              | the matrix, in both fact modes, plus default deny, could-not-ask, a failing Polar test, and SQL quoting           |
+| `src/could-not-run.ts`, `test-ci.mts` | the `AUTHZ-COULD-NOT-RUN` sentinel and the wrapper that maps it to exit 2 (§ _Run the tests_)                     |
 
 ## Local authorization, so there are no dual writes
 
@@ -43,18 +44,39 @@ scoped client's job (the `api` recipe). Both checks, always.
 
 ```bash
 docker run --rm -p 8080:8080 public.ecr.aws/osohq/dev-server:latest   # or podman
-OSO_URL=http://127.0.0.1:8080 pnpm test
+OSO_URL=http://127.0.0.1:8080 pnpm test:ci   # 0 pass, 1 fail, 2 could not run
 ```
 
 Each suite creates its own **test environment** on the Dev Server
 (`POST /test_environment?copy=false`, which returns a token), loads
 `policy.polar` into it, and loads the example world into a PGlite database.
-Without a Dev Server every case is **skipped with the reason**
-(`COULD NOT RUN: no Oso Dev Server at …`), never passed.
+
+**Could not run is never a pass.** Without a Dev Server the matrix **fails** with a
+test titled `AUTHZ-COULD-NOT-RUN: …` (so plain `pnpm test` exits 1), and the
+engine-free cases (catalogue, default deny, an unreachable engine is
+`UNAVAILABLE`) still run. `pnpm test:ci` (`test-ci.mts`) runs the same suite and
+exits **2** when those sentinels are the only failures, 1 on any other failure
+(including a file that fails to load), 0 when everything passed. The project's
+ci step declares 2 as _could not run_:
+
+```json
+{
+  "name": "authz",
+  "run": "pnpm --filter @app/authz run test:ci",
+  "applies": "always",
+  "unknownExitCodes": [2]
+}
+```
+
+`AUTHZ_ENGINE=skip` is the one deliberate opt-out: the matrix is skipped, a
+banner of `!` says no authorization cell was verified, and the run exits 0.
+Never set it in CI.
 
 Verified 2026-10-16: `public.ecr.aws/osohq/dev-server:latest` (created
 2026-08-05, digest `sha256:62885278…3ace`) under podman 5.5.2; 65 tests pass, in
-both fact modes. **Proved by tripping**: letting `member` delete fails the three
+both fact modes. Re-run 2026-10-16 through `pnpm recipes:check` with the could-not-run
+gate: 65 pass with the Dev Server up; with it down, 1 sentinel fails, 3
+engine-free cases pass, and `test:ci` exits 2. **Proved by tripping**: letting `member` delete fails the three
 matrix cells for member × `project.delete` in each mode, and a Polar `test`
 asserting the wrong thing makes the policy load fail with `400 TestsFailed`.
 

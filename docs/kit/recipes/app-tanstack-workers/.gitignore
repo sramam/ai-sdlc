@@ -1,0 +1,3 @@
+# Generated: `wrangler types` (run by `pnpm typecheck`) rewrites it from wrangler.jsonc.
+worker-configuration.d.ts
+.wrangler/

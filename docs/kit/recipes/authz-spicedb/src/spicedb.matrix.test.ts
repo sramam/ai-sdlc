@@ -1,6 +1,8 @@
 // The policy matrix against a real SpiceDB (`serve-testing`, in memory) whose
 // relationships arrive through the outbox from a real Postgres (PGlite).
-// Without SpiceDB every case is reported as skipped with the reason, never passed.
+// Without SpiceDB the matrix FAILS with AUTHZ-COULD-NOT-RUN (test-ci.mts maps that
+// to exit 2), never passes; only AUTHZ_ENGINE=skip skips it, with a banner.
+// The engine-free cases always run.
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
@@ -15,6 +17,7 @@ import {
   relay,
 } from "./outbox";
 import { WORLD, callerFor, checkCases, listCases, parseAccessModel } from "./matrix";
+import { COULD_NOT_RUN, engineState, skipBanner } from "./could-not-run";
 
 const SPICEDB_URL = process.env.SPICEDB_URL ?? "http://127.0.0.1:8443";
 const here = (f: string) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8");
@@ -54,9 +57,21 @@ async function outboxDb() {
   return drizzle(pg);
 }
 
-if (!reachable) {
+const state = engineState(reachable);
+
+if (state === "unreachable") {
+  // Fails, so the suite cannot pass; test-ci.mts reports it as exit 2 (could not run).
   describe("spicedb matrix", () => {
-    it.skip(`COULD NOT RUN: no SpiceDB HTTP gateway at ${SPICEDB_URL} (README § Run the tests)`, () => {});
+    it(`${COULD_NOT_RUN}: no SpiceDB HTTP gateway at ${SPICEDB_URL} (README § Run the tests)`, () => {
+      throw new Error(
+        `${COULD_NOT_RUN}: no SpiceDB HTTP gateway at ${SPICEDB_URL}. Start it (README § Run the tests), or set AUTHZ_ENGINE=skip to opt out loudly.`,
+      );
+    });
+  });
+} else if (state === "skipped") {
+  console.warn(skipBanner("SpiceDB"));
+  describe("spicedb matrix", () => {
+    it.skip("SKIPPED by AUTHZ_ENGINE=skip: the SpiceDB matrix was not run", () => {});
   });
 } else {
   describe("spicedb matrix", () => {
@@ -87,7 +102,7 @@ if (!reachable) {
     });
   });
 
-  describe("spicedb: outbox, default deny, could-not-ask", () => {
+  describe("spicedb: against the engine", () => {
     it("a row's relationships are invisible until relayed, then visible; relaying twice is harmless", async () => {
       const config = await freshEngine();
       const db = await outboxDb();
@@ -108,49 +123,6 @@ if (!reachable) {
       expect(await relay(db, config)).toMatchObject({ ok: true, relayed: 0 });
     });
 
-    it("a relay that cannot reach SpiceDB keeps the rows pending and records why", async () => {
-      const db = await outboxDb();
-      await db.transaction((tx) => enqueue(tx, [membershipRelationship(WORLD.memberships[0])]));
-      const r = await relay(db, { url: "http://127.0.0.1:9", token: "x", timeoutMs: 500 });
-      expect(r).toMatchObject({ ok: false, code: "UNAVAILABLE" });
-      expect(await pendingCount(db)).toBe(1);
-    });
-
-    it("every action in the catalogue appears in the access model, and vice versa", () => {
-      const declared = Object.entries(CATALOGUE).flatMap(([t, as]) => as.map((a) => `${t}:${a}`));
-      expect(declared.sort()).toEqual(rows.map((r) => `${r.resource}:${r.capability}`).sort());
-    });
-
-    it("refuses an unknown action or type before asking the engine", async () => {
-      let asked = 0;
-      const authz = spicedbAuthz({
-        url: SPICEDB_URL,
-        token: "x",
-        fetch: async (...a) => (asked++, fetch(...a)),
-      });
-      const admin = callerFor("admin");
-      expect(
-        await authz.authorize(admin, "project.nuke", { type: "Project", id: "p" }),
-      ).toMatchObject({
-        ok: false,
-        code: "FORBIDDEN",
-      });
-      expect(await authz.listFilter(admin, "project.read", "Invoice")).toMatchObject({
-        ok: false,
-        code: "FORBIDDEN",
-      });
-      expect(asked).toBe(0);
-    });
-
-    it("an unreachable engine is UNAVAILABLE, never allowed", async () => {
-      const authz = spicedbAuthz({ url: "http://127.0.0.1:9", token: "x", timeoutMs: 500 });
-      const d = await authz.authorize(callerFor("admin"), "project.read", {
-        type: "Project",
-        id: "p",
-      });
-      expect(d).toMatchObject({ ok: false, code: "UNAVAILABLE" });
-    });
-
     it("an engine with no schema loaded is UNAVAILABLE, not a refusal that looks like policy", async () => {
       const authz = spicedbAuthz({ url: SPICEDB_URL, token: `empty-${randomUUID()}` });
       const d = await authz.authorize(callerFor("admin"), "project.read", {
@@ -161,3 +133,49 @@ if (!reachable) {
     });
   });
 }
+
+// No engine needed: these run whatever the engine's state.
+describe("spicedb: outbox, default deny, could-not-ask", () => {
+  it("a relay that cannot reach SpiceDB keeps the rows pending and records why", async () => {
+    const db = await outboxDb();
+    await db.transaction((tx) => enqueue(tx, [membershipRelationship(WORLD.memberships[0])]));
+    const r = await relay(db, { url: "http://127.0.0.1:9", token: "x", timeoutMs: 500 });
+    expect(r).toMatchObject({ ok: false, code: "UNAVAILABLE" });
+    expect(await pendingCount(db)).toBe(1);
+  });
+
+  it("every action in the catalogue appears in the access model, and vice versa", () => {
+    const declared = Object.entries(CATALOGUE).flatMap(([t, as]) => as.map((a) => `${t}:${a}`));
+    expect(declared.sort()).toEqual(rows.map((r) => `${r.resource}:${r.capability}`).sort());
+  });
+
+  it("refuses an unknown action or type before asking the engine", async () => {
+    let asked = 0;
+    const authz = spicedbAuthz({
+      url: SPICEDB_URL,
+      token: "x",
+      fetch: async (...a) => (asked++, fetch(...a)),
+    });
+    const admin = callerFor("admin");
+    expect(
+      await authz.authorize(admin, "project.nuke", { type: "Project", id: "p" }),
+    ).toMatchObject({
+      ok: false,
+      code: "FORBIDDEN",
+    });
+    expect(await authz.listFilter(admin, "project.read", "Invoice")).toMatchObject({
+      ok: false,
+      code: "FORBIDDEN",
+    });
+    expect(asked).toBe(0);
+  });
+
+  it("an unreachable engine is UNAVAILABLE, never allowed", async () => {
+    const authz = spicedbAuthz({ url: "http://127.0.0.1:9", token: "x", timeoutMs: 500 });
+    const d = await authz.authorize(callerFor("admin"), "project.read", {
+      type: "Project",
+      id: "p",
+    });
+    expect(d).toMatchObject({ ok: false, code: "UNAVAILABLE" });
+  });
+});

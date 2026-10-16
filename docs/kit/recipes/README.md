@@ -26,3 +26,10 @@ which assembled them into a scratch project and ran them on workerd:
 The second group was built after the spike, against current vendor docs and,
 where one could run, the vendor's local engine; each README says what was run
 and what was not ([../spike-2026-10.md](../spike-2026-10.md) § _Addendum_).
+
+`pnpm recipes:check` (`scripts/recipes-check.mts`) builds each recipe in a
+scratch workspace (install, typecheck, its own tests) and answers _pass_,
+_fail_, _could not run_ or _not checked_ per recipe, with the reason. It needs
+the network and is run by hand when a recipe changes; the authorization
+recipes report _could not run_ unless their engine is started
+([../starter-repo.md](../starter-repo.md)).

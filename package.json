@@ -44,7 +44,8 @@
     "rollback": "node tooling/promote/src/rollback.mts",
     "release": "node tooling/promote/src/release.mts",
     "security:scan": "node tooling/security/src/scan.mts",
-    "security:scan:staged": "node tooling/security/src/scan.mts --staged"
+    "security:scan:staged": "node tooling/security/src/scan.mts --staged",
+    "recipes:check": "node scripts/recipes-check.mts"
   },
   "lint-staged": {
     "*.{ts,mts,tsx,js,mjs}": [

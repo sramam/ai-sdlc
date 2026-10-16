@@ -1,11 +1,13 @@
 // The policy matrix, against a real Oso Dev Server and a real Postgres (PGlite).
-// Needs the Dev Server (README § Run the tests); without it every case is
-// reported as skipped with the reason, never as passed.
+// Needs the Dev Server (README § Run the tests). Without it the matrix FAILS with
+// AUTHZ-COULD-NOT-RUN (test-ci.mts maps that to exit 2), never passes; only
+// AUTHZ_ENGINE=skip skips it, with a banner. The engine-free cases always run.
 import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, describe, expect, it } from "vitest";
 import { CATALOGUE, osoAuthz } from "./oso";
 import { WORLD, callerFor, checkCases, listCases, parseAccessModel } from "./matrix";
+import { COULD_NOT_RUN, engineState, skipBanner } from "./could-not-run";
 
 const OSO_URL = process.env.OSO_URL ?? "http://127.0.0.1:8080";
 const DEV_TOKEN = "e_0123456789_12345_osotesttoken01xiIn"; // the Dev Server's fixed test token
@@ -46,9 +48,21 @@ async function worldDb(): Promise<PGlite> {
   return db;
 }
 
-if (!reachable) {
+const state = engineState(reachable);
+
+if (state === "unreachable") {
+  // Fails, so the suite cannot pass; test-ci.mts reports it as exit 2 (could not run).
   describe("oso matrix", () => {
-    it.skip(`COULD NOT RUN: no Oso Dev Server at ${OSO_URL} (README § Run the tests)`, () => {});
+    it(`${COULD_NOT_RUN}: no Oso Dev Server at ${OSO_URL} (README § Run the tests)`, () => {
+      throw new Error(
+        `${COULD_NOT_RUN}: no Oso Dev Server at ${OSO_URL}. Start it (README § Run the tests), or set AUTHZ_ENGINE=skip to opt out loudly.`,
+      );
+    });
+  });
+} else if (state === "skipped") {
+  console.warn(skipBanner("Oso"));
+  describe("oso matrix", () => {
+    it.skip("SKIPPED by AUTHZ_ENGINE=skip: the Oso matrix was not run", () => {});
   });
 } else {
   describe.each(["local", "centralized"] as const)("oso matrix (%s facts)", (mode) => {
@@ -117,43 +131,7 @@ if (!reachable) {
     });
   });
 
-  describe("oso: default deny and could-not-ask", () => {
-    it("every action in the catalogue appears in the access model, and vice versa", () => {
-      const declared = Object.entries(CATALOGUE).flatMap(([t, as]) => as.map((a) => `${t}:${a}`));
-      const modelled = rows.map((r) => `${r.resource}:${r.capability}`);
-      expect(declared.sort()).toEqual(modelled.sort());
-    });
-
-    it("refuses an unknown action or type before asking the engine", async () => {
-      let asked = 0;
-      const authz = osoAuthz({
-        url: OSO_URL,
-        apiKey: DEV_TOKEN,
-        fetch: async (...a) => (asked++, fetch(...a)),
-      });
-      const admin = callerFor("admin");
-      expect(
-        await authz.authorize(admin, "project.nuke", { type: "Project", id: "p-own" }),
-      ).toMatchObject({
-        ok: false,
-        code: "FORBIDDEN",
-      });
-      expect(await authz.listFilter(admin, "project.read", "Invoice")).toMatchObject({
-        ok: false,
-        code: "FORBIDDEN",
-      });
-      expect(asked).toBe(0);
-    });
-
-    it("an unreachable engine is UNAVAILABLE, never allowed", async () => {
-      const authz = osoAuthz({ url: "http://127.0.0.1:9", apiKey: DEV_TOKEN, timeoutMs: 500 });
-      const d = await authz.authorize(callerFor("admin"), "project.read", {
-        type: "Project",
-        id: "p-own",
-      });
-      expect(d).toMatchObject({ ok: false, code: "UNAVAILABLE" });
-    });
-
+  describe("oso: against the engine", () => {
     it("a policy whose Polar tests fail is refused on load", async () => {
       const env = await fetch(`${OSO_URL}/test_environment?copy=false`, {
         method: "POST",
@@ -192,3 +170,42 @@ if (!reachable) {
     });
   });
 }
+
+// No engine needed: these run whatever the engine's state.
+describe("oso: default deny and could-not-ask", () => {
+  it("every action in the catalogue appears in the access model, and vice versa", () => {
+    const declared = Object.entries(CATALOGUE).flatMap(([t, as]) => as.map((a) => `${t}:${a}`));
+    const modelled = rows.map((r) => `${r.resource}:${r.capability}`);
+    expect(declared.sort()).toEqual(modelled.sort());
+  });
+
+  it("refuses an unknown action or type before asking the engine", async () => {
+    let asked = 0;
+    const authz = osoAuthz({
+      url: OSO_URL,
+      apiKey: DEV_TOKEN,
+      fetch: async (...a) => (asked++, fetch(...a)),
+    });
+    const admin = callerFor("admin");
+    expect(
+      await authz.authorize(admin, "project.nuke", { type: "Project", id: "p-own" }),
+    ).toMatchObject({
+      ok: false,
+      code: "FORBIDDEN",
+    });
+    expect(await authz.listFilter(admin, "project.read", "Invoice")).toMatchObject({
+      ok: false,
+      code: "FORBIDDEN",
+    });
+    expect(asked).toBe(0);
+  });
+
+  it("an unreachable engine is UNAVAILABLE, never allowed", async () => {
+    const authz = osoAuthz({ url: "http://127.0.0.1:9", apiKey: DEV_TOKEN, timeoutMs: 500 });
+    const d = await authz.authorize(callerFor("admin"), "project.read", {
+      type: "Project",
+      id: "p-own",
+    });
+    expect(d).toMatchObject({ ok: false, code: "UNAVAILABLE" });
+  });
+});

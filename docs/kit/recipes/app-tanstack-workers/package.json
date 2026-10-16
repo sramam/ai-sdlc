@@ -7,7 +7,7 @@
     "build": "vite build",
     "start:worker": "wrangler dev --config dist/server/wrangler.json",
     "cf-typegen": "wrangler types",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "wrangler types && tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
@@ -33,12 +33,5 @@
     "vite": "^8.0.0",
     "vitest": "3.2.4",
     "wrangler": "4.151.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "workerd",
-      "sharp"
-    ]
   }
 }

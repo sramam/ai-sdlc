@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
+    "test:ci": "node test-ci.mts",
     "authz:dev": "docker run --rm -p 8080:8080 public.ecr.aws/osohq/dev-server:latest"
   },
   "devDependencies": {

@@ -79,7 +79,14 @@ docs/kit/spike-2026-10.md addendum):
   Postgres and returns SQL to run, so nothing is written to Oso twice.
 - **The matrix test** runs against that local engine. It is generated from
   `access-model.md`, and its cells arrive with the features that need them.
-- If the engine cannot start, `ci:local` reports _could not run_, never a pass.
+- **An unreachable engine is _could not run_, never a pass.** The matrix then
+  fails with a test titled `AUTHZ-COULD-NOT-RUN: …`, so plain `pnpm test` exits
+  1; the engine-free cases (catalogue, default deny, `UNAVAILABLE`) still run.
+  The recipe's `pnpm test:ci` exits 2 when those sentinels are the only
+  failures, and the project's authz ci step declares `"unknownExitCodes": [2]`,
+  so `ci:local` reports _could not run_ and holds the verdict. Any other failure
+  is exit 1. `AUTHZ_ENGINE=skip` is the only way to skip the matrix; it prints a
+  banner saying nothing was verified and exits 0, and is never set in CI.
 
 ## Model providers — OpenRouter, with data policy enforced
 

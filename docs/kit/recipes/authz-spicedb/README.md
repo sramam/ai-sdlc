@@ -8,14 +8,15 @@ the rows they describe. Choose it over `authz-oso` for fine-grained sharing,
 nested groups, deep hierarchies or several services sharing one authorization
 source ([security.md](../../security.md) § _Authorization_).
 
-| file                         | is                                                                                                        |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `schema.zed`                 | the schema; permission names are `project_read` (SpiceDB names allow no dots)                             |
-| `access-model.example.md`    | the same tiny access model as `authz-oso`                                                                 |
-| `src/authz.ts`, `matrix.ts`  | the shared interface and the matrix generator (identical to `authz-oso`'s)                                |
-| `src/spicedb.ts`             | `spicedbAuthz(config)` over the HTTP gateway with `fetch`; `PERMISSIONS` maps each action to a permission |
-| `src/outbox.ts`              | the `authz_outbox` table (Drizzle), `enqueue(tx, ops)` and `relay(db, config)`                            |
-| `src/spicedb.matrix.test.ts` | the matrix (world loaded **through the outbox**), the outbox's behaviour, default deny, could-not-ask     |
+| file                                  | is                                                                                                        |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `schema.zed`                          | the schema; permission names are `project_read` (SpiceDB names allow no dots)                             |
+| `access-model.example.md`             | the same tiny access model as `authz-oso`                                                                 |
+| `src/authz.ts`, `matrix.ts`           | the shared interface and the matrix generator (identical to `authz-oso`'s)                                |
+| `src/spicedb.ts`                      | `spicedbAuthz(config)` over the HTTP gateway with `fetch`; `PERMISSIONS` maps each action to a permission |
+| `src/outbox.ts`                       | the `authz_outbox` table (Drizzle), `enqueue(tx, ops)` and `relay(db, config)`                            |
+| `src/spicedb.matrix.test.ts`          | the matrix (world loaded **through the outbox**), the outbox's behaviour, default deny, could-not-ask     |
+| `src/could-not-run.ts`, `test-ci.mts` | the `AUTHZ-COULD-NOT-RUN` sentinel and the wrapper that maps it to exit 2 (§ _Run the tests_)             |
 
 ## The outbox
 
@@ -39,19 +40,40 @@ failure the rows stay pending with `attempts` and `last_error`.
 ```bash
 spicedb serve-testing --http-enabled --http-addr 127.0.0.1:8443
 # or: docker run --rm -p 8443:8443 authzed/spicedb:v1.56.2 serve-testing --http-enabled
-SPICEDB_URL=http://127.0.0.1:8443 pnpm test
+SPICEDB_URL=http://127.0.0.1:8443 pnpm test:ci   # 0 pass, 1 fail, 2 could not run
 ```
 
 `serve-testing` gives every bearer token its **own empty in-memory datastore**,
 so each suite takes a fresh random token, writes `schema.zed`, and is isolated
-from every other. Without SpiceDB, every case is **skipped with the reason**
-(`COULD NOT RUN: no SpiceDB HTTP gateway at …`), never passed.
+from every other.
+**Could not run is never a pass.** Without SpiceDB the matrix **fails** with a
+test titled `AUTHZ-COULD-NOT-RUN: …` (so plain `pnpm test` exits 1), and the
+engine-free cases (catalogue, default deny, an unreachable engine is
+`UNAVAILABLE`) still run. `pnpm test:ci` (`test-ci.mts`) runs the same suite and
+exits **2** when those sentinels are the only failures, 1 on any other failure
+(including a file that fails to load), 0 when everything passed. The project's
+ci step declares 2 as _could not run_:
+
+```json
+{
+  "name": "authz",
+  "run": "pnpm --filter @app/authz run test:ci",
+  "applies": "always",
+  "unknownExitCodes": [2]
+}
+```
+
+`AUTHZ_ENGINE=skip` is the one deliberate opt-out: the matrix is skipped, a
+banner of `!` says no authorization cell was verified, and the run exits 0.
+Never set it in CI.
 
 Verified 2026-10-16 with the `spicedb` v1.56.2 darwin-arm64 release binary
 (checksum matched the release's `checksums.txt`): 36 tests pass. **Proved by
 tripping**: `project_delete = parent->is_member` fails the three member ×
-`project.delete` cells. The container command above was **not** run (the
-binary was used).
+`project.delete` cells. Re-run 2026-10-16 through `pnpm recipes:check` against
+the container above (`docker.io/authzed/spicedb:v1.56.2` under podman): 36
+pass, the same trip fails 3, and with SpiceDB down `test:ci` exits 2 (1
+sentinel failed, 4 engine-free cases passed).
 
 ## What SpiceDB provides (docs read 2026-10-16)
 

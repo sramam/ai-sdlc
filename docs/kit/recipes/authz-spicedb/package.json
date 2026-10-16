@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
+    "test:ci": "node test-ci.mts",
     "authz:dev": "spicedb serve-testing --http-enabled --http-addr 127.0.0.1:8443"
   },
   "dependencies": {

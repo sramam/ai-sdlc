@@ -30,8 +30,17 @@ holds tested reference code for the packages most projects end up with. When
 kickoff decides a project needs a package, the setup agent instantiates its
 recipe into `packages/<name>`, adapted to the decisions, and the project owns it
 from then on. Nothing is built from `recipes/`, so a project that needs none of
-them deletes nothing. Once recipes exist, the starter's own test suite builds every recipe into a
-scratch workspace and runs its tests, so recipes stay correct.
+them deletes nothing. `pnpm recipes:check` (`scripts/recipes-check.mts`) is what
+keeps them correct: it copies each recipe that has a `package.json` into its own
+scratch workspace, installs under the starter's `minimumReleaseAge`, typechecks
+and runs its tests, and gives every
+recipe one of four answers: _pass_, _fail_, _could not run_ (a step exited 2,
+such as an authorization engine that was not started) or _not checked_, with
+the reason. Fragments without a `package.json` (`env-schema`, `db-drizzle`,
+`telemetry`) are checked inside `app-tanstack-workers`, which assembles them;
+`ui` (needs `shadcn init`), `db-prisma` and `journeys-adapter` are reported as
+not checked. It needs the network, so it is run by hand when a recipe changes
+and is **not** part of `pnpm test` (the root suite excludes `docs/kit/recipes`).
 
 ## Layout
 
