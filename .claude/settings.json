@@ -90,14 +90,26 @@
             "if": "Bash(git commit *)",
             "timeout": 120,
             "statusMessage": "Reviewing commit...",
-            "prompt": "A `git commit` is about to run. Review ONLY the staged changes (`git diff --cached`, `git diff --cached --stat`) per .claude/skills/commit-reviewer/SKILL.md. FAIL OPEN: if nothing is staged, approve with '✓ Commit-reviewer: nothing staged'; if you cannot read the diff, approve with '✓ Commit-reviewer: could not ask (<reason>)'. Block ONLY by ending with the exact line `BLOCK: <defect in one sentence>`, and only for a committed secret, a message that misstates the diff, or a file swept in from another line of work. Never judge which model wrote the commit. When approving, output one verdict line and nothing else."
+            "prompt": "A `git commit` is about to run. Review ONLY the staged changes (`git diff --cached`, `git diff --cached --stat`) per .agents/skills/git-workflow-and-versioning/commit-review.md. FAIL OPEN: if nothing is staged, approve with '✓ Commit-reviewer: nothing staged'; if you cannot read the diff, approve with '✓ Commit-reviewer: could not ask (<reason>)'. Block ONLY by ending with the exact line `BLOCK: <defect in one sentence>`, and only for a committed secret, a message that misstates the diff, or a file swept in from another line of work. Never judge which model wrote the commit. When approving, output one verdict line and nothing else."
           },
           {
             "type": "agent",
             "if": "Bash(git commit *)",
             "timeout": 120,
             "statusMessage": "Reviewing code...",
-            "prompt": "A `git commit` is about to run. Review ONLY the staged diff (`git diff --cached`) per .claude/skills/code-reviewer/SKILL.md; a criterion that cannot apply is n/a. FAIL OPEN: nothing staged or an unreadable diff is an approval with a one-line reason. Block ONLY by ending with the exact line `BLOCK: <defect in one sentence>`, and only for a concrete correctness or security defect on a specific line. When approving, output one verdict line and nothing else."
+            "prompt": "A `git commit` is about to run. Review ONLY the staged diff (`git diff --cached`) per .agents/skills/code-review-and-quality/project-criteria.md; a criterion that cannot apply is n/a. FAIL OPEN: nothing staged or an unreadable diff is an approval with a one-line reason. Block ONLY by ending with the exact line `BLOCK: <defect in one sentence>`, and only for a concrete correctness or security defect on a specific line, a hand-written database fake, or what criterion 7 says to block. When approving, output one verdict line and nothing else."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node tooling/setup/src/bootstrap.mts --session-start",
+            "timeout": 60
           }
         ]
       }
@@ -115,5 +127,6 @@
       }
     ]
   },
+  "enabledPlugins": { "claude-security@claude-plugins-official": true },
   "worktree": { "baseRef": "head" }
 }

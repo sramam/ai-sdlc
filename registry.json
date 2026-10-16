@@ -20,7 +20,8 @@
       "recipes:check": "builds every recipe through add (manual: installs)",
       "registry:check": "init, add, diff and update end to end (manual: installs)",
       "sdlc": "the CLI from this checkout; init writes a project's own, pinned to its source",
-      "registry:patterns": "prints the registry pattern check's table (it also runs in pnpm test)"
+      "registry:patterns": "prints the registry pattern check's table (it also runs in pnpm test)",
+      "3rdparty": "third-party skills: sync <name> re-copies one from upstream and shows what changed; check; link"
     },
     "omit": {
       "prepare": "pnpm dlx github:… fetches this repository as a git dependency and refuses one with a prepare script; postinstall does the same job here and is merely skipped there"
@@ -32,16 +33,20 @@
       "description": "The process: the kit (docs/kit), the core skills, the hooks and guards, the plan, local CI and setup. Installed by init.",
       "files": [
         ".claude/settings.json",
-        ".claude/skills/kickoff/",
-        ".claude/skills/idea/",
-        ".claude/skills/add-requirement/",
-        ".claude/skills/plan/",
-        ".claude/skills/land/",
-        ".claude/skills/handoff/",
-        ".claude/skills/pickup/",
-        ".claude/skills/progress-report/",
-        ".claude/skills/commit-reviewer/",
-        ".claude/skills/code-reviewer/",
+        {
+          "from": ".agents/skills/",
+          "except": [
+            ".agents/skills/humanizer/",
+            ".agents/skills/stripe-best-practices/",
+            ".agents/skills/scroll-craft/",
+            ".agents/skills/journeys/",
+            ".agents/skills/test-driven-development/coverage.md",
+            ".agents/skills/git-workflow-and-versioning/release.md",
+            ".agents/skills/security-and-hardening/threat-model-review.md"
+          ]
+        },
+        ".agents/3rdparty/agent-skills/",
+        ".claude/agents/",
         ".husky/commit-msg",
         ".husky/pre-commit",
         ".husky/pre-push",
@@ -124,7 +129,8 @@
           "land": "node tooling/ci/src/land.mts",
           "claim": "node tooling/plan/src/claim.mts",
           "sources:add": "node tooling/guards/src/sources-manifest.mts --add",
-          "sources:check": "node tooling/guards/src/sources-manifest.mts --check"
+          "sources:check": "node tooling/guards/src/sources-manifest.mts --check",
+          "usage": "node tooling/core/src/usage.mts"
         },
         "devDependencies": {
           "@eslint/js": "9.39.5",
@@ -143,12 +149,7 @@
     "journeys": {
       "kind": "module",
       "description": "Playwright journeys: three-pass recording with learned masks, one-pass testing, delta, drift and the index.",
-      "files": [
-        "tooling/journeys/",
-        ".claude/skills/journey-add/",
-        ".claude/skills/journey-test/",
-        ".claude/skills/journey-ready-for-qa/"
-      ],
+      "files": ["tooling/journeys/", ".agents/skills/journeys/"],
       "package": {
         "scripts": {
           "journeys:learn": "node tooling/journeys/src/cli/learn.mts",
@@ -187,7 +188,7 @@
     "coverage": {
       "kind": "module",
       "description": "Merged coverage, per-path floors from sdlc.config.json, and the published report.",
-      "files": ["tooling/coverage/", ".claude/skills/coverage-report/"],
+      "files": ["tooling/coverage/", ".agents/skills/test-driven-development/coverage.md"],
       "package": {
         "scripts": {
           "coverage": "node tooling/coverage/src/coverage.mts",
@@ -214,7 +215,7 @@
     "promote": {
       "kind": "module",
       "description": "promote:staging, promote:prod, rollback and release: fast-forward only, green local-ci required, smoke-tested.",
-      "files": ["tooling/promote/", ".claude/skills/release/"],
+      "files": ["tooling/promote/", ".agents/skills/git-workflow-and-versioning/release.md"],
       "package": {
         "scripts": {
           "promote:staging": "node tooling/promote/src/promote.mts staging",
@@ -228,7 +229,11 @@
     "security": {
       "kind": "module",
       "description": "security:scan: secrets, dependency audit, licences, install scripts and release age.",
-      "files": ["tooling/security/", ".claude/skills/security-review/", "security.config.json"],
+      "files": [
+        "tooling/security/",
+        "security.config.json",
+        ".agents/skills/security-and-hardening/threat-model-review.md"
+      ],
       "package": {
         "scripts": {
           "security:scan": "node tooling/security/src/scan.mts",
@@ -254,6 +259,23 @@
         }
       },
       "notes": "Install trufflehog or gitleaks for the full secrets scan; without either the built-in patterns run and the step says so."
+    },
+    "humanizer": {
+      "kind": "skill",
+      "description": "humanizer (blader/humanizer): rewrites AI-sounding prose so it reads like its writer, without changing what it says. For READMEs, docs, release notes, PR text and copy.",
+      "files": [".agents/3rdparty/humanizer/", ".agents/skills/humanizer/"]
+    },
+    "stripe-best-practices": {
+      "kind": "skill",
+      "description": "Stripe's own integration guidance (stripe/ai): Checkout Sessions over PaymentIntents, Connect, billing, tax, webhooks, restricted keys. For a project that takes payments through Stripe.",
+      "files": [".agents/3rdparty/stripe/", ".agents/skills/stripe-best-practices/"]
+    },
+    "scroll-craft": {
+      "kind": "skill",
+      "description": "scroll-craft (nateherkai/scroll-craft): premium scroll-driven landing pages, verified on desktop, mobile and reduced motion. For a marketing or landing page that has to stand out.",
+      "files": [".agents/3rdparty/scroll-craft/", ".agents/skills/scroll-craft/"],
+      "gitignore": ["scrollcraft/"],
+      "notes": "Needs Playwright and ffmpeg on the machine. Generating images or video uses kie.ai (KIE_AI_API_KEY), which is paid and receives the prompts; it works without one when the user supplies the media. Its workspace is scrollcraft/ (gitignored)."
     },
     "api": {
       "kind": "recipe",

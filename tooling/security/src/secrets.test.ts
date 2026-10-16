@@ -55,7 +55,7 @@ describe("built-in rules", () => {
   it("does not trip on its own sources or on the skill", () => {
     const here = new URL(".", import.meta.url).pathname;
     const files = readdirSync(here).map((f) => join(here, f));
-    files.push(join(here, "../../../.claude/skills/security-review/SKILL.md"));
+    files.push(join(here, "../../../.agents/skills/security-and-hardening/threat-model-review.md"));
     files.push(join(here, "../README.md"));
     for (const f of files) expect(scanText(f, readFileSync(f, "utf8")), f).toEqual([]);
   });

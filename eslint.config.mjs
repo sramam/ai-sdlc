@@ -9,6 +9,8 @@ export default tseslint.config(
     ignores: [
       "**/node_modules/**",
       "**/.claude/worktrees/**",
+      // Third-party skills are copied verbatim and never edited here.
+      ".agents/3rdparty/**",
       "scripts/one-of/**",
       "**/dist/**",
       "coverage/**",

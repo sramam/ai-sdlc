@@ -57,7 +57,7 @@ describe("the good fixture", () => {
   it("passes every check up to the plan stage", () => {
     const results = runPatternCheck(loadModel(join(FIXTURES, "good")), "plan");
     expect(results.filter((r) => r.state !== "pass")).toEqual([]);
-    expect(results).toHaveLength(22);
+    expect(results).toHaveLength(24);
   });
   it("is detected at the plan stage", () => {
     expect(detectStage(join(FIXTURES, "good")).stage).toBe("plan");
@@ -237,6 +237,69 @@ describe("requirements stage, each check tripped", () => {
     });
     expect(check(d, "journey-persona").state).toBe("fail");
   });
+  describe("a journey spanning personas (J<nn> → J<nn>.<n> → tasks)", () => {
+    const SPANNING = [
+      "# Journeys",
+      "",
+      "## J1 — A session runs, end to end",
+      "",
+      "### J1.1 — @organizer runs it",
+      "",
+      "1. Creates a session (F01-R01)",
+      "2. Exports attendance (F02-R02)",
+      "",
+      "### J1.2 — @attendee attends it",
+      "",
+      "Persona: @attendee",
+      "",
+      "1. RSVPs (F02-R01)",
+      "2. Receives a reminder (F01-R02)",
+      "",
+    ].join("\n");
+
+    // What cited J2 (the attendee's journey) now cites the attendee's part of J1.
+    const toJ12 = (t: string) => t.replace(/\bJ2\b/g, "J1.2");
+    const spanning = (journeys = SPANNING) =>
+      mutated({
+        [J]: journeys,
+        [F02]: toJ12,
+        "docs/requirements/features/F01-sessions.md": toJ12,
+        "docs/plan/items/F02-001-rsvp.md": toJ12,
+        "docs/plan/items/F01-002-reminders.md": toJ12,
+      });
+
+    it("passes: the top journey has no tasks of its own and walks with both personas", () => {
+      const d = spanning();
+      for (const name of [
+        "journey-steps",
+        "journey-persona",
+        "journey-parents",
+        "persona-journeys",
+        "requirement-journeys",
+        "references",
+      ])
+        expect(check(d, name).state, name).toBe("pass");
+      expect(
+        loadModel(d)
+          .journeys.find((j) => j.id === "J1")
+          ?.personas.sort(),
+      ).toEqual(["attendee", "organizer"]);
+    });
+    it("journey-persona: a persona journey naming two personas", () => {
+      const d = spanning(SPANNING.replace("Persona: @attendee", "Persona: @attendee, @organizer"));
+      expect(check(d, "journey-persona").details.join()).toContain("J1.2");
+    });
+    it("journey-parents: a persona journey whose journey is not defined", () => {
+      const d = spanning(SPANNING.replace("## J1 — A session runs, end to end", ""));
+      expect(check(d, "journey-parents").details.join()).toContain("J1.1");
+    });
+    it("journey-steps: a persona journey with no tasks", () => {
+      const d = spanning(
+        SPANNING.replace("1. RSVPs (F02-R01)\n2. Receives a reminder (F01-R02)\n", ""),
+      );
+      expect(check(d, "journey-steps").details.join()).toContain("J1.2");
+    });
+  });
   it("feature-personas: a feature naming none", () => {
     const d = mutated({ [F02]: (t) => t.replace("Personas: @attendee", "Personas:") });
     expect(check(d, "feature-personas").details.join()).toContain("F02");
@@ -319,6 +382,19 @@ describe("plan stage, each check tripped", () => {
   it("items-cite-requirements: a feature item citing none", () => {
     const d = mutated({ "docs/plan/items/F02-001-rsvp.md": (t) => t.replace("[F02-R01]", "[]") });
     expect(check(d, "items-cite-requirements").state).toBe("fail");
+  });
+  it("items-approved: an item built from a spec no person approved", () => {
+    const d = mutated({ [F02]: (t) => t.replace("Approved: 2026-10-16 by the author\n", "") });
+    const r = check(d, "items-approved");
+    expect(r.state).toBe("fail");
+    expect(r.details.join()).toMatch(/F02-001 .* builds F02, whose spec has no Approved: line/);
+  });
+  it("items-approved: an Approved: line below the preamble does not count", () => {
+    const d = mutated({
+      [F02]: (t) =>
+        `${t.replace("Approved: 2026-10-16 by the author\n", "")}\n## Notes\n\nApproved: someday\n`,
+    });
+    expect(check(d, "items-approved").state).toBe("fail");
   });
   it("mvp-coverage: an MVP requirement no item covers", () => {
     const d = mutated({

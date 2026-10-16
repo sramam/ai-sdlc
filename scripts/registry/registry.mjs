@@ -20,7 +20,7 @@ export const REGISTRY_FILE = "registry.json";
  * @typedef {{ from: string, to?: string, except?: string[], seed?: boolean }} FileRule
  * @typedef {{ from?: string } & import("./merge.mjs").PackageFragment} ItemPackage
  * @typedef {{
- *   kind: "base" | "module" | "recipe",
+ *   kind: "base" | "module" | "skill" | "recipe",
  *   description: string,
  *   files: (string | FileRule)[],
  *   requires?: string[],
@@ -71,8 +71,8 @@ export function loadRegistry(dir) {
   for (const [name, item] of Object.entries(reg.items)) {
     if (!/^[a-z][a-z0-9-]*$/.test(name))
       fail(`item name "${name}" must be lowercase words joined by -`);
-    if (!["base", "module", "recipe"].includes(item.kind))
-      fail(`${name}.kind must be base, module or recipe`);
+    if (!["base", "module", "skill", "recipe"].includes(item.kind))
+      fail(`${name}.kind must be base, module, skill or recipe`);
     if (!Array.isArray(item.files) || !item.files.length) fail(`${name}.files is empty`);
     for (const dep of [...(item.requires ?? []), ...(item.conflicts ?? [])])
       if (!reg.items[dep]) fail(`${name} names "${dep}", which is not an item`);

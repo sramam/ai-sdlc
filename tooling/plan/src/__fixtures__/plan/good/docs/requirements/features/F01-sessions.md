@@ -2,6 +2,7 @@
 
 Personas: @organizer, @attendee Journeys: J1, J2
 Phase: MVP Owner: someone
+Approved: 2026-10-16 by the author
 
 ## Purpose
 

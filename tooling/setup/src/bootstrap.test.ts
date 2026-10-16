@@ -10,7 +10,16 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { checkNode, checkPnpm, linkEnvFile, runBootstrap } from "./bootstrap.mts";
+import {
+  checkNode,
+  checkPnpm,
+  checkSecurityPlugin,
+  checkSkills,
+  linkEnvFile,
+  newestHandoffs,
+  runBootstrap,
+  SECURITY_PLUGIN,
+} from "./bootstrap.mts";
 import { result, scriptedExec } from "../../core/src/exec.mts";
 
 let base: string;
@@ -187,5 +196,66 @@ describe("runBootstrap", () => {
     expect(
       (await runBootstrap({ exec: slow, root: main, nodeVersion: "v24.0.0", log: () => {} })).exit,
     ).toBe(2);
+  });
+});
+
+describe("skills, the security plugin and handoffs", () => {
+  it("links every skill into .claude/skills, and is absent when there are none", () => {
+    expect(checkSkills(main)).toBeNull();
+    mkdirSync(join(main, ".agents", "skills", "build"), { recursive: true });
+    writeFileSync(join(main, ".agents", "skills", "build", "SKILL.md"), "x");
+    expect(checkSkills(main)).toMatchObject({
+      state: "ok",
+      detail: "linked 1 into .claude/skills/",
+    });
+    expect(readlinkSync(join(main, ".claude", "skills", "build"))).toBe(
+      "../../.agents/skills/build",
+    );
+    expect(checkSkills(main)).toMatchObject({ state: "ok", detail: "all visible to Claude Code" });
+  });
+
+  const declare = () => {
+    mkdirSync(join(main, ".claude"), { recursive: true });
+    writeFileSync(
+      join(main, ".claude", "settings.json"),
+      JSON.stringify({ enabledPlugins: { [SECURITY_PLUGIN]: true } }),
+    );
+  };
+  const listing = (ids: string[]) =>
+    scriptedExec([
+      ["claude plugin list --json", result(0, JSON.stringify(ids.map((id) => ({ id }))))],
+    ]);
+
+  it("checks the security plugin only where the project declares it", async () => {
+    expect(await checkSecurityPlugin({ exec: listing([]), root: main })).toBeNull();
+    declare();
+    expect(
+      await checkSecurityPlugin({ exec: listing([SECURITY_PLUGIN]), root: main }),
+    ).toMatchObject({ state: "ok" });
+    expect(await checkSecurityPlugin({ exec: listing(["other@x"]), root: main })).toMatchObject({
+      state: "fail",
+      detail: expect.stringMatching(
+        /claude plugin install claude-security@claude-plugins-official/,
+      ),
+    });
+  });
+
+  it("an unreadable answer is could-not-ask, never installed", async () => {
+    declare();
+    const garbled = scriptedExec([["claude plugin list --json", result(0, "not json")]]);
+    expect(await checkSecurityPlugin({ exec: garbled, root: main })).toMatchObject({
+      state: "could-not-ask",
+    });
+  });
+
+  it("lists the newest day's handoffs only", () => {
+    expect(newestHandoffs(main)).toBeNull();
+    mkdirSync(join(main, "docs", "handoffs"), { recursive: true });
+    for (const f of ["README.md", "2026-10-14-a.md", "2026-10-15-b.md", "2026-10-15-c.md"])
+      writeFileSync(join(main, "docs", "handoffs", f), "x");
+    expect(newestHandoffs(main)).toEqual({
+      date: "2026-10-15",
+      files: ["2026-10-15-b.md", "2026-10-15-c.md"],
+    });
   });
 });

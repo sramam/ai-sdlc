@@ -32,6 +32,7 @@ import {
   PACKAGE_SECTIONS,
 } from "./merge.mjs";
 import { LOCK_FILE, findProject, hashFile, readLock, sha256, writeLock } from "./lock.mjs";
+import { ensureSkillLinks } from "../../tooling/core/src/skill-links.mjs";
 import {
   closure,
   configFragment,
@@ -204,6 +205,22 @@ function copyFiles(root, sourceDir, files) {
   return record;
 }
 
+/**
+ * Make every skill in `.agents/skills/` visible to Claude Code
+ * (skill-links.mjs). The links are derived from the skills, so the lock does
+ * not record them. A link that cannot be made (a filesystem without symlinks)
+ * is reported, not fatal: the skill is still there for other harnesses.
+ * @param {Ctx} ctx
+ * @param {string} root
+ */
+function linkSkills(ctx, root) {
+  const r = ensureSkillLinks(root);
+  if (r.created.length) ctx.log(`  skills        ${r.created.length} linked into .claude/skills/`);
+  for (const l of r.removed) ctx.log(`  skills        removed ${l} (its skill is gone)`);
+  for (const l of r.kept) ctx.log(`  skills        kept ${l}: not a link, so the project's own`);
+  for (const l of r.failed) ctx.log(`  skills        could not link ${l}`);
+}
+
 // ─── init ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -254,6 +271,7 @@ export function init(ctx, dir, o) {
     source: src.id,
     items: { base: { ref: src.id.ref, commit: src.id.commit, files, applied } },
   };
+  linkSkills(ctx, root);
   writeLock(root, lock);
   ctx.log(
     `  base          ${Object.keys(files).length} files, plus package.json, sdlc.config.json, ${LOCK_FILE}`,
@@ -409,6 +427,7 @@ export function add(ctx, names, o) {
     if (note) notes.push(`  ${n}: ${note}`);
   }
   if (o.from || o.ref) lock.source = src.id;
+  linkSkills(ctx, root);
   writeLock(root, lock);
   ctx.log(
     "Run pnpm install. Everything added is the project's now: change it as the project needs.",
@@ -782,6 +801,7 @@ export function update(ctx, name, o) {
       ctx.log(`  merged    package.json scripts.sdlc → ${pkg.scripts.sdlc}`);
     }
   }
+  linkSkills(ctx, root);
   writeLock(root, lock);
   if (byHand.length) {
     ctx.log(`${byHand.length} file(s) changed both here and upstream; nothing was overwritten:`);
