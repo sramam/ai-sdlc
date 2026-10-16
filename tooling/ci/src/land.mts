@@ -1,7 +1,8 @@
 /**
- * `pnpm land [--allow-unknown]` — /land, performed deterministically.
+ * `pnpm land [--allow-unknown]` — landing, performed deterministically.
  *
- * The skill (.claude/skills/land/SKILL.md) is the judgement; this is the
+ * The procedure (.agents/skills/git-workflow-and-versioning/landing.md) is the
+ * judgement; this is the
  * remembering. An agent runs this one command and needs no permission to
  * push to, merge into or force anything by hand. Every step prints one line.
  *

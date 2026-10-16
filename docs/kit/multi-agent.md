@@ -62,7 +62,7 @@ pnpm install && pnpm bootstrap
   request itself (`<verb>-<topic>`). The user can accept it or change it
   **before** the worktree is created. Use one AskUserQuestion with the proposal
   first, and "keep it" as the default. Read-only work (answering a question,
-  `/pickup`, a report) needs no worktree until the first write. The name tells
+  a pickup, a report) needs no worktree until the first write. The name tells
   anyone looking whose branch it is.
 - Land a worktree by merging `origin/dev` _into_ it, then opening a PR. A worktree
   cannot check out `dev`, because the main checkout holds it.
@@ -98,7 +98,9 @@ work_ changed it. There are two halves, split by what merges:
 - **Write it to the main checkout**, never inside a worktree, where it dies with
   the tree. If the harness refuses that write, **say that the handoff was not
   written**.
-- `/pickup` reads all handoffs for the newest date and checks each against `git`.
+- The pickup (`.agents/skills/context-engineering/pickup.md`) reads all
+  handoffs for the newest date and checks each against `git`. `pnpm bootstrap`
+  lists them at the start of a session.
   Where the two disagree, the disagreement is the finding.
 - Do not grow handoffs into a coordination protocol. The only cross-agent channel
   that merges is git. Work that two agents must agree on belongs in a plan item or a `Q-` file.
@@ -138,7 +140,7 @@ personas, and only for personas with enough journeys to need an owner. A shared 
 held the common rules. What held up:
 
 - **Scope is a boundary.** Out-of-scope work becomes a **plan item** (through
-  `/add-requirement`), never a message to another agent. An item survives the session
+  `/spec`), never a message to another agent. An item survives the session
   and shows in `plan:status`. A message is a relay.
 - **Never relay an authorisation.** "The orchestrator said it was fine" says
   nothing about whether you may.
@@ -160,4 +162,4 @@ held the common rules. What held up:
       per checkout, or migrations are generated offline against `origin/dev`
 - [ ] `.claude/worktrees/**` is excluded from every globbing tool
 - [ ] `pnpm bootstrap` repairs a fresh worktree and prints what it did
-- [ ] Handoff and pickup skills are installed
+- [ ] The `context-engineering` skill (handoff and pickup) is installed

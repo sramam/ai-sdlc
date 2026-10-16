@@ -66,7 +66,7 @@ until stage 3 has run.
 9. **Constraints and assumptions**: budget, platforms, integrations that must be
    used or avoided.
 10. **Risks**: what could sink it, and the experiment that retires each one.
-11. **AI, deeply integrated**: ask every question in `docs/kit/ai.md` § _What `/idea`
+11. **AI, deeply integrated**: ask every question in `docs/kit/ai.md` § _What kickoff
     asks_, per persona and journey. Can AI **do** the work (act, or propose for
     approval), **assist** (draft, extract, classify, explain), **see** (plain
     language over dashboards and BI, self-explaining anomalies), or **notice**

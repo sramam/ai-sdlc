@@ -85,7 +85,7 @@
  *   access-model.md, domain-model.md, ux.md, technology.md, review.md — under
  *   the requirements directory. Any one of them existing means discovery has
  *   started; the starter ships none. `README.md`, `project-brief.md` (kickoff's
- *   first pass) and `sources/` are not discovery outputs.
+ *   stage 1) and `sources/` are not discovery outputs.
  *
  * `Dependencies:` lines — what an ADR accounts for
  *   In docs/adr/*.md and docs/architecture.md, a line (outside fenced code and
@@ -1163,7 +1163,7 @@ export function reached(s: Stage, of: Stage): boolean {
   return STAGES.indexOf(s) >= STAGES.indexOf(of);
 }
 
-/** What discovery (`/idea`) must leave in the requirements directory. */
+/** What discovery (`/kickoff`, stage 2) must leave in the requirements directory. */
 export const REQUIRED_DISCOVERY = [
   "brd.md",
   "prd.md",

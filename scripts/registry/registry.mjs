@@ -22,6 +22,7 @@ export const REGISTRY_FILE = "registry.json";
  * @typedef {{
  *   kind: "base" | "module" | "skill" | "recipe",
  *   description: string,
+ *   when?: string,
  *   files: (string | FileRule)[],
  *   requires?: string[],
  *   requiresBecause?: Record<string, string>,

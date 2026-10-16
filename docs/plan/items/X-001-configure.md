@@ -5,7 +5,7 @@ requirements: []
 personas: []
 journeys: []
 milestone: M0
-depends: [] # part 2 waits for kickoff's first pass to land (docs/kit/BOOTSTRAP.md Phase 2)
+depends: [] # part 2 waits for kickoff's stage 1 to land (docs/kit/BOOTSTRAP.md Phase 2)
 estimate: unknown
 ---
 

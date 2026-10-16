@@ -24,11 +24,12 @@ fixes in deliberately, file by file; nothing arrives by itself.
 
 ## Base and items
 
-| kind       | what                                                                                                                                                                                                        | how it arrives                                                                         |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| **base**   | the kit (`docs/kit/`, with the recipes' index only), the core skills, `.claude/settings.json`, `.husky/`, root configuration, the plan scaffold, and the `core`, `guards`, `plan`, `ci` and `setup` modules | `init`                                                                                 |
-| **module** | `journeys`, `localdb`, `seed`, `coverage`, `promote`, `security`, each with its skills                                                                                                                      | `pnpm sdlc add <module>`, into `tooling/<module>/`                                     |
-| **recipe** | reference code for the packages most projects need ([recipes/README.md](recipes/README.md))                                                                                                                 | `pnpm sdlc add <recipe>`, at the place its README names: `packages/api`, `apps/web`, … |
+| kind       | what                                                                                                                                                                                                                                                            | how it arrives                                                                         |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **base**   | the kit (`docs/kit/`, with the recipes' index only), the workflow's skills (Addy Osmani's agent-skills and our wrappers), `.claude/settings.json`, `.husky/`, root configuration, the plan scaffold, and the `core`, `guards`, `plan`, `ci` and `setup` modules | `init`                                                                                 |
+| **module** | `journeys`, `localdb`, `seed`, `coverage`, `promote`, `security`, each with its skills                                                                                                                                                                          | `pnpm sdlc add <module>`, into `tooling/<module>/`                                     |
+| **skill**  | a third-party skill a project pulls in when its work calls for it: `humanizer`, `stripe-best-practices`, `scroll-craft` ([skills.md](skills.md))                                                                                                                | `pnpm sdlc add <skill>`, into `.agents/3rdparty/` and `.agents/skills/`                |
+| **recipe** | reference code for the packages most projects need ([recipes/README.md](recipes/README.md))                                                                                                                                                                     | `pnpm sdlc add <recipe>`, at the place its README names: `packages/api`, `apps/web`, … |
 
 `pnpm sdlc list` prints every item, what it requires and which are installed.
 The foundation items (BOOTSTRAP Phase 3) name the items they add.
@@ -36,7 +37,7 @@ The foundation items (BOOTSTRAP Phase 3) name the items they add.
 **Nothing in base would need deleting in some plausible project.** Anything a
 project might not want is an item it adds or does not. Product code (entities,
 capabilities, screens, policies) is in neither: it is written from what
-`/kickoff` and `/idea` decided.
+`/kickoff` and `/spec` decided.
 
 ## `registry.json`
 
@@ -158,12 +159,45 @@ update".
 **A config format change** raises `configVersion` in `sdlc.config.json`; the
 item's `notes`, which `add` and `update` print, say how to convert.
 
+## Third-party skills
+
+Some items carry skills other people maintain: Addy Osmani's agent-skills in
+base, and the `skill` items. They follow one rule: **copied verbatim, amended
+beside.** The copy lives in `.agents/3rdparty/<name>/`, laid out as upstream
+lays it out so its relative links resolve, with a `SOURCE.json` naming the
+repository, ref, commit, license, the paths taken and each file's SHA-256.
+What agents load is our wrapper in `.agents/skills/<name>/SKILL.md`: upstream's
+description, a link to the copy, and this project's amendments.
+
+In the registry, `pnpm 3rdparty sync <name> [--ref <ref>]` clones upstream into
+a temporary directory, prints the upstream log and diff since the recorded
+commit, replaces the copy, and lists the wrappers whose upstream changed, to
+re-read against their amendments. `third-party.test.ts` fails on an edited copy,
+an unwrapped entry, a wrapper whose description drifted, or a skill Claude Code
+cannot see. A project takes the result with `pnpm sdlc update`: since nobody
+edits a copy, every change to one applies cleanly.
+
+A skill whose license forbids redistribution is referenced, not copied:
+claude-security is declared in `.claude/settings.json` (`enabledPlugins`) and
+each person installs it; `pnpm bootstrap` says when they have not.
+
+**Moving a project from `.claude/skills/` to `.agents/skills/`** (projects
+created before October 2026): `pnpm sdlc update base` copies the new skills and
+links them, and removes the old skill files. Commit it in two steps, because
+git cannot stage a path beyond a symlink in the commit that deletes the file
+there: first remove the links (`find .claude/skills -maxdepth 1 -type l
+-delete`) and commit everything else, then `pnpm bootstrap` (which recreates
+them) and commit the links.
+
 ## Layout of a new project
 
 ```
 .claude/settings.json      permissions (deny list: a courtesy, not a boundary), attribution, hooks
-.claude/skills/            kickoff · idea · add-requirement · plan · land · handoff · pickup
-                           progress-report · commit-reviewer · code-reviewer (modules add theirs)
+.agents/3rdparty/          third-party skills, verbatim at a recorded commit (agent-skills; added skills)
+.agents/skills/            the skills agents load: a wrapper per upstream skill and command, plus
+                           kickoff and progress-report (modules add journeys and procedures)
+.claude/skills/            symlinks to .agents/skills/<name>, so Claude Code sees them
+.claude/agents/            the personas /ship fans out to, wrapping upstream's
 .husky/                    pre-commit · prepare-commit-msg · commit-msg · pre-push
 .gitattributes             Git LFS patterns for journey screenshots, masks and rendered emails
 .gitignore                 .env*, .dev.vars (not *.example), worktrees, handoffs, one-of scripts, .ci-local/
@@ -173,7 +207,7 @@ tooling/                   core · guards · plan · ci · setup; modules arrive
 scripts/one-of/            GITIGNORED: throwaway scripts
 apps/  packages/           EMPTY; kickoff decides them; recipes and the project fill them
 docs/kit/                  this kit (a recipe's README arrives with the recipe)
-docs/requirements/         LOCKED: written only by /kickoff, /idea, /add-requirement
+docs/requirements/         LOCKED: written only by /kickoff and /spec
 docs/plan/items/           X-000-discovery.md, X-001-configure.md
 docs/adr/                  ADR-000-starter-tooling.md
 docs/progress/  docs/handoffs/

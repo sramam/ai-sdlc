@@ -170,7 +170,7 @@ These are door_nexa's expensive lessons, and they come with the machinery:
   journeys whose recordings visited them, and requires a re-record or a
   a `No-Rerecord: J<nn> <reason>` commit trailer (one journey per trailer; the reason is required). It cannot see a shared component with no
   route, so nothing reported is not proof that nothing moved.
-- **Released to QA by a person.** `/journey-ready-for-qa` adds the sign-off.
+- **Released to QA by a person.** `/journeys ready-for-qa` adds the sign-off.
   Green says the paths that exist pass; it cannot say the right paths were
   written.
 

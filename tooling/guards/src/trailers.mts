@@ -4,7 +4,7 @@
  *   node tooling/guards/src/trailers.mts --message <file>       commit-msg hook
  *   node tooling/guards/src/trailers.mts --range [<base>] [--allow-unknown]   ci:local
  *
- * **A trailer is an assertion, not proof.** `Requirements: idea` says a
+ * **A trailer is an assertion, not proof.** `Requirements: spec` says a
  * requirements skill made the change; nothing here can tell which skill ran,
  * or whether any did. What these checks buy is consistency — every
  * requirements change asserts one, every named item exists, a branch closes
@@ -124,7 +124,7 @@ export function checkRequirementsTrailer(
   return {
     name: "requirements",
     state: "refused",
-    text: `this ${merging ? "merge itself" : "commit"} changes ${prefix} (${touched.slice(0, 3).join(", ")}${touched.length > 3 ? ", …" : ""}) and has no Requirements: ${REQUIREMENTS_SKILLS.join("|")} trailer${got}. Only /kickoff, /idea and /add-requirement write there`,
+    text: `this ${merging ? "merge itself" : "commit"} changes ${prefix} (${touched.slice(0, 3).join(", ")}${touched.length > 3 ? ", …" : ""}) and has no Requirements: ${REQUIREMENTS_SKILLS.join("|")} trailer${got}. Only /kickoff and /spec write there`,
   };
 }
 

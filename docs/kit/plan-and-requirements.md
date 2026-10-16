@@ -14,7 +14,7 @@ PRD.
 ## Layout
 
 ```
-docs/requirements/             LOCKED: only /kickoff, /idea and /add-requirement write here
+docs/requirements/             LOCKED: only /kickoff and /spec write here
   sources/                    imported documents, verbatim, never edited
   project-brief.md            kickoff's decisions (how it gets built)
   technology.md               every technology trigger, and the ADR deciding it
@@ -29,7 +29,7 @@ docs/requirements/             LOCKED: only /kickoff, /idea and /add-requirement
   features/
     F01-onboarding.md         one file per feature: its requirements, personas, journeys
     F02-billing.md
-  journeys.md                 J-numbered sequences a persona performs, step → requirement
+  journeys.md                 J-numbered journeys, one persona per J<nn>.<n>, task → requirement
 docs/plan/
   README.md                   milestones, order, critical path, assumptions (narrative)
   items/
@@ -42,14 +42,14 @@ docs/progress/YYYY-MM-DD.md   dated reports, never rewritten
 
 ## IDs
 
-| kind        | form                       | example      | rules                                                  |
-| ----------- | -------------------------- | ------------ | ------------------------------------------------------ |
-| persona     | `@slug`                    | `@organizer` | defined once in `personas.md`, after discovery (below) |
-| feature     | `F<nn>`                    | `F03`        | the file name carries a slug too: `F03-reminders.md`   |
-| requirement | `F<nn>-R<nn>`              | `F03-R07`    | numbered within its feature                            |
-| journey     | `J<nn>`                    | `J12`        | names exactly one persona                              |
-| work item   | `F<nn>-<nnn>` or `X-<nnn>` | `F03-012`    | numbered within its feature; `X` for platform work     |
-| question    | `Q-<nnn>`                  | `Q-007`      |                                                        |
+| kind        | form                       | example        | rules                                                    |
+| ----------- | -------------------------- | -------------- | -------------------------------------------------------- |
+| persona     | `@slug`                    | `@organizer`   | defined once in `personas.md`, after discovery (below)   |
+| feature     | `F<nn>`                    | `F03`          | the file name carries a slug too: `F03-reminders.md`     |
+| requirement | `F<nn>-R<nn>`              | `F03-R07`      | numbered within its feature                              |
+| journey     | `J<nn>`, `J<nn>.<n>`       | `J12`, `J12.2` | `J<nn>` may span personas; `J<nn>.<n>` names exactly one |
+| work item   | `F<nn>-<nnn>` or `X-<nnn>` | `F03-012`      | numbered within its feature; `X` for platform work       |
+| question    | `Q-<nnn>`                  | `Q-007`        |                                                          |
 
 - **IDs are stable and never reused.** A dropped requirement keeps its ID and is
   marked `withdrawn`, with a date and reason. A renumbered ID silently re-points
@@ -62,7 +62,7 @@ docs/progress/YYYY-MM-DD.md   dated reports, never rewritten
 
 No persona carries over from one project to the next. door_nexa's roles came
 out of _its_ domain, and a new project's will come out of its own. What carries
-over is the **method**. Run it in `/idea` (BRD theme 2), and repeat it whenever a request names an actor that is not in the
+over is the **method**. Run it in `/kickoff` (stage 2, BRD theme 2), and repeat it whenever a request names an actor that is not in the
 registry.
 
 **Where candidates come from** (check every source; each tends to miss someone):
@@ -96,8 +96,8 @@ job title. Two people who walk the same journey in the same way are one persona.
 `Q-` file that will settle it. `plan:check` lists provisional personas, so none
 stays provisional silently.
 
-**The registry grows by finding, not by assumption.** When `/idea` or
-`/add-requirement` meets a
+**The registry grows by finding, not by assumption.** When `/kickoff` or
+`/spec` meets a
 request whose actor is not in `personas.md`, that is a finding. Either the
 request maps to an existing persona, or a new one is added through this method.
 
@@ -108,7 +108,7 @@ That was _its_ answer, not a default. A new project might be a single-customer
 deployment, a personal tool, a team workspace, a marketplace with two sides, or
 a hierarchy. Tenancy decides the data model, the scoping layer, the tests and
 the auth flow, so it is **discovered from the product definition** during
-`/idea`, and recorded before any schema is written.
+`/kickoff` (stage 2), and recorded before any schema is written.
 
 **The questions that reveal it** (ask them of the BRD and of the author):
 
@@ -203,8 +203,9 @@ Non-functional: …
 ## Decisions ADR links
 ```
 
-**`journeys.md`**: for each journey, its persona and its steps, and each step
-cites the requirement IDs it exercises. This is how a reader sees that a
+**`journeys.md`**: for each journey, its persona-level journeys (or its one
+persona) and their tasks, and each task cites the requirement IDs it exercises
+(`.agents/skills/spec-driven-development/requirements.md` § Journeys). This is how a reader sees that a
 feature is complete _for someone_.
 
 **`plan/items/<id>-<slug>.md`**:
@@ -255,7 +256,7 @@ slug the user chooses, but the branch is the ID.
 
 - **IDs are matched case-insensitively** everywhere. Branches are lowercase;
   files and trailers use the uppercase form.
-- **A branch is deleted when its item closes** (`/land` deletes it on the PR
+- **A branch is deleted when its item closes** (`pnpm land` deletes it on the PR
   carrying `Closes:`). An item is also _in progress_ while `origin/dev` carries a
   recent `Progress: <ID>` and no `Closes: <ID>`, so a partial PR never makes it
   look free.
@@ -311,7 +312,7 @@ Verdict: ready-to-plan | ready-with-assumptions | ready-pending-decisions | not-
 The requirements stage passes at `ready-pending-decisions` or better; the plan
 stage requires `ready-to-plan` or `ready-with-assumptions`.
 
-**requirements** (the end of `/idea`):
+**requirements** (the end of kickoff's stage 2):
 
 - a duplicate ID, or a reference to an ID that does not exist; a withdrawn ID
   reappearing
@@ -329,6 +330,7 @@ stage requires `ready-to-plan` or `ready-with-assumptions`.
 **plan** (the end of `/plan`):
 
 - a work item citing no requirement (unless it is `X-` work)
+- a feature item whose feature carries no `Approved: YYYY-MM-DD by <name>` line
 - an MVP requirement with no item covering it, unless withdrawn or out of scope
 - a `depends:` cycle
 - a technology trigger still pending without `blocks:`
@@ -358,9 +360,9 @@ checks a project board would have offered as views, made into failures.
 
 ## What giving up GitHub Issues costs, said rather than discovered
 
-| lost                                   | replacement or accepted gap                                                                                                                                                              |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| a UI for non-technical people          | `plan:status --html`; questions answered in chat are written into `Q-` files by the agent                                                                                                |
-| PR ↔ issue auto-linking and auto-close | the `Closes: <item>` trailer, checked by `ci:local` and `/land`                                                                                                                          |
-| outside bug reports                    | **accepted gap.** Reports arrive by whatever channel the project brief names, and each one goes through `/add-requirement`. Turning GitHub Issues on, even for intake only, needs an ADR |
-| notifications                          | none. The author reviews `plan:status` on the reporting cadence                                                                                                                          |
+| lost                                   | replacement or accepted gap                                                                                                                                                   |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| a UI for non-technical people          | `plan:status --html`; questions answered in chat are written into `Q-` files by the agent                                                                                     |
+| PR ↔ issue auto-linking and auto-close | the `Closes: <item>` trailer, checked by `ci:local` and `pnpm land`                                                                                                           |
+| outside bug reports                    | **accepted gap.** Reports arrive by whatever channel the project brief names, and each one goes through `/spec`. Turning GitHub Issues on, even for intake only, needs an ADR |
+| notifications                          | none. The author reviews `plan:status` on the reporting cadence                                                                                                               |

@@ -16,6 +16,7 @@ import {
   mkdirSync,
   readdirSync,
   readlinkSync,
+  rmdirSync,
   symlinkSync,
   unlinkSync,
 } from "node:fs";
@@ -52,6 +53,12 @@ export function ensureSkillLinks(root) {
     } catch {
       st = null;
     }
+    // An empty directory is what `update` leaves after removing a skill that
+    // used to live here; it is nobody's, so the link replaces it.
+    if (st?.isDirectory() && readdirSync(link).length === 0) {
+      rmdirSync(link);
+      st = null;
+    }
     if (st && !st.isSymbolicLink()) {
       out.kept.push(`${CLAUDE_SKILLS}/${n}`);
       continue;
@@ -68,9 +75,15 @@ export function ensureSkillLinks(root) {
   if (existsSync(linkDir))
     for (const n of readdirSync(linkDir)) {
       const link = join(linkDir, n);
-      if (skills.includes(n) || !lstatSync(link).isSymbolicLink()) continue;
-      if (readlinkSync(link) !== skillLinkTarget(n)) continue;
-      unlinkSync(link);
+      if (skills.includes(n)) continue;
+      const st = lstatSync(link);
+      if (st.isSymbolicLink()) {
+        if (readlinkSync(link) !== skillLinkTarget(n)) continue;
+        unlinkSync(link);
+      } else if (st.isDirectory() && readdirSync(link).length === 0) {
+        // left empty by `update` removing a retired skill's files
+        rmdirSync(link);
+      } else continue;
       out.removed.push(`${CLAUDE_SKILLS}/${n}`);
     }
   return out;

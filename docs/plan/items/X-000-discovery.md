@@ -11,12 +11,12 @@ estimate: unknown
 
 ## Acceptance
 
-- `/kickoff` first pass done: people, SDLC defaults, budget, first accounts,
+- `/kickoff` stage 1 (orientation) done: people, SDLC defaults, budget, first accounts,
   working agreements.
-- `/idea` done: `docs/requirements/` holds the BRD, PRD, personas, access model,
+- `/kickoff` stage 2 (the product) done: `docs/requirements/` holds the BRD, PRD, personas, access model,
   domain model, design brief, features, journeys, glossary, `technology.md` and
   `review.md`.
-- `/kickoff` second pass done: the stack, every technology trigger (decided by
+- `/kickoff` stage 3 (decisions) done: the stack, every technology trigger (decided by
   the user through the dialog), apps, packages and scope, backoffice split, AI
   architecture; `docs/architecture.md` written, every component citing a
   requirement or ADR.

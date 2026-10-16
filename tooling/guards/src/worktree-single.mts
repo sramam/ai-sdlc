@@ -11,7 +11,7 @@
  *
  *     this session's created/entered records   ∩   git worktree list
  *
- * | this session has none | allow — including entering another agent's tree (`/pickup`) |
+ * | this session has none | allow — including entering another agent's tree (a pickup) |
  * | the target is already this session's | allow — re-entering is not switching |
  * | a different tree | deny, naming the one open and how to close it |
  *

@@ -1,10 +1,16 @@
 # Context quality: the checklist
 
-Apply it to anything written for an agent to act on: a skill or its wrapper,
-`AGENTS.md`, the kit, a requirement or spec, a plan item, a `Q-` file, a
-handoff, an error message a guard prints. It holds the five tenets in
-`docs/kit/principles.md` § 0. A line that fails is fixed, or the text is not
-ready.
+Apply it to anything written for a model to act on, in three places:
+
+1. **this registry**: skills, wrappers, the kit, guard messages
+2. **a project as it is built**: `AGENTS.md`, requirements, plan items, `Q-`
+   files, handoffs, error messages
+3. **what the project ships**: every prompt, system prompt, tool description
+   and agent definition the product sends to a model (`docs/kit/ai.md`)
+
+It holds the five tenets in `docs/kit/principles.md` § 0, and the prompt
+structure below. A line that fails is fixed, or the text is not ready. The
+code review checks it (criterion 7) wherever such text changes.
 
 ## Clarity: one reading
 
@@ -54,3 +60,27 @@ ready.
       without saying so, and why, where a person will read it.
 - [ ] A third-party source records its license and commit; one whose license
       forbids copying is referenced, not copied.
+
+## Prompt structure: how the text is laid out
+
+- [ ] **Static first, dynamic last.** Role, rules, tools and examples come
+      first and stay byte-identical between calls; the data for this call (the
+      user's input, retrieved documents, today's state, the diff) comes after
+      them, and the question or task comes last. A stable prefix is cached and
+      cheaper; a long document followed by the question is answered better.
+- [ ] **Data is delimited and labelled** (`<document>`, `<diff>`, a fenced
+      block with a name), so instructions and data cannot be confused, and
+      fetched content is never mistaken for an instruction.
+- [ ] **One task per prompt**, stated as what to do (not only what to avoid),
+      with the reason for any constraint that is not obvious.
+- [ ] **The output is specified**: its format (a schema, a template, an
+      example of the exact shape), its length, and what to do when the answer
+      is unknown (say so; never guess).
+- [ ] **Examples are few, varied and in the output's exact form**; they teach
+      the shape, so a wrong example is worse than none.
+- [ ] **Concise.** Every sentence changes what the model does; a sentence that
+      only sounds thorough is cut. Shorter context is cheaper and is followed
+      more closely.
+- [ ] **A prompt the product ships has an eval** (`docs/kit/ai.md`): a change
+      to the prompt is a change to the code, and its eval shows whether it
+      helped.

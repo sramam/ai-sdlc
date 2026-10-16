@@ -1,7 +1,7 @@
 /**
  * `pnpm ci:local [--sha <ref>] [--allow-unknown] [--no-status] [--container]`
  *
- * CI is local (docs/kit/tech-stack.md), so this is the gate /land relies on. It
+ * CI is local (docs/kit/tech-stack.md), so this is the gate `pnpm land` relies on. It
  * tests a **snapshot of a commit**, never the working tree, so the session that
  * started it can keep editing while it runs in the background
  * (docs/kit/multi-agent.md). It posts a `local-ci` commit status on that SHA.
@@ -586,7 +586,7 @@ async function git(deps: CiDeps, args: string[], cwd = deps.root) {
 }
 
 /**
- * The status, read by /land and the promote scripts. GitHub caps a
+ * The status, read by `pnpm land` and the promote scripts. GitHub caps a
  * description at 140 characters.
  */
 export async function postStatus(

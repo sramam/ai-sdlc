@@ -553,7 +553,7 @@ export function checkDiscoveryNotStarted(m: Model): CheckResult {
     stage: "pre-discovery",
     name: "discovery",
     state: "not started",
-    summary: `discovery not started: ${m.dirs.requirements} holds none of ${REQUIRED_DISCOVERY.join(", ")} (run /idea, docs/kit/BOOTSTRAP.md Phase 1)`,
+    summary: `discovery not started: ${m.dirs.requirements} holds none of ${REQUIRED_DISCOVERY.join(", ")} (run /kickoff, docs/kit/BOOTSTRAP.md Phase 1)`,
     details: [],
   };
 }

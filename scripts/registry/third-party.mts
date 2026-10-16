@@ -304,8 +304,15 @@ export interface SyncOptions {
 type Run = (cmd: string, args: string[], cwd?: string) => { code: number | null; out: string };
 
 const realRun: Run = (cmd, args, cwd) => {
-  const r = spawnSync(cmd, args, { cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
-  return { code: r.error ? null : r.status, out: `${r.stdout ?? ""}${r.stderr ?? ""}` };
+  // Bounded: an unreachable remote is "could not ask" in two minutes, not a hang.
+  const r = spawnSync(cmd, args, {
+    cwd,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+    timeout: 120_000,
+  });
+  const why = r.error ? `${r.error.message}\n` : "";
+  return { code: r.error ? null : r.status, out: `${why}${r.stdout ?? ""}${r.stderr ?? ""}` };
 };
 
 /**

@@ -2,11 +2,11 @@
 
 **Every application asks how AI can be deeply integrated into it.** Not a chat
 box bolted on at the end, but part of how people do things, see things and set
-things up. `/idea` asks the questions below for every persona and journey, and
-`/kickoff` settles the architecture that follows. Where AI does not earn its
+things up. `/kickoff` asks the questions below for every persona and journey in
+stage 2 (the product), and settles the architecture that follows in stage 3. Where AI does not earn its
 place, the answer is recorded as "no", with the reason.
 
-## What `/idea` asks (BRD theme 11, and per feature in the checklist)
+## What kickoff asks (BRD theme 11, and per feature in the checklist)
 
 **1. Actions: can AI do the work?** For each journey: which steps are tedious,
 repetitive, or need judgement over a lot of data? Could an agent perform them
@@ -111,6 +111,13 @@ marked as estimated, not silently under-counted.
 - **Model per role, configured**: a cheap model for classification, a strong one
   for reasoning. Never hard-coded. Automatic fallback to a different model is
   off, because a weaker model answering silently is a failure, not resilience.
+- **Prompts are code, held to the context checklist**
+  (`.agents/skills/context-engineering/context-quality.md`, § _Prompt
+  structure_): the static part (role, rules, tool descriptions, examples) first
+  and byte-identical between calls so it is cached; the call's data next,
+  delimited and labelled; the task last; the output's shape specified. Each
+  lives in one file beside its eval, and the code review checks it like any
+  other change.
 - **Model output is untrusted input**: validate it, never render it as HTML,
   never execute it. Tool calls go through the port.
 - **Prompt injection is assumed.** Content the model reads (uploads, emails,

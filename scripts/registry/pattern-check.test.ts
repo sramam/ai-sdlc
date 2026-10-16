@@ -70,10 +70,16 @@ beforeEach(() => {
         ],
         package: { scripts: { test: "vitest run" }, devDependencies: { vitest: "4.1.11" } },
       },
-      alpha: { kind: "module", description: "a", files: ["tooling/alpha/"] },
+      alpha: {
+        kind: "module",
+        description: "a",
+        when: "the project needs alpha for something",
+        files: ["tooling/alpha/"],
+      },
       beta: {
         kind: "recipe",
         description: "b",
+        when: "the project has a beta package",
         files: [{ from: "recipes/beta/", to: "packages/beta/" }],
       },
     },
@@ -182,6 +188,13 @@ describe("the pattern check, tripped", () => {
       reg.items.gamma.conflicts = ["beta"];
       expect(problems(check())).toContain(
         "gamma conflicts with beta, but beta does not name gamma",
+      );
+    });
+
+    it("an optional item that does not say when a project adds it", () => {
+      delete reg.items.alpha?.when;
+      expect(problems(check())).toContain(
+        "when: say, in a sentence, when a project adds it (pnpm sdlc list prints it)",
       );
     });
 

@@ -1,58 +1,83 @@
 # Skills
 
-A skill holds the **procedure and the remembering**, not the judgement. Each one
-below exists because doing its job by hand went wrong.
+A skill holds the **procedure and the remembering**, not the judgement. The
+workflow's skills are Addy Osmani's
+[agent-skills](https://github.com/addyosmani/agent-skills), which encode how a
+senior engineer specifies, plans, builds, tests, reviews and ships. This
+project's own knowledge (personas and journeys, the plan in the repository,
+worktrees, `pnpm land`, the threat model) is added to them as **amendments**,
+each kept only because it changes what an agent does here.
 
-## In the kit (generalised from door_nexa; base ships ten, the modules the rest; the skills are in [`.claude/skills/`](../../.claude/skills/))
+## Where they live
 
-**Discovery and planning**
+| path                             | what                                                                                                                          |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `.agents/3rdparty/<source>/`     | third-party skills, **verbatim**, at the commit in `SOURCE.json`. Never edited here; agents never load them directly          |
+| `.agents/skills/<name>/SKILL.md` | what agents load: a wrapper per upstream skill or command (its description, a link to it, the amendments), and our own skills |
+| `.agents/skills/<name>/*.md`     | procedures an amendment points to (`landing.md`, `handoff.md`, `requirements.md`, …)                                          |
+| `.claude/skills/<name>`          | symlinks to `.agents/skills/<name>`, so Claude Code sees them; created by the CLI and `pnpm bootstrap`                        |
+| `.claude/agents/<name>.md`       | the personas `/ship` fans out to (code reviewer, security auditor, test engineer, web performance), wrapping upstream's       |
 
-| skill             | does                                                                                                                                                                                                                                                                                                                                                                                             | why it exists                                                                                            |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| `kickoff`         | _how_ it gets built, in two passes around `/idea` (never calling it). First pass: people, SDLC defaults, budget, first accounts, working agreements. Second pass: decides the stack and every recorded technology trigger (the user decides, through the dialog), apps, packages and scope, the backoffice split, architecture and AI architecture. Restartable; `revisit <topic>` keeps history | nothing gets built on an unasked question. Named `kickoff` because Claude Code's built-in `/init` exists |
-| `idea`            | _what_ gets built: conversation → BRD + PRD, or import and vet. Discovers personas, tenancy and access, the domain model, the design brief and AI capabilities; **records** decisions for kickoff; `check` runs the implementability pass; `status` gives the verdict. Restartable                                                                                                               | a gap found here costs a question; found in QA, it costs a rebuild                                       |
-| `add-requirement` | every request after discovery: triage, answer from the repo, ask only what is missing, run the technology dialog (the user decides), and land requirements on their own branch before the code                                                                                                                                                                                                   | the only door into the locked requirements; no technology is added silently                              |
-| `plan`            | `/plan` writes the plan (foundation `X-` items first, then features by journey); `/plan next` claims an item and creates its worktree (the user confirms the name); `/plan sync` reconciles                                                                                                                                                                                                      | the plan is worked, not admired, and a blocked agent always has a next move                              |
+`third-party.test.ts` (in the registry) holds both sides: every copied file is
+byte-for-byte upstream's, every upstream entry has exactly one wrapper whose
+description is upstream's, and every skill is linked. To take upstream's
+improvements: `pnpm 3rdparty sync <name>` re-copies the source, prints what
+changed upstream, and lists the wrappers whose upstream moved, to re-read
+against their amendments. Projects then take it with `pnpm sdlc update`.
 
-**Working, landing and continuity**
+## The workflow (base)
 
-| skill             | does                                                                                                                                                                                                             | why it exists                                                                           |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `land`            | committed branch → `dev`: check it is current, push, `ci:local` (posts `local-ci` on the pushed SHA), PR, re-check, **merge commit**, then a `local-ci` status on the new `dev` tip                              | landing four PRs in one day hit five distinct mistakes; with CI local, this is the gate |
-| `handoff`         | writes `docs/handoffs/YYYY-MM-DD-<branch>.md` to the main checkout (exempt from the worktree guard), last; prints the `/pickup` line                                                                             | a session's context dies with it                                                        |
-| `pickup`          | reads every handoff for the newest date, verifies each against `git`, and says whether a report, a plan sync or a stale claim is due                                                                             | a handoff is a report, not a fact                                                       |
-| `commit-reviewer` | staged diff: scope, message accuracy, trailers, secrets                                                                                                                                                          | runs as a commit hook                                                                   |
-| `code-reviewer`   | nine criteria: sufficient, necessary, minimal, well-tested (no DB fakes), honest about unknowns, secure and access-safe, lifecycle-correct, boundary types, screen quality; `n/a` where a criterion cannot apply | runs as a commit hook                                                                   |
-| `progress-report` | `docs/progress/YYYY-MM-DD.md` from `Progress:` trailers: Shipped, Decided, Cost a day, Open                                                                                                                      | visibility with no extra bookkeeping                                                    |
+People type two commands; the pipeline invokes the rest.
 
-## Not yet generalised from door_nexa (they arrive with their tooling)
+| phase    | command                                            | skills it applies (amendments in their wrappers)                                                                                                                                                                                               |
+| -------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DEFINE   | **`/kickoff`** (ours), then `/spec` per change     | `kickoff` (people, product, personas and journeys, stack, architecture; restartable), `interview-me`, `idea-refine`, `spec-driven-development`, `source-driven-development`                                                                    |
+| PLAN     | `/plan`                                            | `planning-and-task-breakdown`: `docs/plan/items/`, platform `X-` items first, features by journey, status from git                                                                                                                             |
+| BUILD    | `/build`, `/build auto`                            | `incremental-implementation`, `test-driven-development`, `api-and-interface-design`, `frontend-ui-engineering`, `doubt-driven-development`, `context-engineering`                                                                              |
+| VERIFY   | `/test`                                            | `test-driven-development` (a real database, never a fake), `browser-testing-with-devtools`, `debugging-and-error-recovery`, `journeys` (module)                                                                                                |
+| REVIEW   | `/review`, `/code-simplify`; hooks on every commit | `code-review-and-quality` (+ seven project criteria), `code-simplification`, `security-and-hardening` (+ threat-model review, claude-security), `performance-optimization`                                                                     |
+| SHIP     | `pnpm land` per item; `/ship` per release          | `git-workflow-and-versioning` (claim, worktree, trailers, `pnpm land`, `pnpm release`), `ci-cd-and-automation` (`ci:local`), `shipping-and-launch`, `deprecation-and-migration`, `observability-and-instrumentation`, `documentation-and-adrs` |
+| CONTINUE | `pnpm bootstrap` (**ours**, at session start)      | `context-engineering` (handoff, pickup, the context checklist), `progress-report` (ours, with AI cost from `pnpm usage`)                                                                                                                       |
 
-| skill                                                   | does                                                                                                                               |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `journey-add` / `journey-test` / `journey-ready-for-qa` | describe a journey; record it (three passes) and test it (one pass); a person releases it to QA. Arrives with the journeys package |
-| `release`                                               | tags a green commit on `origin/dev`; notes from `Progress:` trailers; refuses a red or missing `local-ci` status                   |
-| `coverage-report`                                       | refreshes the generated coverage figures and writes the reading of them. Arrives with the coverage gate                            |
+`/constraints` and `/webperf` are upstream's too. The router is
+`using-agent-skills`; its wrapper maps each phase to this project. `/review`
+replaces Claude Code's built-in command of that name inside a project.
 
-## Added later, if the project wants them
+## Optional skills (`pnpm sdlc add <name>`)
 
-| skill                | when                                                                                        |
-| -------------------- | ------------------------------------------------------------------------------------------- |
-| `doc-validator`      | once docs multiply: succinct, complete, no contradictions with guardrails, links resolve    |
-| `monorepo-validator` | once there are three or more packages: each has `agents.md` and is referenced from the root |
-| `status-report`      | when stakeholders want a weekly status: figures from `plan:status`, narrative written       |
-| `build-rationale`    | when ADRs accumulate: keeps the decisions index current                                     |
+| item                    | source                  | add it when                                                                                                      |
+| ----------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `humanizer`             | blader/humanizer        | the project writes prose people read: README, docs, release notes, PR text, copy                                 |
+| `stripe-best-practices` | stripe/ai               | the project takes payments, subscriptions or tax through Stripe                                                  |
+| `scroll-craft`          | nateherkai/scroll-craft | a marketing or landing page has to stand out (needs Playwright and ffmpeg; paid image generation through kie.ai) |
+
+Referenced, not copied (install them yourself when the work calls for it):
+
+| skill           | install                                                                                                              | add it when                                                           | note                                                                     |
+| --------------- | -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| claude-security | declared in `.claude/settings.json`; `claude plugin install claude-security@claude-plugins-official --scope project` | always (base declares it)                                             | its license forbids redistribution, so each person installs it           |
+| OpenSEO         | `npx skills add every-app/open-seo` and its MCP server                                                               | SEO, keyword or AI-visibility research for a public site              | a paid OpenSEO account; its skills write to a remote project context     |
+| HyperFrames     | `npx skills add heygen-com/hyperframes`                                                                              | the project produces video (a launch video, a PR explainer, captions) | 18 MB; sends render feedback to a public channel unless telemetry is off |
 
 ## Writing skills well
 
+Everything an agent reads is held to the five context tenets (clarity,
+actionability, fidelity, efficiency, security: [principles.md](principles.md)
+§ 0), with the checklist in
+`.agents/skills/context-engineering/context-quality.md`. In practice:
+
+- **Amend; do not fork.** A difference from upstream goes in the wrapper,
+  beside the text it changes, and only if it changes what an agent does here.
+  Editing the copy breaks the next sync.
 - **The skill text is read by an agent mid-task.** Lead with the steps; put the
   reasons after them, briefly. door_nexa's `journey-test` reached 760 lines,
   which is too long.
-- **Name what the skill may not decide.** For example, `land` may not merge red,
-  may not decide a failure is "unrelated", and may not release to QA.
-- **End by printing the next command** (the `/pickup …` line), so the
-  instruction travels with the output.
+- **Name what the skill may not decide.** For example, `pnpm land` may not merge
+  red, may not decide a failure is "unrelated", and may not release to QA.
+- **End by printing the next step**, so the instruction travels with the
+  output.
 - **The count of criteria in the header must equal the number of sections.**
-  door_nexa's code-reviewer said four criteria and had eight, and the
+  door_nexa's code reviewer said four criteria and had eight, and the
   unreported four included tenant safety. Put a pattern check on your own skills.
 
 ## Tools that worked
@@ -63,7 +88,10 @@ below exists because doing its job by hand went wrong.
   account and writes a cookie jar, so agents can `curl` authenticated pages.
   It refuses production and refuses when the target is ambiguous.
 - **`pnpm bootstrap`**: environment doctor that prints a line per check and
-  repairs what it can (the env symlink).
+  repairs what it can (the env and skill links). It runs at the start of every
+  session, and lists the newest handoffs.
+- **`pnpm usage`**: AI cost for every worktree of the repository, from the
+  agents' local logs (codeburn, run with `pnpm dlx` at a pinned version).
 - **`pnpm ci:local`**: _the_ CI. door_nexa built it as a fallback for an
   Actions outage; here it is the default. Give it fingerprinting, three-answer
   steps and a `local-ci` commit status.

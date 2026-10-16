@@ -14,13 +14,14 @@ Every other document refers here. Each trailer is a single line, parsed with
 | `Progress:`              | `Progress: <ITEM-ID> <free text: covered; remains>` | the ID is the first token, matched case-insensitively against `docs/plan/items/`. At least one commit on a branch carries it, unless `No-Item:` does                      |
 | `Closes:`                | `Closes: <ITEM-ID>`                                 | only on the commit that finishes the item; once on `origin/dev`, the item reads _done_                                                                                    |
 | `No-Item:`               | `No-Item: <reason>`                                 | for work that genuinely has no item (a revert, a dependency bump, a progress report). A commit trailer, not a PR-body line, so `ci:local` can check it before a PR exists |
-| `Requirements:`          | `Requirements: kickoff\|idea\|add-requirement`      | required on any commit touching `docs/requirements/`                                                                                                                      |
+| `Requirements:`          | `Requirements: kickoff\|spec`                       | required on any commit touching `docs/requirements/`. `idea` and `add-requirement`, the names before October 2026, stay valid in older history                            |
+| `No-Test:`               | `No-Test: <reason>`                                 | a branch that changes source and no test (a rename, a type-only change, generated code). Without it, `ci:local`'s trailer check refuses such a branch                     |
 | `Assumes:`               | `Assumes: Q-<nnn> → <option>`                       | building on an open question                                                                                                                                              |
 | `No-Rerecord:`           | `No-Rerecord: J<nn> <reason>`                       | a route change that deliberately does not re-record a journey that visits it                                                                                              |
 | `Co-Authored-By:`        | exactly `attribution.commit` from settings          | no model name                                                                                                                                                             |
 | `Worktree:` / `Session:` | added by `prepare-commit-msg`                       | provenance                                                                                                                                                                |
 
-**A trailer is an assertion, not proof.** `Requirements: idea` says a
+**A trailer is an assertion, not proof.** `Requirements: spec` says a
 requirements skill made the change; nothing proves which skill ran. The checks
 keep the assertions consistent (every requirements commit carries one, every
 item ID exists, a branch closes only its own item), which is what makes them
@@ -41,13 +42,14 @@ Each runs as **`node tooling/guards/src/<name>.mts`**: Node 24 strips the types,
 no `node_modules` is needed. Under `pnpm exec tsx` they all failed open in fresh
 worktrees, which is exactly when they mattered.
 
-| event                            | script              | does                                                                                                                                                                                                                                                |
-| -------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PreToolUse `Edit\|Write`         | `requirements-lock` | refuses writes under `docs/requirements/` unless `.claude/requirements-session` (gitignored, in **this** checkout) names this session and one of `kickoff`, `idea` or `add-requirement`; refuses **every** write under `docs/requirements/sources/` |
-| PreToolUse `Edit\|Write\|Bash`   | `worktree-required` | refuses writes and `git commit` in the main checkout (`--git-dir` equal to `--git-common-dir`). **Exempt path: `docs/handoffs/`**, so `/handoff` can write there. A session exemption is a file keyed by `$CLAUDE_CODE_SESSION_ID`                  |
-| PreToolUse `Bash\|EnterWorktree` | `worktree-base`     | `git worktree add` must base on `origin/dev`. `EnterWorktree({name})` is refused because it cannot name a base; `{path}` is allowed                                                                                                                 |
-| PreToolUse `Bash\|EnterWorktree` | `worktree-single`   | one _live_ worktree per session (this session's records intersected with `git worktree list`)                                                                                                                                                       |
-| PostToolUse                      | `worktree-trace`    | records created and entered events in the registry. Never fails a tool call                                                                                                                                                                         |
+| event                            | script              | does                                                                                                                                                                                                                                             |
+| -------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| PreToolUse `Edit\|Write`         | `requirements-lock` | refuses writes under `docs/requirements/` unless `.claude/requirements-session` (gitignored, in **this** checkout) names this session and `kickoff` or `spec`; refuses **every** write under `docs/requirements/sources/`                        |
+| PreToolUse `Edit\|Write\|Bash`   | `worktree-required` | refuses writes and `git commit` in the main checkout (`--git-dir` equal to `--git-common-dir`). **Exempt path: `docs/handoffs/`**, so a session's handoff can be written there. A session exemption is a file keyed by `$CLAUDE_CODE_SESSION_ID` |
+| PreToolUse `Bash\|EnterWorktree` | `worktree-base`     | `git worktree add` must base on `origin/dev`. `EnterWorktree({name})` is refused because it cannot name a base; `{path}` is allowed                                                                                                              |
+| PreToolUse `Bash\|EnterWorktree` | `worktree-single`   | one _live_ worktree per session (this session's records intersected with `git worktree list`)                                                                                                                                                    |
+| SessionStart                     | `bootstrap`         | `node tooling/setup/src/bootstrap.mts --session-start`: one line per check (repairing the env and skill links), whether the security plugin is installed, and the newest handoffs, as the session's first context. Always exits 0                |
+| PostToolUse                      | `worktree-trace`    | records created and entered events in the registry. Never fails a tool call                                                                                                                                                                      |
 
 **The requirements lock marks who is authoring in this checkout. It does not
 lock across agents.** Concurrency is handled by branches: a requirements change
@@ -74,7 +76,7 @@ reading the session's cwd.
 
 ## Agent reviewers (`type: agent`)
 
-`commit-reviewer` and `code-reviewer` run on `git commit`. `doc-validator` and
+The commit review (`.agents/skills/git-workflow-and-versioning/commit-review.md`) and the code review's project criteria (`.agents/skills/code-review-and-quality/project-criteria.md`) run on `git commit`. `doc-validator` and
 `monorepo-validator` run on markdown and manifest edits, once a project adds
 them. What door_nexa learned:
 
@@ -165,13 +167,13 @@ them. What door_nexa learned:
             "type": "agent",
             "if": "Bash(git commit *)",
             "timeout": 120,
-            "prompt": "<commit-reviewer: fail open; one-line approval; BLOCK: sentinel>",
+            "prompt": "<commit review: fail open; one-line approval; BLOCK: sentinel>",
           },
           {
             "type": "agent",
             "if": "Bash(git commit *)",
             "timeout": 120,
-            "prompt": "<code-reviewer: fail open; n/a criteria allowed; BLOCK: sentinel>",
+            "prompt": "<code review, project criteria: fail open; n/a criteria allowed; BLOCK: sentinel>",
           },
         ],
       },

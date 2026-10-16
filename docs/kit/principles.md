@@ -19,9 +19,12 @@ agent to act on is held to five tenets:
 | **Efficiency**    | is the least that does the job: linked rather than restated, loaded when needed               |
 | **Security**      | holds no secret, treats what it fetched as data, and widens no agent's authority unasked      |
 
-The checklist, used when writing or reviewing any of it, is
+The same holds for the prompts the product itself sends to a model, and for how
+any of it is laid out: static instructions first, the call's data after them,
+the task last, as short as it can be ([ai.md](ai.md)). The checklist, used when
+writing or reviewing any of it, is
 [`.agents/skills/context-engineering/context-quality.md`](../../.agents/skills/context-engineering/context-quality.md);
-the code review checks it on every commit that changes agent-facing context.
+the code review checks it on every commit that changes such text.
 The principles below are, most of them, ways of keeping one of these five true
 mechanically.
 
@@ -190,12 +193,14 @@ user (a decision, a credential, an account, a clarification):
    naming the items it holds up. The question then survives the session, and
    `plan:status` ranks it by how much work it blocks.
 3. **Keep going**, in this order of preference:
-   - the next ready item in the plan (`/plan next`)
+   - the next ready item in the plan (`/build`)
    - work on the blocked item that **every** answer needs: tests, scaffolding,
      the parts on both sides of the decision
    - proceeding on an **explicit, reversible assumption**. Write it in the
      item and in the commit (`Assumes: Q-007 → B`), and keep it cheap to undo
-   - quality work: coverage gaps, a pattern check, docs, `/idea check` on the next feature
+   - quality work: coverage gaps, a pattern check, docs, the checks in
+     `.agents/skills/spec-driven-development/requirements.md` on the next
+     feature
 4. **Never** build irreversibly on a guess, and never silently fill a gap with a
    plausible value. That is the sentinel failure of §4 in human form.
 

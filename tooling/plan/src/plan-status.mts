@@ -11,7 +11,7 @@
  *                (`f03-012`, matched case-insensitively; `pnpm claim` makes
  *                one atomically), or a `Progress: <ID>` on origin/<integration>
  *                within claimStaleDays and no `Closes:` (partial PRs land, and
- *                /land deletes the branch only on the PR that closes the item)
+ *                `pnpm land` deletes the branch only on the PR that closes the item)
  *   stale claim  a claim older than claimStaleDays with no commit newer than
  *                claimStaleDays — on the branch or as a Progress: on the
  *                integration branch

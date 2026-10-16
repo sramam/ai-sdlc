@@ -35,8 +35,9 @@ with a comment choosing what _could not ask_ means. No sentinel standing in for
 - Every external input is Zod-validated: requests, webhooks (signature and
   replay), queue messages, model output.
 - No secrets, PII or bodies in logs or span attributes; only registered
-  attribute keys. Model calls go through `@<scope>/llm` on the route their data
-  class allows.
+  attribute keys. Every new capability or external call (database, model,
+  authorization, email, a vendor) has its span (`docs/kit/observability.md`).
+  Model calls go through `@<scope>/llm` on the route their data class allows.
 
 ### 4. Lifecycle-correct
 
@@ -57,12 +58,14 @@ loading, empty and error states. Errors on their fields, server refusals
 included. A keyboard path, and a name on every icon-only button. Glossary
 words; no internal IDs on screen. Nothing contradicts the design brief.
 
-### 7. Context quality (any change to agent-facing text)
+### 7. Context quality (any change to text a model acts on)
 
-Skills, `AGENTS.md`, the kit, requirements, plan items, guard messages: each
+Skills, `AGENTS.md`, the kit, requirements, plan items, guard messages, and
+every prompt, tool description or agent definition the product ships: each
 added or changed passage meets
-[the context checklist](../context-engineering/context-quality.md) (clarity,
-actionability, fidelity, efficiency, security). As a hook, block only for a
+[the context checklist](../context-engineering/context-quality.md) (the five
+tenets, and the prompt structure: static first, dynamic data last, concise,
+the output specified). As a hook, block only for a
 security line (a secret, an instruction taken from fetched content, a widened
 permission nobody was told of) or a fidelity line that states something the
 diff itself contradicts.

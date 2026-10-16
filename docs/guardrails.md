@@ -9,8 +9,8 @@ something wherever possible, and says by what.
 
 - **Default to the most private option; relax on evidence, never in
   anticipation.** A relaxation is an ADR with a reason and a date.
-- **`docs/requirements/` is written only by `/kickoff`, `/idea` and
-  `/add-requirement`**; `sources/` never. _Hook + commit trailer._
+- **`docs/requirements/` is written only by `/kickoff` and `/spec`**;
+  `sources/` never. _Hook + commit trailer._
 - **The design brief beats a mockup or a prototype.** Record a divergence in the
   brief; never follow the picture silently.
 - **No new technology or dependency without an ADR** the user decided

@@ -3,7 +3,7 @@
  * time on a small tree built here.
  */
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -144,7 +144,24 @@ describe("ensureSkillLinks", () => {
     const r = ensureSkillLinks(dir);
     expect(r.created).toEqual([".claude/skills/new"]);
     expect(r.removed).toEqual([".claude/skills/gone"]);
+    expect(r.kept).toEqual([]);
     expect(r.failed).toEqual([]);
+  });
+
+  it("replaces the empty directory an update leaves where a skill used to live", () => {
+    write(".agents/skills/kickoff/SKILL.md", "x");
+    mkdirSync(join(dir, ".claude/skills/kickoff"), { recursive: true });
+    expect(ensureSkillLinks(dir).created).toEqual([".claude/skills/kickoff"]);
+    write(".agents/skills/plan/SKILL.md", "x");
+    write(".claude/skills/plan/SKILL.md", "the project's own");
+    expect(ensureSkillLinks(dir).kept).toEqual([".claude/skills/plan"]);
+  });
+
+  it("removes the empty directory a retired skill leaves, and nothing with content", () => {
+    mkdirSync(join(dir, ".claude/skills/idea"), { recursive: true });
+    write(".claude/skills/mine/SKILL.md", "x");
+    expect(ensureSkillLinks(dir).removed).toEqual([".claude/skills/idea"]);
+    expect(existsSync(join(dir, ".claude/skills/mine/SKILL.md"))).toBe(true);
   });
 });
 

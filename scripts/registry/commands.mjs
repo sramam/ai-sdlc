@@ -466,6 +466,7 @@ export function list(ctx, o) {
       `  ${name.padEnd(22)}${item.kind.padEnd(8)}${at.padEnd(16)}${(item.requires ?? []).join(", ") || "-"}`,
     );
     ctx.log(`  ${"".padEnd(22)}${item.description}`);
+    if (item.when) ctx.log(`  ${"".padEnd(22)}add it when: ${item.when}`);
   }
   return 0;
 }

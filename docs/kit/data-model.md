@@ -1,15 +1,16 @@
 # The domain model — discovered early, designed for simplicity
 
-**`/idea` discovers the high-level domain objects** as part of the PRD: what they
-are, how they relate, which have a lifecycle, and who owns each one (from the
-access model). **`/kickoff` reads the result** when it settles the stack. Fields
+**`/kickoff` discovers the high-level domain objects** as part of the PRD (stage
+2): what they are, how they relate, which have a lifecycle, and who owns each
+one (from the access model). **Stage 3 reads the result** when it settles the
+stack. Fields
 and details are worked out as the project develops, one plan item at a time.
 
 The design goal is **simplicity and operational efficiency**: few entities, few
 joins on the hot paths, no stored values that can drift, and queries that stay
 fast as history accumulates.
 
-## Discovering it (in `/idea`)
+## Discovering it (in `/kickoff`)
 
 1. **Harvest the nouns** from the BRD, the features and the journeys. Merge
    synonyms using `glossary.md`. A thing with two names becomes two tables.
@@ -137,6 +138,6 @@ Seeds exist at three sizes, and they are the same code at every size:
 
 The high-level model is decided in discovery. Fields arrive with the plan items
 that need them. A change to the high-level model (a new entity, a changed
-relationship, a new lifecycle) goes through `/add-requirement` and updates
+relationship, a new lifecycle) goes through `/spec` and updates
 `domain-model.md` in the same change. `plan:check` fails on an entity named in
 a requirement that `domain-model.md` does not define.

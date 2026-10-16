@@ -345,6 +345,10 @@ export function registryPatternCheck(root: string): Result {
     for (const e of Object.keys(it.external ?? {}))
       if ((it.external?.[e] ?? "").trim().split(/\s+/).length < 3)
         problems.push(`external "${e}" needs a reason`);
+    // An agent decides from `pnpm sdlc list` whether to add an item, so every
+    // optional one says when a project needs it.
+    if (it.kind !== "base" && (it.when ?? "").trim().split(/\s+/).length < 4)
+      problems.push("when: say, in a sentence, when a project adds it (pnpm sdlc list prints it)");
 
     // Base and modules are developed here: their fragments are this repository's own.
     if (it.kind !== "recipe" && packageJsonOf(it) === "package.json") {
