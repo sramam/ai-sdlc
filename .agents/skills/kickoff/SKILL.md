@@ -18,9 +18,9 @@ description: Defines a new project with its author, so it can be built without a
 7. Done when a re-run asks nothing. A person approves the first features'
    specs (`Approved:`), then `/build auto` plans and builds.
 
-**Purpose:** nothing gets built on an unasked question. Every topic below ends
-in one of three end states: **decided**, **deferred** (with an owner and a date), or
-**out of scope**. "We'll see" is not a state.
+Purpose: nothing gets built on an unasked question. Every topic below ends
+in one of three end states: decided, deferred (with an owner and a date), or
+out of scope. "We'll see" is not a state.
 
 After kickoff, a change to what the product does goes through `/spec`
 (`spec-driven-development`). A new persona or product area comes back here:
@@ -43,7 +43,7 @@ interview goes better once the people and the defaults are settled.
 1. **Orientation**: the topics that do not depend on the product (2, 4, 5, 6,
    8). Mark the rest `waiting`, with the reason "needs the product".
 2. **The product**: topic 1, the _what_, by [product.md](product.md). It
-   **records** the decisions it implies (technology triggers, the
+   records the decisions it implies (technology triggers, the
    authorization-engine recommendation, the backoffice candidates) in
    `docs/requirements/technology.md` without making them.
 3. **Decisions**: settle topics 3, 7 and 9–12, deciding what stage 2 recorded
@@ -55,14 +55,14 @@ reason clears.
 
 ## Restartable by design
 
-Run it once, or ten times: each run **solves only for what is open**, and
+Run it once, or ten times: each run solves only for what is open, and
 nothing already answered is lost or re-asked.
 
-| invocation                 | does                                                                                 |
-| -------------------------- | ------------------------------------------------------------------------------------ |
-| `/kickoff`                 | first run: creates the brief. Later runs: resume, asking only open questions         |
-| `/kickoff status`          | prints each topic's state and what is open, then **asks nothing and writes nothing** |
-| `/kickoff revisit <topic>` | reopens one decided topic deliberately, keeping its history                          |
+| invocation                 | does                                                                             |
+| -------------------------- | -------------------------------------------------------------------------------- |
+| `/kickoff`                 | first run: creates the brief. Later runs: resume, asking only open questions     |
+| `/kickoff status`          | prints each topic's state and what is open, then asks nothing and writes nothing |
+| `/kickoff revisit <topic>` | reopens one decided topic deliberately, keeping its history                      |
 
 ### The state lives in the brief, per topic
 
@@ -79,14 +79,14 @@ Each topic in `docs/requirements/project-brief.md` carries a machine-readable ma
 
 `state` is one of `open`, `partial`, `waiting`, `decided`, `deferred` or
 `out-of-scope`.
-State is tracked **per question within the topic**, not just per topic, so a
+State is tracked per question within the topic, not just per topic, so a
 partly answered topic resumes at its first open line.
 
 ### What a re-run does, in order
 
 1. **Read, never regenerate.** Load the existing brief and parse its markers. If
    the brief is missing, this is a first run. If it exists but cannot be parsed,
-   **stop and say so**. Do not rebuild it from scratch: that would discard
+   stop and say so. Do not rebuild it from scratch: that would discard
    answers.
 2. **Collect answers that arrived elsewhere.** For each `Q-` file the brief
    references, read it as it stands on `origin/dev` and on this branch:
@@ -113,7 +113,7 @@ partly answered topic resumes at its first open line.
    answered. Update the marker and `Last reviewed`. Never reorder, reformat or
    reword text you did not change. An interrupted run therefore loses at most
    the question in flight.
-6. **Append to the run log** at the bottom of the brief: date, what was asked,
+6. Append to the run log at the bottom of the brief: date, what was asked,
    what was decided, what is still open.
 
 ### Non-destructive rules
@@ -150,7 +150,7 @@ think they should want. Within that:
   read the existing documents first: `docs/requirements/`, README, notes.
 - **When the author does not know**, write a `Q-` file, mark the question
   _deferred_ with an owner and date, and move on. Do not stall.
-- **Push back** on an answer that contradicts a recorded decision or the
+- Push back on an answer that contradicts a recorded decision or the
   requirements. Name the contradiction, and offer `revisit` if the old decision
   is the one that should change.
 
@@ -160,14 +160,14 @@ think they should want. Within that:
    The brief records its state: the verdict in `review.md`, whether the access
    model is settled, and the open `Q-` files.
 2. **People**:
-   - who decides product questions, and **who approves specs** (the only human
+   - who decides product questions, and who approves specs (the only human
      gate, `using-agent-skills`)
    - who reviews code, if anyone beyond the hooks and `ci:local`
    - who does QA, and what QA tests
    - who holds credentials and accounts
-3. **Stack**: present the **preferred stack** in `docs/kit/tech-stack.md`,
-   one choice at a time; the user **keeps or changes** each (a change is an ADR): TanStack Start on Cloudflare Workers, OTel, OpenRouter, shadcn/ui.
-   **Decide** the rest using its criteria:
+3. **Stack**: present the preferred stack in `docs/kit/tech-stack.md`,
+   one choice at a time; the user keeps or changes each (a change is an ADR): TanStack Start on Cloudflare Workers, OTel, OpenRouter, shadcn/ui.
+   Decide the rest using its criteria:
    - database (Postgres through Hyperdrive, or D1) and ORM
    - auth provider
    - **authorization engine**: Oso or SpiceDB, starting from stage 2's
@@ -178,11 +178,11 @@ think they should want. Within that:
      `docs/kit/security.md`)
 
    For each third-party service: decided, or undecided? An undecided vendor
-   gets a port. **Read `docs/requirements/access-model.md` and
-   `docs/requirements/domain-model.md` first**: tenancy constrains the database layout, auth and the scoping layer,
+   gets a port. Read `docs/requirements/access-model.md` and
+   `docs/requirements/domain-model.md` first: tenancy constrains the database layout, auth and the scoping layer,
    and the domain objects' volumes and access paths constrain the database and
    host. UI defaults to shadcn/ui on Base UI (`docs/kit/ux.md`), so confirm
-   rather than ask. **D1 is outside the kit**: the testing, branching and health
+   rather than ask. D1 is outside the kit: the testing, branching and health
    patterns assume Postgres, so choosing D1 needs an ADR that replaces them.
 
 4. **SDLC defaults** (confirm):
@@ -227,14 +227,14 @@ think they should want. Within that:
    mock data** (a marketing site may need neither; an operator console both).
    These become `localdb.databases` and `seeds` in `sdlc.config.json`.
    Each app and each initial package (`api`, `db`, `ui`, `telemetry`, `authz`,
-   `llm`, one per decided vendor) **cites the requirements or ADR that need
-   it**. Also decide the **package scope** (`@<scope>/…`). Start with the fewest. A second app needs a reason it cannot be a
-   route in the first. **Settle the backoffice split** from the candidates stage 2 recorded:
+   `llm`, one per decided vendor) cites the requirements or ADR that need
+   it. Also decide the package scope (`@<scope>/…`). Start with the fewest. A second app needs a reason it cannot be a
+   route in the first. Settle the backoffice split from the candidates stage 2 recorded:
    a separate app (its own origin, a smaller blast radius, MFA everywhere, staff
    only) suits sensitive or high-power operations, while a separate shell in the
    same app suits light administration. Whichever is chosen, the backoffice
    never shares a shell with the customer front.
-   **Name the items each one starts from** (`pnpm sdlc list`): the recipe per
+   Name the items each one starts from (`pnpm sdlc list`): the recipe per
    package or app (`app-tanstack-workers`, `api`, `api-bindings`, `db-drizzle`
    or `db-prisma`, `authz-oso` or `authz-spicedb`, `llm-openrouter`, `ui`,
    `dev-session`, `journeys-adapter`), and the modules the SDLC defaults need
@@ -249,12 +249,12 @@ think they should want. Within that:
     - the integrations, background work, telemetry and environments
 
     Include one diagram, and the main flows (sign-in, a capability call, a
-    background job). **Every component cites a requirement ID or an ADR.** A
+    background job). Every component cites a requirement ID or an ADR. A
     component with no citation is either missing its requirement or should not
     exist.
 
 11. **Technology triggers**: confirm that every trigger stage 2 found has a
-    user-made decision. Then scan the **non-functional** side for triggers the
+    user-made decision. Then scan the non-functional side for triggers the
     product conversation would not raise: availability targets, multi-region,
     data residency, expected load, compliance attestations, offline use. Each one
     runs the dialog in `docs/kit/technology-decisions.md`, and the user decides.
@@ -264,7 +264,7 @@ think they should want. Within that:
     - the agent binding over the capability manifest. The SDK, HTTP API and
       MCP bindings are a default every project gets (`docs/kit/tech-stack.md`
       § _The architecture shape_), so ask instead:
-      - **which capabilities are excluded** from which binding, each with a
+      - which capabilities are excluded from which binding, each with a
         reason that is a property of the mechanism (a browser-only upload
         step), never "not needed yet"
       - **how external clients authenticate**: API keys for programmatic HTTP
@@ -279,7 +279,7 @@ think they should want. Within that:
     Each item cites its requirement.
 
 New topics may be appended to this list. Existing briefs pick them up as `open`
-on their next run. **Never renumber or rename a topic**: the `topic=` key in the
+on their next run. Never renumber or rename a topic: the `topic=` key in the
 marker is what matches a brief to this list.
 
 ## Output: `docs/requirements/project-brief.md`
@@ -305,17 +305,17 @@ Last reviewed: YYYY-MM-DD
 ## Run log — append-only: date · asked · decided · still open
 ```
 
-The **Decided**, **Deferred** and **Blocking** summaries are **derived from the
-markers on every run**, not edited by hand. That way they cannot disagree with
+The Decided, Deferred and Blocking summaries are derived from the
+markers on every run, not edited by hand. That way they cannot disagree with
 the sections they summarise.
 
 ## Done when
 
 - Every topic is decided, deferred with an owner, or out of scope.
-- **Blocking** is empty, or the author has said to proceed anyway. Record that
+- Blocking is empty, or the author has said to proceed anyway. Record that
   in the run log, with the date.
 - A second `/kickoff` immediately after asks nothing and changes nothing except
-  the run log. **That is the completion test.**
+  the run log.
 - Print the next step:
   - a stage stopped part-way: `/kickoff` to resume
   - done: present the first features' specs for approval

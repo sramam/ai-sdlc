@@ -1,4 +1,4 @@
-@ai-sdlc/security: `security:scan` — secrets, deps, licenses, install-scripts, release-age, one line each, exit 0/1/2. Configured by the optional root `security.config.json`. See README.md.
+@ai-sdlc/security: `security:scan`: secrets, deps, licenses, install-scripts, release-age, one line each, exit 0/1/2. Configured by the optional root `security.config.json`. See README.md.
 
 - **Never print a secret's value.** Findings carry file, line and rule; the matched line is used only for allow-list matching and dropped.
 - **Test fixtures assemble secret shapes at runtime** (`test-helpers.mts`). A literal sample in a source file trips the repository's own scan; `secrets.test.ts` scans this package's sources to keep it so.

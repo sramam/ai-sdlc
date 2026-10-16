@@ -2,7 +2,7 @@
 
 Used by `spec-driven-development` for one change, and by `/kickoff` for the
 whole product. The bar: an agent with only `docs/requirements/`, the project
-brief and the ADRs can build the feature **without asking a question**. Every
+brief and the ADRs can build the feature without asking a question. Every
 gap that would make it ask is a finding.
 
 ## What lives where
@@ -63,22 +63,22 @@ a milestone completes whole `J<nn>` journeys.
 ## The checklist, per feature
 
 - **who**: the personas (an actor not in `personas.md` is a finding)
-- **outcome**: what they can do afterwards; **done means** Given / When / Then
-- trigger and preconditions
-- main flow and **every refusal**: bad input, no permission, conflicting
+- **outcome**: what they can do afterwards; done means Given / When / Then
+- **trigger and preconditions**
+- **main flow and every refusal**: bad input, no permission, conflicting
   state, third-party failure; each with its message or behaviour
 - **data**: entities, required and optional fields, visibility per tenant and
   role, retention
 - **lifecycle**: states, transitions, and who sends each event
 - **screens**: the pattern from the design brief, its shell, and the loading,
   empty and error states
-- notifications: who, which channel, what consent
+- **notifications**: who, which channel, what consent
 - **security**: the asset, the attacker, what stops them
 - **observability**: what proves it works in production
 - **AI**: can AI act, propose, assist, see or notice here (`docs/kit/ai.md`)?
   If so, its mode, data class, authority, eval and cost cap; if not, why not
 - **technology**: does it need a decision not yet made?
-- non-functional: performance, accessibility, audit, time zones, money
+- **non-functional**: performance, accessibility, audit, time zones, money
 - **its journey tasks**
 
 ## The checks a spec must pass

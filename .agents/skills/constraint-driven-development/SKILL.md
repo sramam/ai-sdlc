@@ -18,7 +18,7 @@ in full, with the amendments below. Where they differ, the amendments win.
   `CONSTRAINTS.md` is written, each row names the dimension, its reason and the
   `ci:local` step that checks it, and points at `sdlc.config.json` for
   numbers rather than repeating them.
-- **Upstream's `check:fast` / `check:task` / `check:full`** are, here,
+- Upstream's `check:fast` / `check:task` / `check:full` are, here,
   `pnpm lint && pnpm typecheck`, `pnpm test`, and `pnpm ci:local`.
 - **Do not add a line to `AGENTS.md`** (it stays short; the router already
   sends agents here). Guard mode, which watches the diff for a lowered bar,

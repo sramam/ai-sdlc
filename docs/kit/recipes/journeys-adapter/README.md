@@ -7,7 +7,7 @@ Set `APP_DIR`, `DB` and `BINDING` at the top.
 
 | step        | does                                                                                                                                                                                                                          |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `build`     | `vite build`: the **built** Worker is recorded, never `vite dev`                                                                                                                                                              |
+| `build`     | `vite build`: the built Worker is recorded, never `vite dev`                                                                                                                                                                  |
 | `start`     | `db:local start`; `wrangler dev --config dist/server/wrangler.json` on the host's app port, with `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_<BINDING>` = the localdb URL plus a password; `BETTER_AUTH_URL` = the app URL |
 | `reset`     | `db:local reset --force`: snapshot, empty, migrate. The localdb port is derived per checkout, so wrangler's URL stays valid                                                                                                   |
 | `readyPath` | `/health`                                                                                                                                                                                                                     |

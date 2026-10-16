@@ -8,8 +8,7 @@ project owns it from then on ([../registry.md](../registry.md)). A recipe's
 README arrives beside this index when the recipe is added; until then the links
 below resolve in the registry.
 
-Built from the October 2026 platform spike ([../spike-2026-10.md](../spike-2026-10.md)),
-which assembled them into a scratch project and ran them on workerd:
+Built from the October 2026 platform spike ([../spike-2026-10.md](../spike-2026-10.md)):
 
 | recipe                                           | is                                                                                                         |
 | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |

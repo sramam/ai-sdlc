@@ -17,12 +17,12 @@ in full, with the amendments below. Where they differ, the amendments win.
 This project designates its own target, as upstream allows: no `tasks/plan.md`,
 no `tasks/todo.md`, no GitHub Issues or Projects (they are turned off).
 
-- **One file per task** in `docs/plan/items/<ID>-<slug>.md`, with front matter
+- One file per task in `docs/plan/items/<ID>-<slug>.md`, with front matter
   `id`, `title`, `requirements`, `personas`, `journeys`, `milestone`,
-  `depends`, `estimate` (upstream's XS–L, or `unknown`; an XL is split). Its
+  `depends`, `estimate` (upstream's XS to L, or `unknown`; an XL is split). Its
   body is upstream's task structure: acceptance criteria copied from the
   requirement and made concrete, verification, files likely touched.
-- **The plan document** is `docs/plan/README.md`: milestones (each with the
+- The plan document is `docs/plan/README.md`: milestones (each with the
   journeys it completes), a mermaid dependency graph, the critical path, the
   assumptions, what was deferred, and a change log that is only appended to.
 - **Status is never written down.** No checkboxes, no `status:` field. An item
@@ -30,7 +30,7 @@ no `tasks/todo.md`, no GitHub Issues or Projects (they are turned off).
   `origin/dev` closes it (`Closes: <ID>`). `pnpm plan:status` derives it. This is what
   lets several agents work one plan without overwriting each other, so
   upstream's "never overwrite an incomplete plan" holds by construction.
-- **Checkpoints** are milestones and `depends:` edges, not checklist rows.
+- Checkpoints are milestones and `depends:` edges, not checklist rows.
 - IDs (`docs/kit/plan-and-requirements.md`) are never renumbered or reused. A
   task no longer wanted gets `dropped: <reason>`, the only decision an item
   records.

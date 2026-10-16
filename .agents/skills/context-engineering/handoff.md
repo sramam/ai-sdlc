@@ -1,8 +1,8 @@
 # Handoff
 
-A handoff is not a progress report. A progress report is for executives and is
-committed. A handoff is for the **next working session**: branch positions, the
-next move, and the traps that are expensive to rediscover. It is **gitignored**.
+A handoff is for the next working session: branch positions, the next move,
+and the traps that are expensive to rediscover. It is gitignored. A progress
+report is for executives and is committed.
 Everything durable in it already lives in git, the plan (`docs/plan/`, `pnpm plan:status`) or `AGENTS.md`.
 
 ## Instructions
@@ -14,14 +14,14 @@ MAIN=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
 FILE="$MAIN/docs/handoffs/$(date +%F)-$(git branch --show-current | tr / -).md"
 ```
 
-Always write to the **main checkout**. A file inside a worktree dies with the
-worktree. If the write is refused, **say the handoff was not written**, and do
+Always write to the main checkout. A file inside a worktree dies with the
+worktree. If the write is refused, say the handoff was not written, and do
 not print the pickup line.
 
 Same branch on the same day: supersede the existing file. Different branches:
 leave the other files alone.
 
-### 1. Facts come from git, not memory
+### 1. Facts come from git
 
 - `git status`, `git log --oneline origin/dev..HEAD`, ahead/behind counts
 - the open PR, if any (`gh pr view --json number,state,url`)

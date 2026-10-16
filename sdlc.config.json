@@ -44,6 +44,12 @@
         "unknownExitCodes": [2]
       },
       {
+        "name": "prose",
+        "run": "node tooling/guards/src/prose-check.mts",
+        "applies": "always",
+        "unknownExitCodes": [2]
+      },
+      {
         "name": "trailers",
         "run": "node tooling/guards/src/trailers.mts --range",
         "applies": "always",

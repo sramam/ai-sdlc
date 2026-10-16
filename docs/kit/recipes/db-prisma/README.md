@@ -13,7 +13,7 @@ first request of about 60–75 ms against 25–37 ms under local `wrangler dev`.
 | `prisma.config.ts`     | the datasource URL from `DATABASE_URL`, and the migrations path                                             |
 | `src/client.ts`        | `withDb`: `PrismaClient({ adapter: new PrismaPg({ connectionString }) })` per request, then `$disconnect()` |
 
-- Pin **7.x** (`prisma@7.10.1`, `@prisma/client@7.10.1`, `@prisma/adapter-pg@7.10.1`).
+- Pin 7.x (`prisma@7.10.1`, `@prisma/client@7.10.1`, `@prisma/adapter-pg@7.10.1`).
   In October 2026 npm's `latest` tag for `prisma` pointed at `8.0.0-rc.23`.
 - pnpm blocks Prisma's install scripts until approved (`pnpm approve-builds`);
   `prisma generate` still works.

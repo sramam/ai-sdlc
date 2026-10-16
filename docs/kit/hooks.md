@@ -4,9 +4,9 @@ Everything here ships in base (`.husky/`, `tooling/guards/`,
 `.claude/settings.json`). A project configures it through `sdlc.config.json` and
 never edits it in place.
 
-## Commit trailers — the one grammar
+## Commit trailers: the one grammar
 
-Every other document refers here. Each trailer is a single line, parsed with
+Each trailer is a single line, parsed with
 `git interpret-trailers --parse`, so prose that quotes a trailer is ignored.
 
 | trailer                  | form                                                | rule                                                                                                                                                                      |
@@ -31,29 +31,29 @@ useful for reporting, not for security.
 
 | hook                 | does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pre-commit`         | `lint-staged`: lint, format, regenerate every generated artifact the staged files can change, and re-stage it. lint-staged appends filenames to the command, so wrap generators as `sh -c '…'`                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `pre-commit`         | `lint-staged`: lint, format, regenerate every generated artifact the staged files can change, and re-stage it. lint-staged appends filenames to the command, so wrap generators as `sh -c '…'`. Staged markdown also runs the prose pattern check (`tooling/guards/src/prose-check.mts`, and the `prose` step of `ci:local`): em dashes in prose, bold inside a sentence, stock model words, Title Case or emoji headings, curly quotes and chatbot residue each fail; an exception is a comment naming the rule and a reason. The judgement patterns stay with the code review and the `humanizer` skill                                    |
 | `prepare-commit-msg` | appends `Worktree:` / `Session:` in a worktree (deduplicated on amend)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `commit-msg`         | enforces the trailer table above. It refuses a `docs/requirements/` change without `Requirements:`, which backstops writes the lock cannot see (`sed -i`). It refuses a `Progress:` or `Closes:` naming a missing item, and an attribution trailer that differs from settings.                                                                                                                                                                                                                                                                                                                                                               |
 | `pre-push`           | refuses every update of `dev`, `staging` or `main`. It allows `main` into a repository with no branch at all (a new project's first push, asked of the remote with `git ls-remote`; a remote it cannot ask is refused). The other exception is a push made by `pnpm promote:*`, which writes a one-shot handoff (`<git-common-dir>/sdlc-promote-handoff`: nonce, exact SHA, exact ref) and passes the nonce in `SDLC_PROMOTE_NONCE`; the hook deletes it on use. No branch name is trusted. `sdlc:init` creates `dev` through the GitHub API, so it never pushes it. A GitHub ruleset on `staging`/`main` is the stronger, server-side layer |
 
 ## Claude Code guards (`type: command`)
 
-Each runs as **`node tooling/guards/src/<name>.mts`**: Node 24 strips the types, and
+Each runs as `node tooling/guards/src/<name>.mts`: Node 24 strips the types, and
 no `node_modules` is needed, so a guard works in a fresh worktree before
 `pnpm install`. A guard that needs `node_modules` fails open exactly there.
 
-| event                            | script              | does                                                                                                                                                                                                                                                                                                                                                                                              |
-| -------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PreToolUse `Edit\|Write`         | `requirements-lock` | refuses writes under `docs/requirements/` unless `.claude/requirements-session` (gitignored, in **this** checkout) names this session and `kickoff` or `spec`. Under `docs/requirements/sources/`: a marked session may Write a **new** file (an import); Edit, and Write over an existing file, are refused always; `sources/MANIFEST` is refused always (only `pnpm sources:add` appends to it) |
-| PreToolUse `Edit\|Write\|Bash`   | `worktree-required` | refuses writes and `git commit` in the main checkout (`--git-dir` equal to `--git-common-dir`). **Exempt path: `docs/handoffs/`**, so a session's handoff can be written there. A session exemption is a file keyed by `$CLAUDE_CODE_SESSION_ID`                                                                                                                                                  |
-| PreToolUse `Bash\|EnterWorktree` | `worktree-base`     | `git worktree add` must base on `origin/dev`. `EnterWorktree({name})` is refused because it cannot name a base; `{path}` is allowed                                                                                                                                                                                                                                                               |
-| PreToolUse `Bash\|EnterWorktree` | `worktree-single`   | one _live_ worktree per session (this session's records intersected with `git worktree list`)                                                                                                                                                                                                                                                                                                     |
-| SessionStart                     | `bootstrap`         | `node tooling/setup/src/bootstrap.mts --session-start`: one line per check (repairing the env and skill links), whether the security plugin is installed, and the newest handoffs, as the session's first context. Always exits 0                                                                                                                                                                 |
-| PostToolUse                      | `worktree-trace`    | records created and entered events in the registry. Never fails a tool call                                                                                                                                                                                                                                                                                                                       |
+| event                            | script              | does                                                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PreToolUse `Edit\|Write`         | `requirements-lock` | refuses writes under `docs/requirements/` unless `.claude/requirements-session` (gitignored, in this checkout) names this session and `kickoff` or `spec`. Under `docs/requirements/sources/`: a marked session may Write a new file (an import); Edit, and Write over an existing file, are refused always; `sources/MANIFEST` is refused always (only `pnpm sources:add` appends to it) |
+| PreToolUse `Edit\|Write\|Bash`   | `worktree-required` | refuses writes and `git commit` in the main checkout (`--git-dir` equal to `--git-common-dir`). Exempt path: `docs/handoffs/`, so a session's handoff can be written there. A session exemption is a file keyed by `$CLAUDE_CODE_SESSION_ID`                                                                                                                                              |
+| PreToolUse `Bash\|EnterWorktree` | `worktree-base`     | `git worktree add` must base on `origin/dev`. `EnterWorktree({name})` is refused because it cannot name a base; `{path}` is allowed                                                                                                                                                                                                                                                       |
+| PreToolUse `Bash\|EnterWorktree` | `worktree-single`   | one _live_ worktree per session (this session's records intersected with `git worktree list`)                                                                                                                                                                                                                                                                                             |
+| SessionStart                     | `bootstrap`         | `node tooling/setup/src/bootstrap.mts --session-start`: one line per check (repairing the env and skill links), whether the security plugin is installed, and the newest handoffs, as the session's first context. Always exits 0                                                                                                                                                         |
+| PostToolUse                      | `worktree-trace`    | records created and entered events in the registry. Never fails a tool call                                                                                                                                                                                                                                                                                                               |
 
 **The requirements lock marks who is authoring in this checkout. It does not
 lock across agents.** Concurrency is handled by branches: a requirements change
-lands on its own branch and PR, **before** the code that depends on it. A skill
+lands on its own branch and PR, before the code that depends on it. A skill
 that finds another unmerged branch changing `docs/requirements/` (`git log
 origin/dev..origin/<branch> -- docs/requirements` over the remote branches)
 says so, and works on something else until that branch lands.
@@ -62,7 +62,7 @@ says so, and works on something else until that branch lands.
 by every guard. It computes _where git would actually act_ (`git -C <path>`,
 quoted paths, `--work-tree`), rather than reading the session's cwd.
 
-**Known gaps, stated rather than implied away:**
+**Known gaps:**
 
 - Bash commands that write files (`sed -i`, heredocs) are not gated. `git commit`
   and `commit-msg` are the backstop.
@@ -90,7 +90,7 @@ and the code review's project criteria
 4. **Never judge which model wrote something.** It cannot be observed.
 5. **Resolve paths against the repo root containing the file**, which may be a
    worktree.
-6. **Every hook adds latency** to every matched call. Measure it, and record the
+6. Every hook adds latency to every matched call. Measure it, and record the
    measurement with its date.
 
 ## `.claude/settings.json`

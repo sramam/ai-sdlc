@@ -44,7 +44,7 @@ Upstream's autonomous mode, with these differences:
 - **The unit is the item, not the task**: claim → slices → review → land, one
   worktree at a time, then `pnpm plan:status --ready` again, until nothing is
   ready. Close each landed worktree before claiming the next.
-- **Stop and ask** where upstream says (a failure without an obvious fix, an
+- Stop and ask where upstream says (a failure without an obvious fix, an
   ambiguity, anything high-risk or irreversible), and also when: `pnpm land`
   is red, the item needs a requirement changed (that is `/spec`, and a person
   approves it), or a technology decision is open.

@@ -2,8 +2,8 @@
 
 There is no GitHub Issues and no GitHub Project. The requirements, the plan,
 open questions and progress all live in `docs/`, are versioned with the code,
-and are reported against from `git`. This works for one reason: **git is the
-only channel that merges** across agents, so making it the system of record
+and are reported against from `git`. Git is the only channel that merges
+across agents, so making it the system of record
 removes a second source of truth and the sync between the two.
 
 These documents get long. What keeps them usable by people and by agents is that
@@ -40,7 +40,7 @@ docs/plan/
 docs/progress/YYYY-MM-DD.md   dated reports, never rewritten
 ```
 
-A requirements skill imports a document by creating a **new** file under
+A requirements skill imports a document by creating a new file under
 `sources/` with Write, then `pnpm sources:add <path>` records its hash in
 `sources/MANIFEST`, which the `sources` CI step checks.
 
@@ -65,25 +65,10 @@ A requirements skill imports a document by creating a **new** file under
 ## Personas are discovered, not assumed
 
 No persona carries over from one project to the next; what carries over is the
-**method**. `/kickoff` runs it in stage 2, BRD theme 2
-(`.agents/skills/kickoff/product.md`), and `/kickoff revisit product` repeats
-it when a request names an actor that is not in the registry.
-
-**Where candidates come from** (check every source; each tends to miss someone):
-every actor named in a requirement; the author's answers to who uses it, who
-pays for it and who would complain if it broke; every distinct role the
-permission model allows or refuses something; whoever _receives_ an email,
-report, invoice, notification or export; whoever configures, onboards others or
-administers it; the product's own support and operations staff; and people with
-no account (a visitor, an invitee, someone signing up).
-
-External systems (a payment provider, a scheduler, a webhook) are **actors, not
-personas**. Name them `system:<name>` in requirements and keep them out of the
-registry.
-
-**When are two candidates one persona?** Split them when they differ in **goals,
-permissions, or the journeys they walk**. Merge them when they differ only in
-job title.
+method (`.agents/skills/kickoff/discovery.md`). `/kickoff` runs it in stage
+2, BRD theme 2 (`.agents/skills/kickoff/product.md`), and
+`/kickoff revisit product` repeats it when a request names an actor that is not
+in the registry.
 
 **What `personas.md` declares for each persona:**
 
@@ -98,49 +83,21 @@ job title.
 `Q-` file that will settle it. `plan:check` lists provisional personas, so none
 stays provisional silently.
 
-**The registry grows by finding, not by assumption.** When `/kickoff` or
-`/spec` meets a request whose actor is not in `personas.md`, that is a finding.
-Either the request maps to an existing persona, or a new one is added through
-`/kickoff revisit product`.
-
 ## Tenancy and access are discovered, not assumed
 
-A project might be a single-customer deployment, a personal tool, a team
-workspace, a multi-tenant service, a marketplace with two sides, or a
-hierarchy. Tenancy decides the data model, the scoping layer, the tests and the
-auth flow, so it is **discovered from the product definition** in `/kickoff`
-stage 2, BRD theme 5 (`.agents/skills/kickoff/product.md`), and recorded
-before any schema is written.
-
-**The questions that reveal it** (ask them of the BRD and of the author): who
-owns the data (a person, a team, a company, the product itself); who must never
-see whose data, as a concrete pair ("company A must never see company B's
-invoices"); what the billing unit is (whoever pays is often the tenant); whether
-one person can belong to several, with a different role in each; whether there
-is a hierarchy (organization → team → project) and whether access inherits down
-it; what is shared or public; who works across tenants (the product's own staff
-are a separate axis, with audited, deliberate access); and whether residency or
-isolation is demanded per tenant.
-
-**The usual answers, and what each implies:**
-
-| model                                 | looks like                                   | implies                                                                                     |
-| ------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **single-tenant**                     | one customer, or one deployment per customer | no row scoping; isolation is the deployment's job                                           |
-| **per-user**                          | personal data only, with no sharing          | every row has an owner; scope = the caller                                                  |
-| **multi-tenant, shared schema**       | organizations or teams in one database       | every scoped row carries the tenant ID; a scoping layer on the data client; isolation tests |
-| **hierarchical**                      | org → team → project                         | scope at each level; decide whether access inherits downward                                |
-| **two-sided / marketplace**           | buyers and sellers, hosts and guests         | per-relationship visibility; neither side is "the" tenant                                   |
-| **database or deployment per tenant** | regulated customers, residency demands       | routing by tenant; migrations × N; no shared-schema scoping                                 |
+Tenancy decides the data model, the scoping layer, the tests and the auth flow,
+so it is discovered from the product definition in `/kickoff` stage 2, BRD
+theme 5 (`.agents/skills/kickoff/discovery.md`), and recorded before any schema
+is written.
 
 **What `docs/requirements/access-model.md` declares**, plus an ADR for the
 model chosen:
 
 - **tenancy**: a `Tenancy: <model>` line (never `open` once decided), with the
   reason
-- **the concrete "must never see" pairs**
+- the concrete "must never see" pairs
 - **membership**: how a user relates to a tenant. The role belongs to the
-  **relationship**, not the person; one person can be an admin in one tenant and
+  relationship, not the person; one person can be an admin in one tenant and
   a member in another
 - **two axes, always both**: _may this role do this action_ (a persona ×
   capability table) and _which rows may it touch_ (the scope rule per entity)
@@ -152,7 +109,7 @@ model chosen:
   Whether the backoffice is a separate shell or a separate app is settled in
   `/kickoff` stage 3
 - **switching**: a person may hold several relationships (different roles in
-  different tenants, a customer and staff). Exactly **one is active at a time**,
+  different tenants, a customer and staff). Exactly one is active at a time,
   chosen explicitly through a switcher, and the active relationship decides
   both the shell and the row scope. It is never inferred, and never a merge of
   several
@@ -168,7 +125,7 @@ as blocking.
 
 **`personas.md`**: for each persona, its ID, who they are, their goals, what
 they may and may not do (the RBAC row), and the journeys they own. Write it
-**first**. Everything else references it.
+first. Everything else references it.
 
 **`features/F<nn>-<slug>.md`**:
 
@@ -229,16 +186,16 @@ estimate: 3            # or "unknown". Never a guess
 **There is no `status:` field.** Status is derived from git, because a stored
 status drifts (principles.md §14):
 
-| status          | derived from                                                                                                         |
-| --------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **done**        | a commit on `origin/dev` with the trailer `Closes: F03-012`                                                          |
-| **in progress** | a **claim**: a remote branch named exactly the item ID (`f03-012`), or a recent `Progress:` on dev without `Closes:` |
-| **blocked**     | a `depends:` item not done, or an open question listing this item                                                    |
-| **ready**       | none of the above                                                                                                    |
-| **dropped**     | `dropped: <date> <reason>` in the frontmatter, the one stored state, because it is a decision                        |
+| status          | derived from                                                                                                     |
+| --------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **done**        | a commit on `origin/dev` with the trailer `Closes: F03-012`                                                      |
+| **in progress** | a claim: a remote branch named exactly the item ID (`f03-012`), or a recent `Progress:` on dev without `Closes:` |
+| **blocked**     | a `depends:` item not done, or an open question listing this item                                                |
+| **ready**       | none of the above                                                                                                |
+| **dropped**     | `dropped: <date> <reason>` in the frontmatter, the one stored state, because it is a decision                    |
 
 **A claim is atomic.** `pnpm claim <ID>` creates, through the GitHub API, a
-branch named **exactly** the lowercased item ID on top of `origin/dev`, whose
+branch named exactly the lowercased item ID on top of `origin/dev`, whose
 first commit records who and when:
 
 ```
@@ -253,13 +210,13 @@ held by …"); there is no race to resolve. The work happens on that branch, in 
 worktree created from `origin/<id>`; the worktree's directory name may carry a
 slug the user chooses, but the branch is the ID.
 
-- **IDs are matched case-insensitively** everywhere. Branches are lowercase;
+- IDs are matched case-insensitively everywhere. Branches are lowercase;
   files and trailers use the uppercase form.
 - **A branch is deleted when its item closes** (`pnpm land` deletes it on the PR
   carrying `Closes:`). An item is also _in progress_ while `origin/dev` carries a
   recent `Progress: <ID>` and no `Closes: <ID>`, so a partial PR never makes it
   look free.
-- **A claim goes stale** when its `Claimed-At` is older than `claimStaleDays`
+- A claim goes stale when its `Claimed-At` is older than `claimStaleDays`
   (in `sdlc.config.json`) and no commit, including a `Progress:` on dev, is newer. `plan:status` flags it, and `/plan sync` asks its owner, or the
   author, before it is released.
 - Requirements work uses `req-<slug>` branches (not claims). The bootstrap items
@@ -283,9 +240,9 @@ answered: # date, once answered
 
 A question with no `answered` date is open. Answering it may produce an ADR.
 
-## The pattern check — what keeps this honest
+## The pattern check
 
-`pnpm plan:check` prints its table on success. It runs in **stages**, because
+`pnpm plan:check` prints its table on success. It runs in stages, because
 what must hold grows as the project does. Each stage includes the ones before
 it, and the highest stage the repository has reached is used (`--stage`
 overrides it):
@@ -297,7 +254,7 @@ overrides it):
 | **plan**          | `docs/plan/README.md` holds a written plan                                                                      |                                              |
 | **build**         | a workspace package with a `package.json` exists outside `tooling/`, or the plan README declares `Stage: build` |                                              |
 
-**requirements** also requires the full set: `brd.md`, `prd.md`, `glossary.md`,
+requirements also requires the full set: `brd.md`, `prd.md`, `glossary.md`,
 `ux.md`, `domain-model.md`, `technology.md`, `review.md`, `personas.md` with at
 least one persona, `features/` with at least one requirement, `journeys.md` with
 at least one journey, and `access-model.md` declaring its tenancy (`Tenancy:
@@ -343,21 +300,20 @@ stage requires `ready-to-plan` or `ready-with-assumptions`.
 @scope/pkg-b`. A name mentioned only in prose does not count. Base's own
   tooling dependencies are listed by `ADR-000-starter-tooling`
 
-This is the same shape as every other pattern check here (principles.md §6): the
-checks a project board would have offered as views, made into failures.
+This is the same shape as every other pattern check here (principles.md §6).
 
 ## Reporting against the plan
 
-- **`pnpm plan:status`** derives every item's status from git and prints it, by
+- `pnpm plan:status` derives every item's status from git and prints it, by
   milestone, feature and persona, with open questions and what each one blocks.
-  It is generated on demand and **not committed**, so there is no shared file
+  It is generated on demand and not committed, so there is no shared file
   for agents to conflict on.
 - **Progress reports** (`docs/progress/YYYY-MM-DD.md`) include a `plan:status`
   snapshot. That snapshot is history, which is why it may be committed.
 - **For stakeholders without repo access**, `plan:status --html` renders the
-  same thing as one page to publish or send. It is a view, not a source.
+  same thing as one page to publish or send. It is only a view.
 
-## What giving up GitHub Issues costs, said rather than discovered
+## What giving up GitHub Issues costs
 
 | lost                                   | replacement or accepted gap                                                                                                                                                   |
 | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

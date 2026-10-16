@@ -1,8 +1,6 @@
-# AI in the product — designed in from discovery
+# AI in the product: designed in from discovery
 
-**Every application asks how AI can be deeply integrated into it.** Not a chat
-box bolted on at the end, but part of how people do things, see things and set
-things up. `/kickoff` asks the questions below for every persona and journey in
+**Every application asks how AI can be deeply integrated into it.** `/kickoff` asks the questions below for every persona and journey in
 stage 2 (the product), and settles the architecture that follows in stage 3. Where AI does not earn its
 place, the answer is recorded as "no", with the reason.
 
@@ -38,7 +36,7 @@ and "you usually do X now", each with the threshold that makes it useful rather
 than noisy.
 
 **5. Setup: does the product need customising per customer or user?** If so, use
-**AI-prompted onboarding**: a conversation that interviews the new customer and
+AI-prompted onboarding: a conversation that interviews the new customer and
 configures the product, instead of a wall of settings (see below).
 
 **6. Limits and trust.**
@@ -57,12 +55,11 @@ data class, its evaluation and its cost cap.
 ## AI-prompted onboarding
 
 When a product needs per-customer configuration (workflows, categories, roles,
-templates, rules, branding), the default onboarding is **a conversation, not a
-form**.
+templates, rules, branding), the default onboarding is a conversation, not a
+form.
 
 - **It interviews, then proposes.** "Tell me how your team works" leads to a
-  proposed configuration the user can see, edit and accept. It is the same
-  shape as `/kickoff`, aimed at the product's own users.
+  proposed configuration the user can see, edit and accept.
 - **It writes a draft, never live settings.** The draft is applied in one
   explicit step, with a preview of what will change. An abandoned onboarding
   leaves nothing half-configured.
@@ -79,22 +76,22 @@ form**.
 
 ## Architecture (settled in `/kickoff`, topic 12)
 
-The architecture makes this cheap: **one port, many bindings.** Every capability is implemented once, so AI is just another binding.
+The architecture makes this cheap: one port, many bindings: every capability is implemented once, so AI is another binding.
 Every project gets three by default, rendered from the capability manifest: a
-typed **SDK**, an **HTTP API** with an OpenAPI document, and an **MCP server**
+typed SDK, an HTTP API with an OpenAPI document, and an MCP server
 ([`recipes/api-bindings`](recipes/api-bindings/)). A capability missing from
 one needs a declared exclusion with a reason, and a pattern check enforces it.
 
-| need                           | how                                                                                                                                                                                                                                                                                              |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| agents performing actions      | an **agent binding** over the capability manifest. A tool _is_ a capability, so an agent can do nothing a capability cannot. Its authority is the **caller's permissions ∩ the agent's declared scope**, and activating an agent requires holding every permission in that scope                 |
-| external agents and assistants | the **MCP binding** every project has: one tool per capability, OAuth 2.1 per the MCP authorization spec, and exactly the caller's authority, narrowed by the token's scope                                                                                                                      |
-| consequential actions          | **propose, then approve**: the agent writes a proposal, a person approves it, and the capability runs with that person's authority. A hold window, during which a person can cancel, suits time-sensitive automation                                                                             |
-| plain-language BI              | a **semantic layer**: named metrics and dimensions defined in code, executed through scoped capabilities. The model chooses _which_ metric, filter and grouping; **it never writes SQL against the database.** Row scope and field visibility therefore come from the access model automatically |
-| charts and explanations        | the model returns a structured chart spec, validated by Zod and rendered by our chart components, plus an explanation that cites the numbers it used                                                                                                                                             |
-| extraction and drafting        | structured outputs validated by Zod; low-confidence fields are flagged for a person, not silently filled                                                                                                                                                                                         |
-| proactive insights             | scheduled jobs (Cron or Queues) computing signals; the model only phrases and ranks them                                                                                                                                                                                                         |
-| onboarding                     | a draft entity with a lifecycle (state machine), filled by the conversation and applied by a capability                                                                                                                                                                                          |
+| need                           | how                                                                                                                                                                                                                                                                                      |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| agents performing actions      | an agent binding over the capability manifest. A tool _is_ a capability, so an agent can do nothing a capability cannot. Its authority is the caller's permissions ∩ the agent's declared scope, and activating an agent requires holding every permission in that scope                 |
+| external agents and assistants | the MCP binding every project has: one tool per capability, OAuth 2.1 per the MCP authorization spec, and exactly the caller's authority, narrowed by the token's scope                                                                                                                  |
+| consequential actions          | **propose, then approve**: the agent writes a proposal, a person approves it, and the capability runs with that person's authority. A hold window, during which a person can cancel, suits time-sensitive automation                                                                     |
+| plain-language BI              | a semantic layer: named metrics and dimensions defined in code, executed through scoped capabilities. The model chooses _which_ metric, filter and grouping; it never writes SQL against the database. Row scope and field visibility therefore come from the access model automatically |
+| charts and explanations        | the model returns a structured chart spec, validated by Zod and rendered by our chart components, plus an explanation that cites the numbers it used                                                                                                                                     |
+| extraction and drafting        | structured outputs validated by Zod; low-confidence fields are flagged for a person, not silently filled                                                                                                                                                                                 |
+| proactive insights             | scheduled jobs (Cron or Queues) computing signals; the model only phrases and ranks them                                                                                                                                                                                                 |
+| onboarding                     | a draft entity with a lifecycle (state machine), filled by the conversation and applied by a capability                                                                                                                                                                                  |
 
 **Every AI run is recorded**: the agent, the caller and activator, the tools
 called, tokens, cost, the outcome, and the approvals. The record is append-only,

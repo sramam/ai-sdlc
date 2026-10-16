@@ -1,7 +1,7 @@
-# Project memory — what keeps a project consistent
+# Project memory: what keeps a project consistent
 
 Many sessions and many agents work on one project, and each starts with an
-empty context. **The project's memory is the repository**, because git is the
+empty context. The project's memory is the repository, because git is the
 only channel every agent and every machine shares. Anything that matters and
 lives elsewhere is, for practical purposes, forgotten.
 
@@ -16,7 +16,7 @@ lives elsewhere is, for practical purposes, forgotten.
 | `docs/adr/`                      | each architecture decision with its argument, and when to revisit it | when relevant            | `/kickoff`, `/spec`, the dialog                                     |
 | `docs/plan/`                     | what is next, what is open (`Q-` files), what is blocked             | `/build`, the pickup     | `/plan`, agents                                                     |
 | `git log` trailers               | what moved and which line of work moved it (`Progress:`, `Session:`) | reports                  | every commit                                                        |
-| `docs/progress/`                 | what shipped, what was decided, **what cost a day**                  | when relevant            | `/progress-report`                                                  |
+| `docs/progress/`                 | what shipped, what was decided, what cost a day                      | when relevant            | `/progress-report`                                                  |
 | package `agents.md`              | the traps specific to one package                                    | when working in it       | whoever meets the trap                                              |
 
 **Not memory**, deliberately:
@@ -27,7 +27,7 @@ lives elsewhere is, for practical purposes, forgotten.
   project fact, promote it into the repo and delete the memory.
 - **Handoffs** (`docs/handoffs/`) are machine-local reports for the next
   session, and are verified against git before anyone acts on them.
-- **Chat and messages between agents** die with the session. Anything durable
+- Chat and messages between agents die with the session. Anything durable
   becomes a commit, a plan item or a `Q-` file.
 
 ## How a lesson becomes memory
@@ -35,7 +35,7 @@ lives elsewhere is, for practical purposes, forgotten.
 Something costs time, and the question is where its lesson goes so that nobody
 pays for it twice:
 
-1. **Fix it**, and **add a guard** if one is possible: a test, a pattern check, a hook,
+1. **Fix it**, and add a guard if one is possible: a test, a pattern check, a hook,
    a lint rule. A guard is memory that cannot be skipped.
 2. **Write the rule where it will be read**, as one line:
    - a non-negotiable → `docs/guardrails.md`
@@ -48,7 +48,7 @@ pays for it twice:
    paragraph of justification to be followed, it is not enforced yet; go back
    to step 1.
 
-`/progress-report` ends with a **promote** step. For each _Cost a day_ entry, is
+`/progress-report` ends with a promote step. For each _Cost a day_ entry, is
 its lesson written where it will be read (step 2), and is it guarded (step 1)?
 
 ## Across projects: lessons flow back to the registry
@@ -57,12 +57,9 @@ A lesson that is not about this project's domain belongs to every project.
 
 - A project owns everything it was given (`docs/kit/`, `tooling/<module>/`, the
   skills), so it fixes a problem where it finds it. A general lesson is then
-  **also a pull request to `ai-sdlc`**: a kit doc, a guard, a skill step.
-- `/progress-report`'s promote step asks a second question: **would every
-  project want this?** If so, it drafts the change, and a person opens it
+  also a pull request to `ai-sdlc`: a kit doc, a guard, a skill step.
+- `/progress-report`'s promote step asks a second question: would every
+  project want this? If so, it drafts the change, and a person opens it
   against the registry.
 - Projects take improvements with `pnpm sdlc diff <item>` and
-  `pnpm sdlc update <item>`, which apply an upstream change only to a file the
-  project has not changed, and show the upstream diff for the rest
-  ([registry.md](registry.md)). So a lesson learned once reaches every project
-  that wants it, and no project loses its own changes to it.
+  `pnpm sdlc update <item>` ([registry.md](registry.md)).

@@ -33,7 +33,7 @@ something wherever possible, and says by what.
 - **Architecture decisions are ADRs; process decisions are a line in
   `AGENTS.md`.** Static docs carry no numbers about _now_; name the command
   that answers them.
-- **Docs are succinct and complete.** No superfluous documents.
+- **Docs are succinct and complete.**
 
 ## This project's own
 

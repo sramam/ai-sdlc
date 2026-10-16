@@ -1,8 +1,8 @@
-# Bootstrap — from an empty repo to a plan being worked
+# Bootstrap: from an empty repo to a plan being worked
 
 You are setting up a new project that several humans and several AI agents will
-work in at the same time. **Precondition: the project was created with
-`ai-sdlc init`** from the registry ([registry.md](registry.md)), which copies
+work in at the same time. Precondition: the project was created with
+`ai-sdlc init` from the registry ([registry.md](registry.md)), which copies
 base: this kit, its tooling, skills and hooks, and no product code. Everything
 else arrives with `pnpm sdlc add <item>` when a foundation item needs it.
 
@@ -24,7 +24,7 @@ write a `Q-` file, and carry on with whatever does not depend on it
 
 ---
 
-## Phase 0 — Create the project
+## Phase 0: create the project
 
 **The person** (the CLIs need a browser login, once per machine):
 
@@ -36,11 +36,8 @@ wrangler login
 gh repo create <owner>/<name> --private --source . --push
 ```
 
-`init` refuses a directory that is not empty and touches nothing on GitHub. The
-pre-push hook lets `main` into a repository with no branch at all, once; every
-later update of `main` goes through `pnpm promote:prod`. The project's
-`sdlc.lock.json` records the registry ref it came from, and `pnpm sdlc` runs the
-CLI at that ref.
+The pre-push hook lets `main` into a repository with no branch at all, once;
+every later update of `main` goes through `pnpm promote:prod`.
 
 **The agent**, in that checkout:
 
@@ -50,7 +47,7 @@ pnpm sdlc:init
 
 `sdlc:init` is idempotent, and prints a line per step:
 
-- creates `dev` from `main` **through the GitHub API** (not a push, which
+- creates `dev` from `main` through the GitHub API (not a push, which
   `pre-push` refuses)
 - sets `dev` as the default branch
 - applies the repo settings with `gh api`: squash merge off, merge commits on,
@@ -59,13 +56,13 @@ pnpm sdlc:init
 - runs `pnpm bootstrap` (one line per environment check)
 - runs `pnpm ci:local` (steps that do not apply to an empty repo print `n/a`)
 
-It reports, and does not hide, anything that **could not ask**.
+It reports anything that _could not ask_.
 
-From here on, **all work happens in worktrees** forked from `origin/dev`. The
+From here on, all work happens in worktrees forked from `origin/dev`. The
 main checkout is read-only to agents (`worktree-required`), apart from
 `docs/handoffs/`.
 
-## Phase 1 — Discovery (`X-000`)
+## Phase 1: discovery (`X-000`)
 
 Claim the item, then propose the worktree name (`x-000-discovery`; the user
 may change it):
@@ -88,31 +85,31 @@ the requirements lock throughout.
 2. **The product.** It holds the conversation (or imports and vets existing
    documents) and writes the requirements: BRD, PRD, personas, access model,
    domain model, design brief, features, journeys (a journey may span personas,
-   with one journey per persona under it), glossary and review. It **records**
+   with one journey per persona under it), glossary and review. It records
    what needs deciding (technology triggers, the authorization-engine
    recommendation, the backoffice candidates) in `technology.md`, and does not
-   decide them. Its verdict can be **ready, pending decisions**.
-3. **Decisions.** It **decides** the waiting topics: the stack, every recorded
+   decide them. Its verdict can be ready, pending decisions.
+3. **Decisions.** It decides the waiting topics: the stack, every recorded
    technology trigger (through the dialog in
    [technology-decisions.md](technology-decisions.md); the user decides), the
    apps, packages and package scope, the backoffice split, the AI architecture,
    and it writes `docs/architecture.md`. Then the verdict is recomputed.
 
-Phase 1 is done when the verdict is **ready to plan** or **ready with
-assumptions**, the project brief's **Blocking** list is empty, and
+Phase 1 is done when the verdict is ready to plan or ready with
+assumptions, the project brief's Blocking list is empty, and
 `pnpm plan:check --stage requirements` passes. Land it with `pnpm land`: one
-PR, or several as sections settle. Then **a person approves the first
-features' specs** (an `Approved:` line on each; the one human gate).
+PR, or several as sections settle. Then a person approves the first
+features' specs (an `Approved:` line on each; the one human gate).
 
-## Phase 2 — Configure and prove the tooling (`X-001`)
+## Phase 2: configure and prove the tooling (`X-001`)
 
-It runs **in parallel with Phase 1**, in another session and worktree
+It runs in parallel with Phase 1, in another session and worktree
 (`x-001-configure`), in two parts. Base ships the tooling; this phase
-**configures and proves** it, and builds nothing.
+configures and proves it, and builds nothing.
 
 **Part 1, independent of discovery.** Land it when done.
 
-- Set `claimStaleDays` in `sdlc.config.json`. **Leave `branches` as shipped**
+- Set `claimStaleDays` in `sdlc.config.json`. Leave `branches` as shipped
   (`dev`, `staging`, `main`): the names are fixed, and the validator refuses
   any other value, because the pre-push hook, the permission denies and the
   skills name them literally. Coverage floors stay unset until there is code.
@@ -148,31 +145,30 @@ The guards, and how to trip each:
 
 Guards that need product code (seed refusal, capture transports, `promote`,
 the authorization pattern check) are tripped in the foundation items that create them.
-The commit that lands this phase carries `Closes: X-001`.
 
-## Phase 3 — Plan
+## Phase 3: plan
 
 `/plan` (or `/build auto`, which plans when nothing is planned) runs in the
-`X-000` worktree once the first specs are approved. **Foundation first, as `X-`
-items**, in this order, each with its own acceptance and trip tests:
+`X-000` worktree once the first specs are approved. Foundation first, as `X-`
+items, in this order, each with its own acceptance and trip tests:
 
-| item                       | does                                                                                                                                                                                                                                                                                                                               |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| platform spike             | verifies each constraint in [tech-stack.md](tech-stack.md) § _Workers constraints to design for_ for the chosen stack: framework on Workers, ORM through Hyperdrive, auth library, OTel export, the authorization engine from a Worker and in tests, Base UI coverage. Findings become ADRs and package `agents.md` notes          |
-| apps and packages          | adds each app and package from kickoff topic 9 with `pnpm sdlc add <recipe>` (`pnpm sdlc list`), one commit each, then adapts it to the decisions (scope, names) with its tests passing. Where no recipe exists, it writes the package directly and offers it to the registry as one. Fills in the packages section of `AGENTS.md` |
-| infrastructure             | the agent writes `pnpm infra:provision`; **a person runs it** per environment; the agent writes `wrangler.jsonc` from its output; `/api/health` confirms                                                                                                                                                                           |
-| environments and promotion | env and binding schema, `.dev.vars.example` pattern check, `pnpm sdlc add promote seed localdb`, a seed framework that refuses production                                                                                                                                                                                          |
-| security baseline          | `@<scope>/authz` with the policy and a matrix-test generator (cells arrive with features), headers, CSP, rate limits, sessions                                                                                                                                                                                                     |
-| telemetry                  | `@<scope>/telemetry`, span conventions, test exporter, lint against `console.log`                                                                                                                                                                                                                                                  |
-| UI foundation              | tokens from the design brief, the shells, the patterns, ⌘K, the component viewer, the UI scan floor                                                                                                                                                                                                                                |
-| test harness               | `createTestDb()`, the database-fake pattern check, the smoke test against the built Worker, `pnpm sdlc add journeys journeys-adapter`, journey ports, capture transports                                                                                                                                                           |
+| item                       | does                                                                                                                                                                                                                                                                                                            |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| platform spike             | verifies each constraint in [tech-stack.md](tech-stack.md) § _Workers constraints to design for_ for the chosen stack; findings become ADRs and package `agents.md` notes                                                                                                                                       |
+| apps and packages          | adds each app and package from kickoff topic 9 with `pnpm sdlc add <recipe>`, one commit each, then adapts it to the decisions (scope, names) with its tests passing. Where no recipe exists, it writes the package directly and offers it to the registry as one. Fills in the packages section of `AGENTS.md` |
+| infrastructure             | the agent writes `pnpm infra:provision`; a person runs it per environment; the agent writes `wrangler.jsonc` from its output; `/api/health` confirms                                                                                                                                                            |
+| environments and promotion | `pnpm sdlc add env-schema promote seed localdb`; a seed framework that refuses production                                                                                                                                                                                                                       |
+| security baseline          | `@<scope>/authz` (`authz-oso` or `authz-spicedb`), headers, CSP, rate limits, sessions                                                                                                                                                                                                                          |
+| telemetry                  | `@<scope>/telemetry` (`telemetry`), lint against `console.log`                                                                                                                                                                                                                                                  |
+| UI foundation              | `ui`, with tokens from the design brief; the component viewer; the UI scan floor                                                                                                                                                                                                                                |
+| test harness               | `createTestDb()`, the database-fake pattern check, the smoke test against the built Worker, `pnpm sdlc add journeys journeys-adapter`                                                                                                                                                                           |
 
-Then **features, ordered by journey**: each milestone completes whole journeys,
+Then features, ordered by journey: each milestone completes whole journeys,
 for every persona in them. Land it with `Closes: X-000`; `plan:check --stage
 plan` must pass, and refuses an item from a feature whose spec has no
 `Approved:` line. There is no separate plan approval: the spec was the gate.
 
-## Phase 4 — Work the plan
+## Phase 4: work the plan
 
 Every session starts with `pnpm bootstrap` (a SessionStart hook runs it) and
 picks up the handoffs it lists. Then `/build auto` works the plan: it claims the
@@ -183,7 +179,7 @@ person. Long-running scripts run in the background
 ([multi-agent.md](multi-agent.md)). Every new ask goes through `/spec`. Reports
 follow the cadence in `sdlc.config.json`, and the pickup says when one is due.
 
-## Defaults kickoff confirms rather than asks
+## Defaults kickoff confirms
 
 The SDLC defaults kickoff confirms are listed once, in
 `.agents/skills/kickoff/SKILL.md` topic 4; the stack it confirms is topic 3 and

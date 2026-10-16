@@ -1,10 +1,10 @@
 # Recipe: `ui`
 
-shadcn/ui on **Base UI** with Tailwind v4: brand tokens on shadcn's contract,
+shadcn/ui on Base UI with Tailwind v4: brand tokens on shadcn's contract,
 the app shell (collapsible sidebar, a top bar with ⌘K and the user menu, page
 header), the role switcher, and the five screen patterns of [ux.md](../../ux.md)
 (list, detail, form, dashboard, empty) with the four data states. A compact
-reference, not an app: the components `shadcn add` writes are **not** copied
+reference: the components `shadcn add` writes are not copied
 here (they are generated, and regenerating beats a stale copy).
 
 | file                                                  | is                                                                                                                      |
@@ -43,7 +43,7 @@ Add `"test"` to `tsconfig.app.json`'s `include` (the jest-dom matchers' types
 load from `test/setup.ts`). Wrap the app in `TooltipProvider` (the sidebar's collapsed tooltips need it).
 In TanStack Start, implement `SearchAdapter` with the route's `useSearch` and
 `navigate({ search, replace: true })`, so list state is typed search params.
-Then, **after any `shadcn add`, build and check the CSS, not the diff** (ux.md):
+Then, after any `shadcn add`, build and check the CSS, not the diff (ux.md):
 
 ```bash
 pnpm exec vite build && grep -oE '(width|height|max-width|max-height|transform-origin):--[a-z-]+' dist/**/*.css
@@ -61,7 +61,7 @@ Tailwind 4, TypeScript 6.0, TanStack Table 9.3.1, react-hook-form 7.90.0,
 - **Proved by tripping**: routing every refusal to the form banner fails the
   field test; sorting on the stringified value fails the sort test (`"125000"`
   sorts before `"90000"`); a hex colour in a kit file fails the pattern check.
-- The built CSS had **no** `prop:--x` declarations: the Base UI registry writes
+- The built CSS had no `prop:--x` declarations: the Base UI registry writes
   v4's `w-(--x)` form, so the v3-era `[--x]` trap did not reproduce. Keep the check.
 - **Not verified**: rendering in a browser (layout, focus rings, the sidebar's
   collapse animation, mobile sheet), `init` inside an existing TanStack Start
@@ -71,11 +71,11 @@ Tailwind 4, TypeScript 6.0, TanStack Table 9.3.1, react-hook-form 7.90.0,
 
 | component                                                                                                            | Base UI?                 | note                                                                                                                                                                                                                                     |
 | -------------------------------------------------------------------------------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| sidebar, dropdown-menu, dialog, sheet, select, tabs, tooltip, separator, avatar, input, button, breadcrumb, combobox | yes (`@base-ui/react/*`) | compose with **`render`**, not Radix's `asChild`                                                                                                                                                                                         |
+| sidebar, dropdown-menu, dialog, sheet, select, tabs, tooltip, separator, avatar, input, button, breadcrumb, combobox | yes (`@base-ui/react/*`) | compose with `render`, not Radix's `asChild`                                                                                                                                                                                             |
 | **command (⌘K)**                                                                                                     | **no: `cmdk`**           | cmdk 1.1.1 depends on `@radix-ui/react-dialog` (+ `react-id`, `react-primitive`, `react-compose-refs`); Radix code is in the built bundle. A Base UI ⌘K would build on `Combobox`/`Autocomplete`. ADR before shipping either way (ux.md) |
-| command's `CommandDialog`                                                                                            | wraps Base UI `Dialog`   | it does **not** wrap its children in `<Command>`; without one, cmdk throws `Cannot read properties of undefined (reading 'subscribe')`                                                                                                   |
+| command's `CommandDialog`                                                                                            | wraps Base UI `Dialog`   | it does not wrap its children in `<Command>`; without one, cmdk throws `Cannot read properties of undefined (reading 'subscribe')`                                                                                                       |
 | sonner (toasts)                                                                                                      | n/a                      | the wrapper imports `next-themes`, while the Vite/Start template ships its own `ThemeProvider`: toasts follow the system theme, not the toggle, until the wrapper reads the app's provider                                               |
-| data-table                                                                                                           | not a registry item      | `add data-table` → not found for `base-nova`; it is a guide over TanStack Table **v9** (`useTable`, `tableFeatures`)                                                                                                                     |
+| data-table                                                                                                           | not a registry item      | `add data-table` → not found for `base-nova`; it is a guide over TanStack Table v9 (`useTable`, `tableFeatures`)                                                                                                                         |
 | breadcrumb                                                                                                           | yes                      | `BreadcrumbPage` renders `role="link" aria-disabled`, so a page title and a nav link share a name in the accessibility tree                                                                                                              |
 | sidebar menu button                                                                                                  | yes                      | `isActive` sets `data-active` only; the kit adds `aria-current="page"` on the link                                                                                                                                                       |
 | calendar                                                                                                             | `react-day-picker`       | not Base UI; fine, it has no primitive layer to clash                                                                                                                                                                                    |
@@ -109,5 +109,5 @@ Tailwind 4, TypeScript 6.0, TanStack Table 9.3.1, react-hook-form 7.90.0,
   TanStack Table v9, `useTable({ features, data, columns })`,
   `tableFeatures({ rowSortingFeature, sortedRowModel: createSortedRowModel(), sortFns })`,
   `<table.FlexRender header={…} />`.
-- Everything in the coverage table and the traps was **observed** in the
+- Everything in the coverage table and the traps was observed in the
   scratch project, from the files `shadcn` wrote and `npm view cmdk@1.1.1 dependencies`.

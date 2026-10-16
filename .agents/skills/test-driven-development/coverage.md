@@ -2,11 +2,11 @@
 
 **Checklist:**
 
-1. Run `pnpm coverage --report` **in the background**; wait for it to finish.
+1. Run `pnpm coverage --report` in the background; wait for it to finish.
 2. Act on what it said (table below). Stop on `unchanged` or a red suite.
 3. Read `git diff -- docs/quality/coverage.md`, not the whole file.
 4. Rewrite `docs/quality/README.md`: what moved, and what a gap would let through.
-5. Stage both documents **in the same commit** as the change that moved them.
+5. Stage both documents in the same commit as the change that moved them.
 6. Never lower a floor here. If one must fall, the reason goes in the commit that changes `sdlc.config.json`.
 
 ## Two documents, split by who writes them
@@ -29,7 +29,7 @@
 
 ## Reading the diff
 
-- A module's **uncovered lines** rose: new code arrived untested.
+- A module's uncovered lines rose: new code arrived untested.
 - A floor's _today_ now equals its floor: the next commit fails the build.
 - A floor's _today_ sits well above its floor: propose raising it to the rounded-down measurement. A floor is a ratchet, not a target.
 
@@ -58,7 +58,7 @@ what breaking there costs. Not the lowest percentages.>
 
 Rules:
 
-- **Never quote a floor value in prose** anywhere under `docs/` except the generated `coverage.md`. The pattern check in `@ai-sdlc/coverage` fails the build on one; link to `sdlc.config.json` instead.
+- Never quote a floor value in prose anywhere under `docs/` except the generated `coverage.md`. The pattern check in `@ai-sdlc/coverage` fails the build on one; link to `sdlc.config.json` instead.
 - **Coverage is not correctness.** Say what a gap would let through, never only that it exists.
 - A serious gap with no plan item: say it needs one. Do not file it from here.
 

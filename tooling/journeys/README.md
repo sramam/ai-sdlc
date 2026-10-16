@@ -1,24 +1,24 @@
 # @ai-sdlc/journeys
 
-Journey testing: recording what a person does in the product as reviewable evidence — a screenshot per step, a narrative, the emails and documents it produced — and comparing later runs against it with the volatile regions masked out. Each part below was paid for; the comments in the source say what each cost.
+Journey testing: recording what a person does in the product as reviewable evidence (a screenshot per step, a narrative, the emails and documents it produced), and comparing later runs against it with the volatile regions masked out. Each part below was paid for; the comments in the source say what each cost.
 
-The project's own: it arrives with `pnpm sdlc add journeys`, and is changed here when the project needs it. `pnpm sdlc diff journeys` shows what changed upstream; `pnpm sdlc update journeys` takes it without overwriting a local edit (docs/kit/registry.md).
+The project's own: it arrives with `pnpm sdlc add journeys`; `pnpm sdlc diff journeys` shows what changed upstream, and `pnpm sdlc update journeys` takes it without overwriting a local edit (docs/kit/registry.md).
 
 ## Commands
 
 `journeys <command>` (`src/cli/journeys.mts`, the package `bin`) runs each as its own `node …/cli/<name>.mts` process, so the load gate can see a recording by its command line.
 
-| command  | does                                                                                                                                                                                                 |
-| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `learn`  | three passes over one stack — match, discover, verify — and only the third gates; load gate first (exit 75 = held), stack probed after each learning pass, mask pattern check, then `delta --report` |
-| `test`   | one comparison pass; never learns, never writes a mask or a reference                                                                                                                                |
-| `delta`  | what a re-record changed against a ref; **a mask may only grow where its screenshot changed** (spurious → exit 1); `--report` writes `<reportRoot>/delta.md` with old/new images                     |
-| `drift`  | which journeys' recordings visited a route a changed file renders; exit 1 unless re-recorded or excused by a `No-Rerecord: J<n> <reason>` commit trailer                                             |
-| `index`  | regenerate `<evidence>/README.md`, each journey's pointer page and each walk's status line, from disk                                                                                                |
-| `timing` | re-record journeys one at a time when the machine is quiet, measuring each; one delta for the batch                                                                                                  |
-| `stack`  | run the app (the configured `StackAdapter`) until signalled — Playwright's `webServer`, and the learner's child                                                                                      |
+| command  | does                                                                                                                                                                                                |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `learn`  | three passes over one stack (match, discover, verify), and only the third gates; load gate first (exit 75 = held), stack probed after each learning pass, mask pattern check, then `delta --report` |
+| `test`   | one comparison pass; never learns, never writes a mask or a reference                                                                                                                               |
+| `delta`  | what a re-record changed against a ref; a mask may only grow where its screenshot changed (spurious → exit 1); `--report` writes `<reportRoot>/delta.md` with old/new images                        |
+| `drift`  | which journeys' recordings visited a route a changed file renders; exit 1 unless re-recorded or excused by a `No-Rerecord: J<n> <reason>` commit trailer                                            |
+| `index`  | regenerate `<evidence>/README.md`, each journey's pointer page and each walk's status line, from disk                                                                                               |
+| `timing` | re-record journeys one at a time when the machine is quiet, measuring each; one delta for the batch                                                                                                 |
+| `stack`  | run the app (the configured `StackAdapter`) until signalled: Playwright's `webServer`, and the learner's child                                                                                      |
 
-`--journey J4 --persona organizer` selects spec **files** by name (`e2e/j4-<slug>.organizer.spec.ts`); prefer it to `--grep`, since `J2` is a prefix of `J23`.
+`--journey J4 --persona organizer` selects spec files by name (`e2e/j4-<slug>.organizer.spec.ts`); prefer it to `--grep`, since `J2` is a prefix of `J23`.
 
 ## Layout
 

@@ -1,9 +1,9 @@
 # Recipe: `authz-spicedb`
 
-`@scope/authz` over **SpiceDB**, with the same interface as `authz-oso`:
+`@scope/authz` over SpiceDB, with the same interface as `authz-oso`:
 `authorize(caller, action, resource)` (CheckPermission) and
 `listFilter(caller, action, resourceType)` (LookupResources). Relationships
-reach SpiceDB through an **outbox** written in the same Postgres transaction as
+reach SpiceDB through an outbox written in the same Postgres transaction as
 the rows they describe. Choose it over `authz-oso` for fine-grained sharing,
 nested groups, deep hierarchies or several services sharing one authorization
 source ([security.md](../../security.md) § _Authorization_).
@@ -15,7 +15,7 @@ source ([security.md](../../security.md) § _Authorization_).
 | `src/authz.ts`, `matrix.ts`           | the shared interface and the matrix generator (identical to `authz-oso`'s)                                |
 | `src/spicedb.ts`                      | `spicedbAuthz(config)` over the HTTP gateway with `fetch`; `PERMISSIONS` maps each action to a permission |
 | `src/outbox.ts`                       | the `authz_outbox` table (Drizzle), `enqueue(tx, ops)` and `relay(db, config)`                            |
-| `src/spicedb.matrix.test.ts`          | the matrix (world loaded **through the outbox**), the outbox's behaviour, default deny, could-not-ask     |
+| `src/spicedb.matrix.test.ts`          | the matrix (world loaded through the outbox), the outbox's behaviour, default deny, could-not-ask         |
 | `src/could-not-run.ts`, `test-ci.mts` | the `AUTHZ-COULD-NOT-RUN` sentinel and the wrapper that maps it to exit 2 (§ _Run the tests_)             |
 
 ## The outbox
@@ -29,7 +29,7 @@ const r = await relay(db, spicedb); // from a Queue consumer or a Cron Trigger
 // r.zedToken: pass as `atLeastAsFresh` where a read must see this write at once
 ```
 
-`relay` takes pending rows `for update skip locked`, sends them as **one**
+`relay` takes pending rows `for update skip locked`, sends them as one
 `WriteRelationships` (atomic in SpiceDB), and marks them relayed with the
 ZedToken. `OPERATION_TOUCH` and `OPERATION_DELETE` are idempotent, so a relay
 that dies after SpiceDB accepted the write sends it again harmlessly. On
@@ -43,14 +43,15 @@ spicedb serve-testing --http-enabled --http-addr 127.0.0.1:8443
 SPICEDB_URL=http://127.0.0.1:8443 pnpm test:ci   # 0 pass, 1 fail, 2 could not run
 ```
 
-`serve-testing` gives every bearer token its **own empty in-memory datastore**,
+`serve-testing` gives every bearer token its own empty in-memory datastore,
 so each suite takes a fresh random token, writes `schema.zed`, and is isolated
 from every other.
-**Could not run is never a pass.** Without SpiceDB the matrix **fails** with a
+
+**Could not run is never a pass.** Without SpiceDB the matrix fails with a
 test titled `AUTHZ-COULD-NOT-RUN: …` (so plain `pnpm test` exits 1), and the
 engine-free cases (catalogue, default deny, an unreachable engine is
 `UNAVAILABLE`) still run. `pnpm test:ci` (`test-ci.mts`) runs the same suite and
-exits **2** when those sentinels are the only failures, 1 on any other failure
+exits 2 when those sentinels are the only failures, 1 on any other failure
 (including a file that fails to load), 0 when everything passed. The project's
 ci step declares 2 as _could not run_:
 
@@ -68,8 +69,8 @@ banner of `!` says no authorization cell was verified, and the run exits 0.
 Never set it in CI.
 
 Verified 2026-10-16 with the `spicedb` v1.56.2 darwin-arm64 release binary
-(checksum matched the release's `checksums.txt`): 36 tests pass. **Proved by
-tripping**: `project_delete = parent->is_member` fails the three member ×
+(checksum matched the release's `checksums.txt`): 36 tests pass. Proved by
+tripping: `project_delete = parent->is_member` fails the three member ×
 `project.delete` cells. Re-run 2026-10-16 through `pnpm recipes:check` against
 the container above (`docker.io/authzed/spicedb:v1.56.2` under podman): 36
 pass, the same trip fails 3, and with SpiceDB down `test:ci` exits 2 (1
@@ -90,7 +91,7 @@ sentinel failed, 4 engine-free cases passed).
 - **The HTTP API** is listed as available on open source, Cloud, Dedicated and
   Enterprise ([HTTP API](https://authzed.com/docs/spicedb/api/http-api)); the
   page's reference body did not render for the fetcher, so the shapes below are
-  **observed** against v1.56.2:
+  observed against v1.56.2:
 
   | endpoint                         | body                                                            | answer                                                                     |
   | -------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------- |
@@ -107,7 +108,7 @@ sentinel failed, 4 engine-free cases passed).
 `@authzed/authzed-node` 1.6.1 depends on `@grpc/grpc-js`, and a Worker cannot
 open an HTTP/2 gRPC channel. The HTTP gateway serves the same v1 API as JSON
 over `fetch`, which runs on workerd and in Node. Reaching a deployed SpiceDB or
-AuthZed's hosted offering from a Worker was **not** tested (no account), nor
+AuthZed's hosted offering from a Worker was not tested (no account), nor
 was HTTP gateway latency compared with gRPC.
 
 ## Rules

@@ -29,7 +29,7 @@ Several agents share one plan, so a branch is a claim:
    (`spec-driven-development`), not a guess.
 2. `pnpm claim <ID>` creates the branch named the lowercased ID on GitHub,
    atomically. Exit 3: someone else holds it; pick again.
-3. Create the worktree **inside the checkout**, from the claim branch:
+3. Create the worktree inside the checkout, from the claim branch:
    `git fetch origin <id> && git worktree add .claude/worktrees/<id>-<slug> <id>`,
    then `pnpm install && pnpm bootstrap` there and `EnterWorktree({ path })`.
    Never `../project-feature-a`: the guards allow one live worktree per

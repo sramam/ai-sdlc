@@ -37,9 +37,9 @@ No product code. Apps and packages are decided in `/kickoff` (topic 9).
 3. `pnpm install`, then adapt it to the decisions (scope, names), keeping its
    tests green. Commit each item on its own, citing the item that needed it.
 
-Kinds: a **module** is tooling in `tooling/<name>/` (journeys, localdb, seed,
-coverage, promote, security); a **recipe** is reference code at the place its
-README names; a **skill** is a third-party skill in `.agents/3rdparty/` with
+Kinds: a module is tooling in `tooling/<name>/` (journeys, localdb, seed,
+coverage, promote, security); a recipe is reference code at the place its
+README names; a skill is a third-party skill in `.agents/3rdparty/` with
 its wrapper in `.agents/skills/`. Some skills are referenced, not copied
 (`docs/kit/skills.md` § _Optional skills_).
 

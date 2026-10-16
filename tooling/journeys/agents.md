@@ -1,6 +1,6 @@
-@ai-sdlc/journeys: journey testing — the recorder, the mask core, the QA verdict, the stack host that runs an app through a `StackAdapter`, and the `journeys` CLIs (learn, test, delta, drift, index, timing, stack). See README.md for the layout and configuration; the procedures are the `journeys` skill (`/journeys add`, `/journeys test`, `/journeys ready-for-qa`).
+@ai-sdlc/journeys: journey testing: the recorder, the mask core, the QA verdict, the stack host that runs an app through a `StackAdapter`, and the `journeys` CLIs (learn, test, delta, drift, index, timing, stack). See README.md for the layout and configuration; the procedures are the `journeys` skill (`/journeys add`, `/journeys test`, `/journeys ready-for-qa`).
 
-Preserved failure modes — each is asserted by a test here; do not weaken one to make a build green:
+Preserved failure modes, each asserted by a test here; do not weaken one to make a build green:
 
 - **A mask may only grow through a relearn.** It is a union across passes, so a wrong box is permanent. `MAX_STEP_COVERAGE` and `MAX_DECLARED_BOX` are ratchets: raising one needs a written reason beside it, in the same commit.
 - **`pixelmatch` needs `diffMask: true`**, or every pixel reads as differing and the learned mask is the whole page.
@@ -9,8 +9,8 @@ Preserved failure modes — each is asserted by a test here; do not weaken one t
 - **Declared boxes resolve from a selector, and a comparison never learns.** `refreshDeclared` unions for one comparison and writes nothing; `verifyStored` drops on a learning pass. Opposite answers, both right.
 - **A settling region is not volatile.** `classifyMotion` masks only what is still moving when the window closes.
 - **A check has three answers.** `unknown` port holders are never killed, a probe timeout is `unreadable` (and discards the pass), a load of 0 is `cannot-ask`, a missing sign-off file releases nothing, a red journey is not QA's whatever the sign-off says.
-- **A sweep is for what a previous run of this checkout abandoned.** Attribute before signalling; refuse another checkout's (`JOURNEY-002`) and an unattributable one (`JOURNEY-003`); never sweep inside a Playwright worker or when `JOURNEY_DB_EXTERNAL` is set. Attribution is the nearest ancestor holding the marker, not a path prefix — a worktree lives inside the main checkout.
-- **Scratch is swept once per stack, in `host.mts`, at the start** — never in test setup, never at teardown. A second caller deletes pass 1's evidence between passes.
+- **A sweep is for what a previous run of this checkout abandoned.** Attribute before signalling; refuse another checkout's (`JOURNEY-002`) and an unattributable one (`JOURNEY-003`); never sweep inside a Playwright worker or when `JOURNEY_DB_EXTERNAL` is set. Attribution is the nearest ancestor holding the marker, not a path prefix: a worktree lives inside the main checkout.
+- **Scratch is swept once per stack, in `host.mts`, at the start**, never in test setup, never at teardown. A second caller deletes pass 1's evidence between passes.
 - **An adapter never spawns `detached`.** A detached app survives the runner's group kill, keeps the port and the inherited stdout, and the shell waits for ever. Return the root `pid`; the host kills the tree leaves-first.
 - **Ports are pinned into the environment** by the first resolver, so every spawned process inherits one answer.
 - **An app port must not equal the control port** (`dbPort + 1`); a readiness probe against the control server gets 404 for ever.

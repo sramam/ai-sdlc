@@ -26,18 +26,18 @@ remember and nothing to skip.
 2. Fetches, and refuses unless `origin/dev` is an ancestor of `HEAD`. It never
    merges `dev` in by itself.
 3. Checks the trailers over `origin/dev..HEAD`. A branch touching
-   `docs/requirements/` must contain nothing else, **except the discovery
-   branch** (`x-000-…`).
+   `docs/requirements/` must contain nothing else, except the discovery
+   branch (`x-000-…`).
 4. Pushes, then runs `ci:local` on the pushed SHA, which posts `local-ci`.
 5. Opens or reuses the PR into `dev`, with a body listing the `Progress:` and
    `Closes:` lines.
-6. Re-checks that the PR is still open **into `dev`**, that its head is the
+6. Re-checks that the PR is still open into `dev`, that its head is the
    tested SHA, and that `origin/dev` has not moved. If any changed (a PR
    retargeted to another base included), it stops and asks for a re-run.
-7. Merges with a **merge commit** (`gh pr merge --merge --match-head-commit
+7. Merges with a merge commit (`gh pr merge --merge --match-head-commit
 <tested SHA>`, so GitHub itself refuses a head that moved after the
    re-check), deleting the branch
-   **only** when it carries `Closes:`. A partial PR keeps its branch, so the item
+   only when it carries `Closes:`. A partial PR keeps its branch, so the item
    still reads as claimed.
 8. Fetches and runs `ci:local --sha origin/dev`, so the merge commit has its own
    `local-ci` status (content checks reused from the cache, history checks re-run).
@@ -47,7 +47,7 @@ Exit codes: 0 landed, 1 refused or failed, 2 could not ask.
 
 ## Overrides
 
-`--allow-unknown` is for a step that **could not run** (a missing tool or
+`--allow-unknown` is for a step that could not run (a missing tool or
 credential), only when the author explicitly allows it. The override is posted
 under a separate status context, `local-ci/allow-unknown`, and `local-ci`
 itself stays unset. A gate that requires `local-ci` therefore never accepts an
@@ -55,12 +55,12 @@ override.
 
 ## If it stops
 
-- **Red CI:** report the failing steps and the log path it prints. Do not decide
+- Red CI: report the failing steps and the log path it prints. Do not decide
   a failure is "unrelated".
-- **Head or base moved:** merge `origin/dev` again if needed, then re-run.
-- **PR retargeted:** set its base back to `dev` (`gh pr edit <n> --base dev`)
+- Head or base moved: merge `origin/dev` again if needed, then re-run.
+- PR retargeted: set its base back to `dev` (`gh pr edit <n> --base dev`)
   and re-run. Land never merges into anything but `dev`.
-- **Merged, but the dev-tip status failed:** the merge landed. Re-run the
+- Merged, but the dev-tip status failed: the merge landed. Re-run the
   `ci:local --sha origin/dev` command it prints.
 
 ## Where this stops, deliberately

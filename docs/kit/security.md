@@ -1,8 +1,7 @@
-# Security — build for the highest threat model
+# Security: build for the highest threat model
 
 **We assume the strongest realistic adversary from the first commit**
-([principles.md](principles.md) §17). Security added later costs a rewrite;
-security designed in costs a few lines per feature. A vendor claim marked
+([principles.md](principles.md) §17). A vendor claim marked
 _Unverified as of <date>_ is checked against the vendor's page when it is
 adopted.
 
@@ -24,7 +23,7 @@ personal data, and Level 2 as the floor elsewhere. Every deviation is an ADR
 with a reason and a date (principles.md §10: relax on evidence, never in
 anticipation).
 
-## Authorization — Oso or SpiceDB, chosen by the access model
+## Authorization: Oso or SpiceDB, chosen by the access model
 
 `/kickoff` writes `access-model.md` (tenancy, roles, row scope) in stage 2. The
 engine is chosen from it in stage 3, and recorded in an ADR:
@@ -32,7 +31,7 @@ engine is chosen from it in stage 3, and recorded in an ADR:
 | choose                                                           | when the access model looks like                                                                                                                                                                                                                                                  |
 | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Oso** (Oso Cloud, with local authorization for list filtering) | roles within tenants, plus attribute rules ("owner of the record", "status is draft"), with policy kept as readable code (Polar) next to the app. Unverified as of 2026-10-16: that the open-source Oso library is deprecated; check Oso's docs before choosing it over Oso Cloud |
-| **SpiceDB** (self-hosted, or AuthZed's hosted offering)          | fine-grained **sharing** of individual objects with users and groups, nested groups, deep hierarchies, relationships that change often, several services sharing one authorization source, a need for consistency guarantees (ZedTokens)                                          |
+| **SpiceDB** (self-hosted, or AuthZed's hosted offering)          | fine-grained sharing of individual objects with users and groups, nested groups, deep hierarchies, relationships that change often, several services sharing one authorization source, a need for consistency guarantees (ZedTokens)                                              |
 
 Whichever is chosen, these rules hold:
 
@@ -41,19 +40,18 @@ Whichever is chosen, these rules hold:
   authorize, and on any server function that reaches data without going
   through a capability.
 - **Default deny.** An unknown action, resource type or role is refused. If the
-  engine is unreachable, that is _could not ask_, and the answer is **refuse**.
+  engine is unreachable, that is _could not ask_, and the answer is refuse.
 - **Both checks, always.** _May this caller do this action_ (check), and _which
   rows may it see_ (list filtering: Oso's data filtering, or SpiceDB
   `LookupResources`). Never fetch everything and filter in memory.
 - **The policy lives in the repo** (the Polar file or the SpiceDB schema),
-  reviewed like code, and **tested as a matrix**. Every persona × capability
+  reviewed like code, and tested as a matrix. Every persona × capability
   cell in `access-model.md` is a test, so a policy change that alters a cell
   fails until the access model changes with it.
 - **No dual writes.** If relationships live in the engine and data in Postgres,
-  write them together through an **outbox** (one DB transaction, relayed to the
+  write them together through an outbox (one DB transaction, relayed to the
   engine idempotently), or derive the engine's facts from the DB (Oso local
-  authorization). A relationship written without its row, or a row without its
-  relationship, is a silent hole.
+  authorization).
 - **Agents get an intersection, never an inheritance.** An agent's authority is
   the caller's permissions ∩ the agent's declared tool scope. Activating an
   agent requires holding every permission in that scope.
@@ -70,10 +68,10 @@ never a pass: the sentinel, the exit code and `AUTHZ_ENGINE=skip` are in
 [recipes/authz-oso/README.md](recipes/authz-oso/README.md) § _Run the tests_
 (the same in `authz-spicedb`).
 
-## Model providers — OpenRouter, with data policy enforced
+## Model providers: OpenRouter, with data policy enforced
 
-OpenRouter routes to many providers, so it is **an intermediary that sees every
-prompt**, and the provider behind it is a second party. Under this threat model:
+OpenRouter routes to many providers, so it is an intermediary that sees every
+prompt, and the provider behind it is a second party. Under this threat model:
 
 - **Account-level settings first**: prompt logging off, and providers that
   train on or retain inputs excluded. Unverified as of 2026-10-16: the current
@@ -81,8 +79,8 @@ prompt**, and the provider behind it is a second party. Under this threat model:
   relying on them.
 - **Per-request enforcement in `@<scope>/llm`**: every request carries provider
   routing that denies data collection and, for any real user data, requires
-  **zero-data-retention** endpoints. A request without it is refused in code,
-  not left to settings somebody can change.
+  zero-data-retention endpoints. A request without it is refused in code,
+  since settings can be changed.
 - **Data classes decide routes.** Synthetic and dev data may use any model.
   Real personal or tenant data uses only ZDR routes on an allow-list of models.
   The allow-list is reviewed, not assumed.
@@ -90,9 +88,9 @@ prompt**, and the provider behind it is a second party. Under this threat model:
   HTML, never execute it, and send tool calls through the port with the
   caller's authority.
 - **Cost caps are enforced in-process**, per run and per tenant per day.
-- **Record responses for tests; never call a model from the unit suite.**
+- Record responses for tests; never call a model from the unit suite.
 
-## GPU hosts — vast.ai, by trust tier
+## GPU hosts: vast.ai, by trust tier
 
 vast.ai is a marketplace, and many hosts are third parties you cannot audit.
 What may go to a host depends on its tier:
@@ -109,32 +107,31 @@ What may go to a host depends on its tier:
 - **Verify outputs.** Checksum artifacts, and evaluate models before promoting
   them. A host can return what it likes.
 
-## API authentication — one rule per binding
+## API authentication: one rule per binding
 
 Every project exposes its capabilities as an HTTP API, an SDK and an MCP server
-(tech-stack.md § _The architecture shape_). Each binding proves **who** is
+(tech-stack.md § _The architecture shape_). Each binding proves who is
 calling and nothing else: the tenant and role always come from the person's
 relationship in the database, never from a header, a query or a body.
 
-| binding                    | credential                                                                                  | notes                                                                                                                         |
-| -------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| HTTP from the app          | the session cookie, accepted **only from the app's own origin**                             | every call is `POST` with `Content-Type: application/json`, which a cross-site page cannot send without a preflight           |
-| HTTP and SDK, programmatic | an **API key** as `Authorization: Bearer` (Better Auth's api-key plugin)                    | bound at creation to one user and one relationship, server-side; re-checked on every call, so revoking access revokes the key |
-| MCP                        | an **OAuth 2.1 access token** per the MCP authorization spec (Better Auth's `mcp()` plugin) | audience-bound to the MCP endpoint (RFC 8707), discovered through RFC 9728 metadata; a token for another resource is refused  |
+| binding                    | credential                                                                              | notes                                                                                                                         |
+| -------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| HTTP from the app          | the session cookie, accepted only from the app's own origin                             | every call is `POST` with `Content-Type: application/json`, which a cross-site page cannot send without a preflight           |
+| HTTP and SDK, programmatic | an API key as `Authorization: Bearer` (Better Auth's api-key plugin)                    | bound at creation to one user and one relationship, server-side; re-checked on every call, so revoking access revokes the key |
+| MCP                        | an OAuth 2.1 access token per the MCP authorization spec (Better Auth's `mcp()` plugin) | audience-bound to the MCP endpoint (RFC 8707), discovered through RFC 9728 metadata; a token for another resource is refused  |
 
 - **A bearer header is used alone.** A bad token never falls back to a cookie
   the browser also sent.
 - **A credential has a ceiling.** Keys and tokens carry scopes (`api:read`,
-  `api:write`), so a call needs the caller's authority **and** the credential's
+  `api:write`), so a call needs the caller's authority and the credential's
   scope. An MCP tool or SDK call can never do more than its caller could in the
   app, and an agent gets the caller's permissions ∩ the agent's declared scope
   (ai.md).
 - **Three answers.** No valid credential is 401; authenticated but unable to act
   is 403; a key store or JWKS that cannot be asked is 503, never 401.
 - **Rate-limit per credential**, not per IP: per API key, per OAuth client and
-  user, per session user. Better Auth's api-key plugin has its own limiter with
-  a low default ([recipes/api-bindings/README.md](recipes/api-bindings/README.md));
-  set it on purpose or turn it off and limit in the binding.
+  user, per session user (the api-key plugin's own limiter:
+  [recipes/api-bindings/README.md](recipes/api-bindings/README.md)).
 - **Keys and tokens are secrets in the user's hands**: shown once, stored
   hashed, expiring, revocable from the app, and never logged or put in a span.
 
@@ -142,7 +139,7 @@ relationship in the database, never from a header, a query or a body.
 
 | area               | control                                                                                                                                                                                              |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **authentication** | passwordless OTP or passkeys; **MFA required** for admin and staff roles; rate-limited, enumeration-safe sign-in; re-authenticate before sensitive actions                                           |
+| **authentication** | passwordless OTP or passkeys; MFA required for admin and staff roles; rate-limited, enumeration-safe sign-in; re-authenticate before sensitive actions                                               |
 | **sessions**       | server-side and revocable; `__Host-` cookies, `Secure`, `HttpOnly`, `SameSite=Lax` or stricter; rotated on privilege change; short idle timeout for privileged roles                                 |
 | **IDs**            | opaque and non-guessable in URLs; possessing an ID is never authorization                                                                                                                            |
 | **input**          | Zod at every boundary, including webhooks, queue messages and model output                                                                                                                           |
@@ -160,7 +157,7 @@ relationship in the database, never from a header, a query or a body.
 - Pinned versions, a frozen lockfile, and `packageManager` with `engines`.
 - **Install scripts denied by default.** pnpm's `onlyBuiltDependencies`
   allow-list is reviewed when it changes.
-- A **minimum release age** for new versions, so freshly published packages are
+- A minimum release age for new versions, so freshly published packages are
   not taken on day one: `minimumReleaseAge` in `pnpm-workspace.yaml`.
 - `ci:local` runs a dependency audit, a secret scan (TruffleHog or Gitleaks),
   and a license check.
@@ -170,11 +167,11 @@ relationship in the database, never from a header, a query or a body.
 
 - **The deny list is a courtesy, not a boundary.** `.claude/settings.json`
   denies the `Read` and `Edit` tools on `.env`, `.dev.vars`, credential files and
-  key stores, so an agent will not open them in passing. It does **not** stop an
+  key stores, so an agent will not open them in passing. It does not stop an
   allowed shell command (`pnpm …`, `git …`, `node …`) from reading them, and
   `pnpm bootstrap` symlinks env files into worktrees. Treat anything on the
-  developer's machine as reachable by the agent. So: **production credentials are
-  never on a development machine**, local secrets are development-only and
+  developer's machine as reachable by the agent. So: production credentials are
+  never on a development machine, local secrets are development-only and
   low-value, and deploys use scoped tokens a person runs. A real boundary needs
   OS-level sandboxing (Claude Code's sandbox mode, or a container); a project
   that needs one decides it in kickoff.

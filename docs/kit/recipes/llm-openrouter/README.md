@@ -1,7 +1,7 @@
 # Recipe: `llm-openrouter`
 
 `@scope/llm`: the one way the product calls a model, through OpenRouter, with
-the data policy enforced **per request in code** ([security.md](../../security.md)
+the data policy enforced per request in code ([security.md](../../security.md)
 § _Model providers_, [ai.md](../../ai.md) § _Building AI features_).
 
 ```ts
@@ -20,7 +20,7 @@ const r = await llm.generate({
 
 | file                        | is                                                                                                                 |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `src/config.ts`             | data classes, model **per role**, the reviewed ZDR allow-list (with its date), prices, caps                        |
+| `src/config.ts`             | data classes, model per role, the reviewed ZDR allow-list (with its date), prices, caps                            |
 | `src/routing.ts`            | `routeFor(config, dataClass, model)`: the `provider` object, or a refusal                                          |
 | `src/budget.ts`             | `CostLedger` (per run, per tenant per UTC day, integer micro-dollars); `memoryLedger()` for tests                  |
 | `src/llm.ts`                | `createLlm(...).generate(req)`: route, cap, call, validate                                                         |
@@ -33,20 +33,20 @@ const r = await llm.generate({
 
 ## The route, by data class
 
-| data class  | means                                        | `provider` sent                                                              |
-| ----------- | -------------------------------------------- | ---------------------------------------------------------------------------- |
-| `synthetic` | generated, public or anonymized (dev, evals) | `data_collection: "deny"`, `require_parameters: true`, `max_price`           |
-| `personal`  | about a real person                          | the above **plus `zdr: true`**, and `only: [...]` when `zdrProviders` is set |
-| `tenant`    | a customer's business data                   | the same as `personal`                                                       |
-| missing     |                                              | **refused** (`LLM-001`), whatever the type system said                       |
+| data class  | means                                        | `provider` sent                                                          |
+| ----------- | -------------------------------------------- | ------------------------------------------------------------------------ |
+| `synthetic` | generated, public or anonymized (dev, evals) | `data_collection: "deny"`, `require_parameters: true`, `max_price`       |
+| `personal`  | about a real person                          | the above plus `zdr: true`, and `only: [...]` when `zdrProviders` is set |
+| `tenant`    | a customer's business data                   | the same as `personal`                                                   |
+| missing     |                                              | **refused** (`LLM-001`), whatever the type system said                   |
 
-A `personal` or `tenant` request on a model **not on `zdrModels`** is refused
+A `personal` or `tenant` request on a model not on `zdrModels` is refused
 (`LLM-002`) before any call. Every request sends exactly one `model` and never a
 `models` list: automatic fallback to another model is off ([ai.md](../../ai.md)).
 Provider-level fallback within the route stays on, since every candidate already
 satisfies the policy.
 
-`max_price` is the config's price (the **highest** ZDR endpoint price on the
+`max_price` is the config's price (the highest ZDR endpoint price on the
 day it was reviewed), so the pre-flight estimate is an upper bound: no endpoint
 that would cost more can be chosen.
 
@@ -56,7 +56,7 @@ Before the call: the estimate (prompt characters / 3 × prompt price +
 `maxTokens` × completion price) plus what the run and the tenant's UTC day have
 spent must stay under `caps.perRunUsd` and `caps.perTenantPerDayUsd`
 (`LLM-005`, `LLM-006`). After it: `usage.cost` is recorded, or the estimate
-**marked `estimated: true`** when the response carried none, so a guess is never
+marked `estimated: true` when the response carried none, so a guess is never
 silently counted as a fact. A call whose answer then fails its schema is still
 charged, because it was spent.
 
@@ -69,7 +69,7 @@ Durable Object per tenant, or a table of calls summed per day.
 schema } }` from the Zod schema (`z.toJSONSchema`, without the `$schema` line),
 with `require_parameters: true` so only endpoints that honour it are chosen. The
 answer is parsed and validated; anything else is `BAD_OUTPUT`. A non-2xx is
-`UNAVAILABLE`, and is **never** retried on a looser route.
+`UNAVAILABLE`, and is never retried on a looser route.
 
 ## Run the tests
 
@@ -78,7 +78,7 @@ pnpm test                 # 14 pass, 1 skipped (the manual recording)
 pnpm llm:allowlist        # manual, reaches the network: is the allow-list still ZDR?
 ```
 
-Verified 2026-10-16 (zod 4.6.7, vitest 3.2.4). **Proved by tripping**: removing
+Verified 2026-10-16 (zod 4.6.7, vitest 3.2.4). Proved by tripping: removing
 `zdr: true` from the personal/tenant route fails three tests.
 `pnpm llm:allowlist` was run live the same day: both allow-listed models
 reported `ok` (Gemini 3.5 Flash Lite via Google; Claude Sonnet 5.5 via Amazon
@@ -88,7 +88,7 @@ Bedrock and Google).
 `fixtures/cassette.json` was written from the documented response shape (its
 `_source` says so); the second entry is deliberately off-schema. Run
 `OPENROUTER_API_KEY=… pnpm llm:record` to replace the synthetic entry with a
-real answer. **No live request was sent**, so OpenRouter's behaviour when no
+real answer. No live request was sent, so OpenRouter's behaviour when no
 endpoint satisfies `zdr` + `require_parameters` + `max_price` (the docs name a
 404 for a related case) is untested.
 

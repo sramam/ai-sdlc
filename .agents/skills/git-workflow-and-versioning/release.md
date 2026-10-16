@@ -18,6 +18,6 @@ The skill does the remembering. A person decides whether the work is worth namin
 - a version that is not an increase
 - a `local-ci` status that is missing or not success
 
-**On the `local-ci` status:** red has no override. `--allow-unknown` covers only an unknown status, and it writes into the tag annotation that nobody checked.
+On the `local-ci` status: red has no override. `--allow-unknown` covers only an unknown status, and it writes into the tag annotation that nobody checked.
 
 **A version says which code, never which journeys are testable.** Releasing a journey to QA is `/journeys ready-for-qa` and a person's judgement. A tag does not move a branch either: promotion is `pnpm promote:staging` / `pnpm promote:prod`.

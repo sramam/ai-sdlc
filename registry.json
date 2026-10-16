@@ -30,13 +30,12 @@
   "items": {
     "base": {
       "kind": "base",
-      "description": "The process: the kit (docs/kit), the workflow's skills (Addy Osmani's agent-skills, wrapped, plus kickoff, progress-report and ai-sdlc), the hooks and guards, the plan, local CI and setup. Installed by init.",
+      "description": "The process: the kit (docs/kit), the workflow's skills (Addy Osmani's agent-skills and the humanizer, wrapped, plus kickoff, progress-report and ai-sdlc), the hooks and guards, the plan, local CI and setup. Installed by init.",
       "files": [
         ".claude/settings.json",
         {
           "from": ".agents/skills/",
           "except": [
-            ".agents/skills/humanizer/",
             ".agents/skills/stripe-best-practices/",
             ".agents/skills/scroll-craft/",
             ".agents/skills/journeys/",
@@ -46,6 +45,7 @@
           ]
         },
         ".agents/3rdparty/agent-skills/",
+        ".agents/3rdparty/humanizer/",
         ".claude/agents/",
         ".husky/commit-msg",
         ".husky/pre-commit",
@@ -130,6 +130,7 @@
           "claim": "node tooling/plan/src/claim.mts",
           "sources:add": "node tooling/guards/src/sources-manifest.mts --add",
           "sources:check": "node tooling/guards/src/sources-manifest.mts --check",
+          "prose-check": "node tooling/guards/src/prose-check.mts",
           "usage": "node tooling/core/src/usage.mts"
         },
         "devDependencies": {
@@ -265,12 +266,6 @@
         }
       },
       "notes": "Install trufflehog or gitleaks for the full secrets scan; without either the built-in patterns run and the step says so."
-    },
-    "humanizer": {
-      "kind": "skill",
-      "description": "humanizer (blader/humanizer): rewrites AI-sounding prose so it reads like its writer, without changing what it says.",
-      "when": "the project writes prose people read: a README, docs, release notes, PR text, product copy",
-      "files": [".agents/3rdparty/humanizer/", ".agents/skills/humanizer/"]
     },
     "stripe-best-practices": {
       "kind": "skill",

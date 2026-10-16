@@ -1,16 +1,16 @@
-# Technology decisions — an informed choice, made by the user
+# Technology decisions: an informed choice, made by the user
 
 The settled stack ([tech-stack.md](tech-stack.md)) covers what every project
 needs. Requirements regularly call for more: real-time updates, search, maps,
-payments, video, offline use, a mobile app, ML on GPUs. **The agent never picks
-one of these silently.** It names the need, lays out the options honestly,
-recommends one, and **the user decides**. The decision becomes an ADR that the
+payments, video, offline use, a mobile app, ML on GPUs. The agent never picks
+one of these silently. It names the need, lays out the options honestly,
+recommends one, and the user decides. The decision becomes an ADR that the
 architecture cites.
 
 ## When a decision is triggered
 
 `/kickoff` and `/spec` each scan the requirements for these
-triggers. A trigger found with no decision behind it is **blocking** for the
+triggers. A trigger found with no decision behind it is blocking for the
 items that depend on it. `plan:check` enforces it at the requirements stage:
 every trigger in `docs/requirements/technology.md` is decided, citing an ADR,
 or pending, citing its requirement IDs (`tooling/plan/src/plan-check.mts`).
@@ -33,8 +33,8 @@ or pending, citing its requirement IDs (`tooling/plan/src/plan-check.mts`).
 | compliance: HIPAA, PCI, SOC 2, residency                      | hosting regions, vendors with the right attestations                         |
 | an app or surface beyond the main web app                     | a new app in the monorepo, and how it shares the port                        |
 
-Unlisted triggers count too. **Any requirement the settled stack cannot meet
-cleanly is a trigger.**
+Unlisted triggers count too. Any requirement the settled stack cannot meet
+cleanly is a trigger.
 
 ## The dialog
 
@@ -48,9 +48,9 @@ missing before going further.
 
 **2. List the options**, usually two to four. Always include:
 
-- the option that uses the **settled stack** alone, even if it is weaker, to
+- the option that uses the settled stack alone, even if it is weaker, to
   show what the extra technology buys
-- a **managed service** and a **build or self-host** option where both are real
+- a managed service and a build or self-host option where both are real
 - **"not now"**: what the product looks like if we defer, and what that costs
 
 **3. Compare them on the same criteria**, in one table, with sources:
@@ -70,7 +70,7 @@ missing before going further.
 **Evidence, not memory.** Every claim about a vendor, especially pricing,
 limits, retention and Workers compatibility, is checked against current
 documentation in this session, with a link and the date read. Where docs cannot
-settle it, say "unknown" and propose a **spike**: a time-boxed probe that
+settle it, say "unknown" and propose a spike: a time-boxed probe that
 answers the specific question.
 
 **4. Recommend, with confidence and reasons.** "I recommend B, with medium
@@ -88,7 +88,7 @@ and runs this dialog in stage 3; after discovery, `/spec` runs it. Either way, a
 the trigger, its requirement IDs and the ADR to
 `docs/requirements/technology.md`, and write an ADR with the context (requirement IDs), the options
 compared (the table), the decision and who made it, the rejected options and
-why, the consequences, and a **revisit trigger** ("revisit if monthly volume
+why, the consequences, and a revisit trigger ("revisit if monthly volume
 exceeds N" or "if the vendor changes its retention policy"). Then update:
 
 - `docs/architecture.md`: the component, citing the ADR

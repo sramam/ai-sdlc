@@ -11,11 +11,11 @@ it serves runs end to end. This skill makes that observable. It complements
 `browser-testing-with-devtools`, which is for exploring and debugging; this is
 the recorded evidence a person reviews.
 
-| invocation                    | does                                                                                        | procedure                          |
-| ----------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------- |
-| `/journeys add <id>`          | registers a described journey so it can be recorded; writes no spec, records nothing        | [add.md](add.md)                   |
-| `/journeys test <id>`         | records it, learns its masks in three passes, drives the diffs to one readable review       | [test.md](test.md)                 |
-| `/journeys ready-for-qa <id>` | releases a green, recorded journey to QA, **only once a person has decided it is worth it** | [ready-for-qa.md](ready-for-qa.md) |
+| invocation                    | does                                                                                    | procedure                          |
+| ----------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------- |
+| `/journeys add <id>`          | registers a described journey so it can be recorded; writes no spec, records nothing    | [add.md](add.md)                   |
+| `/journeys test <id>`         | records it, learns its masks in three passes, drives the diffs to one readable review   | [test.md](test.md)                 |
+| `/journeys ready-for-qa <id>` | releases a green, recorded journey to QA, only once a person has decided it is worth it | [ready-for-qa.md](ready-for-qa.md) |
 
 In the pipeline: `/build` runs `add` and `test` for a journey when the last
 item it depends on lands, so the evidence arrives with the work. `ready-for-qa`

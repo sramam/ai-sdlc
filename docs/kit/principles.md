@@ -1,8 +1,7 @@
 # Principles
 
 These ideas sit underneath almost every mechanism in the kit. The next guard
-you write will be an instance of one of them, so learn the ideas rather than the
-instances.
+you write will be an instance of one of them, so learn the ideas.
 
 ## 0. Agents build from context, so context is held to five tenets
 
@@ -25,15 +24,12 @@ the task last, as short as it can be ([ai.md](ai.md)). The checklist, used when
 writing or reviewing any of it, is
 [`.agents/skills/context-engineering/context-quality.md`](../../.agents/skills/context-engineering/context-quality.md);
 the code review checks it on every commit that changes such text.
-The principles below are, most of them, ways of keeping one of these five true
-mechanically.
 
 ## 1. Enforce mechanically; a convention alone drifts
 
 With several agents in one repository, any rule that only lives in prose is
-broken within days (a documented "no direct pushes to `dev`" was broken anyway,
-and nobody noticed). The fix each time is a hook or a gate. **If a rule
-matters, something must refuse its violation.**
+broken within days. The fix each time is a hook or a gate. If a rule
+matters, something must refuse its violation.
 
 ## 2. A hook and a gate are a pair, not a redundancy
 
@@ -45,8 +41,8 @@ matters, something must refuse its violation.**
 A hook can be skipped with `--no-verify`, may not run in a cloud session, and
 only sees staged files. A gate with no hook beside it is one people only meet at
 the end. The gate does not have to be hosted CI. What makes it a gate is that
-its verdict is **recorded against the exact SHA**, and that the merge step
-**refuses without it**.
+its verdict is recorded against the exact SHA, and that the merge step
+refuses without it.
 
 **Where the gate is enforced, honestly:**
 
@@ -55,8 +51,8 @@ its verdict is **recorded against the exact SHA**, and that the merge step
 | **localhost** | `pnpm land` is the only merge path: it checks, merges, and stamps the merge commit. The deny list in `.claude/settings.json` keeps agents off the other paths | **agents**. A person can still bypass it deliberately                                                                                                                     |
 | **GitHub**    | the ruleset on `dev` that `tooling/setup/src/sdlc-init.mts` applies                                                                                           | **everyone**, but only where GitHub offers rulesets: a public repo, or a paid plan for a private one. On a free private repo `sdlc:init` reports the layer as unavailable |
 
-Neither layer uses GitHub Actions. Guards in either layer are **guardrails
-against accidents, not a security boundary**: a determined agent with shell
+Neither layer uses GitHub Actions. Guards in either layer are guardrails
+against accidents, not a security boundary: a determined agent with shell
 access can route around a parsed command.
 
 ## 3. Prove a guard by tripping it
@@ -65,7 +61,7 @@ Point the guard at the real target and watch it refuse. A guard with passing
 unit tests can still ship broken, because the tests assert the cases its author
 had already thought of.
 
-The best bugs were found by **listing the forms an input can take**. For a commit:
+The best bugs were found by listing the forms an input can take. For a commit:
 `git -C <path> commit`, a quoted path, `--work-tree`. Then run each one through
 the guard.
 
@@ -80,37 +76,35 @@ says so. Write the branch even when it is `// allow, because …`.
 
 ## 5. Prefer checks that print on success
 
-A check whose normal output is silence looks exactly like one that never ran
-(a `pnpm doctor` script that silently ran pnpm's own built-in skipped every
-check in it). Print one line per check, including on a green run.
+A check whose normal output is silence looks exactly like one that never ran.
+Print one line per check, including on a green run.
 
 ## 6. Enumerate from the source, declare only what cannot be derived, then check the declaration
 
-This is a **pattern check** (also called a _census_). A pattern check is a
+This is a pattern check (also called a _census_). A pattern check is a
 test that:
 
-1. lists every real instance of something, read from the source of truth rather
-   than from a list somebody keeps: modules that reach the DB, list panes, forms,
-   state-machine events, test files that mock the DB
+1. lists every real instance of something, read from the source of truth:
+   modules that reach the DB, list panes, forms, state-machine events, test
+   files that mock the DB
 2. requires each one to follow the pattern, or to sit on an exception list
-   **with a written reason**
-3. fails on an instance that is neither, **and** on an exception that no longer
+   with a written reason
+3. fails on an instance that is neither, and on an exception that no longer
    applies, so the exception list can only shrink
 4. prints its table on success
 
 A hand-written inventory is wrong by the time it is read.
-**Proximity is not evidence.** "The file contains the event name and the word
-`applyEvent`" passed while the machine was bypassed. Read the code that runs, not
-comments and not the file as a whole.
+Proximity is not evidence. Read the code that runs, not comments and not the
+file as a whole.
 
 ## 7. Static docs carry no "now" numbers
 
-A count in a paragraph is true the afternoon it is written and quietly false a
-month later. **The test is tense:** a dated
+A count in a paragraph is true the afternoon it is written and false a
+month later. The test is tense: a dated
 measurement is history and cannot decay ("measured 2026-08-18: 0 comments"). A
 claim about today rots, so name the command that answers it instead.
 
-Generated numbers live in files **only a script writes**. Prose sits beside them.
+Generated numbers live in files only a script writes. Prose sits beside them.
 
 ## 8. A confident statement is not a check
 
@@ -132,7 +126,7 @@ _cancelled_ as `fail`). When a value will be compared against something, use
 
 ## 10. Default to the most private option; relax on evidence
 
-Environment gates are **allow-lists**, never deny-lists. The environments nobody
+Environment gates are allow-lists, never deny-lists. The environments nobody
 has thought of always outnumber the ones somebody has. A relaxation is a decision
 with a date and a reason, written beside the constraint it loosens.
 
@@ -143,7 +137,7 @@ on one:
 
 - check it against the repository
 - reproduce the symptom by the shortest route
-- ask whether a warning **still earns its place**, not only whether it still holds.
+- ask whether a warning still earns its place, not only whether it still holds.
 
 A relay looks like a second witness but is a single unverified source. Only the
 person who granted something can confirm the grant.
@@ -151,7 +145,7 @@ person who granted something can confirm the grant.
 ## 12. Fail loudly, with unique error codes
 
 `EMAIL-002`, `CALLER-004`, `SCR-007`. A unique code makes frequency trackable and
-points at the line. A refusal names the **obstacle**: "your role says no" and
+points at the line. A refusal names the obstacle: "your role says no" and
 "the world says no" send people to different places.
 
 ## 13. A threshold is either the check or scenery
@@ -173,20 +167,20 @@ user (a decision, a credential, an account, a clarification):
 
 1. **Ask once, precisely**: options, a recommendation, and what each option
    changes. Batch the open questions rather than drip-feeding them.
-2. **Record it** as `docs/plan/questions/Q-<nnn>-<slug>.md`, with `blocks:`
+2. Record it as `docs/plan/questions/Q-<nnn>-<slug>.md`, with `blocks:`
    naming the items it holds up. The question then survives the session, and
    `plan:status` lists it with the items it blocks, most blocking first.
 3. **Keep going**, in this order of preference:
    - the next ready item in the plan (`/build`)
-   - work on the blocked item that **every** answer needs: tests, scaffolding,
+   - work on the blocked item that every answer needs: tests, scaffolding,
      the parts on both sides of the decision
-   - proceeding on an **explicit, reversible assumption**. Write it in the
+   - proceeding on an explicit, reversible assumption. Write it in the
      item and in the commit (`Assumes: Q-007 → B`), and keep it cheap to undo
    - quality work: coverage gaps, a pattern check, docs, the checks in
      `.agents/skills/spec-driven-development/requirements.md` on the next
      feature
-4. **Never** build irreversibly on a guess, and never silently fill a gap with a
-   plausible value. That is the sentinel failure of §4 in human form.
+4. Never build irreversibly on a guess, and never silently fill a gap with a
+   plausible value (the sentinel failure of §4).
 
 When the answer arrives, write it verbatim into the `Q-` file with the date and
 who gave it. Revisit anything built on an `Assumes:` that the answer
@@ -196,8 +190,8 @@ contradicts, and record the answer as an ADR if it shapes the system.
 
 Every request, job and capability call is a span. Logs are structured and carry
 the trace ID, errors carry their `AREA-NNN` code as an attribute, and every
-external call (DB, model, authorization, email) is a child span. **A capability
-without a span is not done.** Telemetry is a data store held by a third party,
+external call (DB, model, authorization, email) is a child span. A capability
+without a span is not done. Telemetry is a data store held by a third party,
 so its attributes are an allow-list: no PII, no secrets, no bodies. See
 [observability.md](observability.md).
 

@@ -27,7 +27,7 @@ needs, and the foundation items add them:
 pnpm sdlc list                        # every item, and which are installed
 pnpm sdlc add journeys coverage       # modules
 pnpm sdlc add app-tanstack-workers    # a recipe, with what it requires
-pnpm sdlc add humanizer               # a skill
+pnpm sdlc add stripe-best-practices   # a skill
 ```
 
 ## How a project moves
@@ -71,7 +71,7 @@ the rest, and the git gates check that each step left its evidence.
 guards, and the `core`, `guards`, `plan`, `ci` and `setup` modules. The project
 adds everything else as an item when it needs it. An item is a module
 (`journeys`, `localdb`, `seed`, `coverage`, `promote`, `security`), a skill
-(`humanizer`, `stripe-best-practices`, `scroll-craft`) or a recipe (reference
+(`stripe-best-practices`, `scroll-craft`) or a recipe (reference
 code for `packages/api`, `apps/web`, authorization, LLM access, UI and more).
 `registry.json` lists them all.
 
@@ -94,13 +94,13 @@ symlinks in `.claude/skills/`.
 A project has five layers. Each exists because the one above it drifts when
 nothing enforces it.
 
-| layer            | where                                                | what it does                                                                                                                                                   |
-| ---------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The kit          | `docs/kit/`                                          | the specification and its reasons: principles, the SDLC, testing, security, UX, AI, environments, recipes. [Start here](docs/kit/README.md)                    |
-| Skills           | `.agents/skills/`                                    | the procedures agents follow: Addy Osmani's 25 skills and 9 commands with our amendments, `kickoff`, `journeys`, `progress-report`, and any skills added since |
-| Fast enforcement | `.husky/`, `.claude/settings.json`, `tooling/guards` | caught in seconds: commit trailers, the requirements lock, worktree rules, refused pushes to `dev`/`staging`/`main`, denied merge and force-push commands      |
-| The merge gate   | `tooling/ci`, `tooling/plan`, `sdlc.config.json`     | `pnpm ci:local` runs every check in a clean snapshot and posts a `local-ci` commit status. `pnpm land` is the only way to merge. GitHub Actions stays off      |
-| Shared tooling   | `tooling/*`                                          | one workspace package per module (below), the project's to change                                                                                              |
+| layer            | where                                                | what it does                                                                                                                                              |
+| ---------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The kit          | `docs/kit/`                                          | the specification and its reasons: principles, the SDLC, testing, security, UX, AI, environments, recipes. [Start here](docs/kit/README.md)               |
+| Skills           | `.agents/skills/`                                    | the procedures agents follow: Addy Osmani's skills and commands with our amendments, `kickoff`, `journeys`, `progress-report`, and any skills added since |
+| Fast enforcement | `.husky/`, `.claude/settings.json`, `tooling/guards` | caught in seconds: commit trailers, the requirements lock, worktree rules, refused pushes to `dev`/`staging`/`main`, denied merge and force-push commands |
+| The merge gate   | `tooling/ci`, `tooling/plan`, `sdlc.config.json`     | `pnpm ci:local` runs every check in a clean snapshot and posts a `local-ci` commit status. `pnpm land` is the only way to merge. GitHub Actions stays off |
+| Shared tooling   | `tooling/*`                                          | one workspace package per module (below), the project's to change                                                                                         |
 
 `plan:check` refuses an item built from a spec nobody approved, and the trailer
 check refuses a branch that changes source without a test unless a commit says
@@ -155,14 +155,13 @@ This repository is developed as a whole: every module, recipe and skill is
 here, and `pnpm test` runs the modules' suites, the CLI's, the registry pattern
 check and the third-party check. `pnpm registry:check` (installs) runs `init`,
 `add`, `diff` and `update` end to end; `pnpm recipes:check` (installs) builds
-every recipe through `add`. It is no longer a GitHub template, and should not
-be used as one.
+every recipe through `add`. It is not a GitHub template.
 
 ## Status
 
-The eleven modules, the recipes, the CLI and the workflow's skills are built:
+The modules, the recipes, the CLI and the workflow's skills are built:
 Addy Osmani's agent-skills at `aeac41d`, wrapped, plus three skills of our own
-in base, `journeys` with its module, and three optional third-party skills. Not yet exercised:
+in base, `journeys` with its module, and two optional third-party skills. Not yet exercised:
 `pnpm dlx github:sramam/ai-sdlc#<tag>` against GitHub itself (the same path is
 proven from a local git URL), `ci:local`'s container mode, a live OpenRouter
 call, and the authorization engines inside a deployed Worker.

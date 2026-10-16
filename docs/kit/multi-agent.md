@@ -1,30 +1,29 @@
 # Running several agents in one repository
 
-Everything in this file follows from one fact: **the working tree, the index,
-HEAD, the stash, the ports and the database are all shared unless you make
-them not shared.**
+The working tree, the index, HEAD, the stash, the ports and the database are
+all shared unless you make them not shared.
 
 ## Shared resources and their rules
 
-| shared thing                               | the rule                                                                                                                                                             |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| working tree                               | stage by path, never `git add -A`; work in a worktree                                                                                                                |
-| stash (one per repo, across all worktrees) | never `git stash`. Copy a file to a scratchpad, or `git show HEAD:<path>`                                                                                            |
-| HEAD (per worktree)                        | each code-writing subagent gets `isolation: "worktree"`, which the **spawner** must pass                                                                             |
-| ports                                      | derive ports from a hash of the checkout path; kill only what an abandoned run of this checkout recorded (§ _Ports_)                                                 |
-| `pkill -f <script>`                        | matches processes in every worktree: stop by PID, within your own checkout                                                                                           |
-| dev database                               | each worktree has its own PGlite database (`pnpm db:local`), with snapshots before every migration; shared environments change only by promotion                     |
-| tools that glob from the root              | exclude `.claude/worktrees/**` everywhere                                                                                                                            |
-| `.dev.vars` / `.env` (gitignored)          | absent in worktrees: `pnpm bootstrap` symlinks them from the main checkout. Use a symlink, not a copy, so it cannot drift                                            |
-| `node_modules`                             | absent in fresh worktrees: `pnpm install` in each (fast, hard-linked). **Never symlink `node_modules`**: workspace links would resolve to the main checkout's source |
-| CPU during compile-heavy work              | parallel cold compiles are slower than serial warm ones: one warm checkout for recording or visual work                                                              |
+| shared thing                               | the rule                                                                                                                                                         |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| working tree                               | stage by path, never `git add -A`; work in a worktree                                                                                                            |
+| stash (one per repo, across all worktrees) | never `git stash`. Copy a file to a scratchpad, or `git show HEAD:<path>`                                                                                        |
+| HEAD (per worktree)                        | each code-writing subagent gets `isolation: "worktree"`, which the spawner must pass                                                                             |
+| ports                                      | derive ports from a hash of the checkout path; kill only what an abandoned run of this checkout recorded (§ _Ports_)                                             |
+| `pkill -f <script>`                        | matches processes in every worktree: stop by PID, within your own checkout                                                                                       |
+| dev database                               | each worktree has its own PGlite database (`pnpm db:local`), with snapshots before every migration; shared environments change only by promotion                 |
+| tools that glob from the root              | exclude `.claude/worktrees/**` everywhere                                                                                                                        |
+| `.dev.vars` / `.env` (gitignored)          | absent in worktrees: `pnpm bootstrap` symlinks them from the main checkout. Use a symlink, not a copy, so it cannot drift                                        |
+| `node_modules`                             | absent in fresh worktrees: `pnpm install` in each (fast, hard-linked). Never symlink `node_modules`: workspace links would resolve to the main checkout's source |
+| CPU during compile-heavy work              | parallel cold compiles are slower than serial warm ones: one warm checkout for recording or visual work                                                          |
 
 ## Ports
 
 A port sweep sends `SIGKILL`, so it kills only what it can prove is an orphan.
-**This checkout's working directory is not that proof**: a second journey run in
+This checkout's working directory is not that proof: a second journey run in
 the same checkout, and a dev server that sits on a derived port, share the cwd of
-an orphan and are alive. So the journey stack host **stamps** itself once ready
+an orphan and are alive. So the journey stack host stamps itself once ready
 (`stack.json` in scratch): its pid, a random nonce, its control URL, and every
 listener on its ports with that process's start time. The next sweep then:
 
@@ -58,13 +57,13 @@ pnpm install && pnpm bootstrap
 
 - An item's worktree is created from its claim branch (`pnpm claim <ID>`;
   `.agents/skills/git-workflow-and-versioning/SKILL.md` § _Starting an item_).
-  Anything else forks from **`origin/dev`**, not `dev`. Local `dev` lags by
+  Anything else forks from `origin/dev`, not `dev`. Local `dev` lags by
   every merge since somebody last fast-forwarded it.
 - **Every session works in its own worktree, and the user names it.** As soon
-  as the user asks for something, the agent **proposes** a name: derived from
+  as the user asks for something, the agent proposes a name: derived from
   the item (`f03-012-<slug>`), a requirements change (`req-<slug>`), or the
   request itself (`<verb>-<topic>`). The user can accept it or change it
-  **before** the worktree is created. Use one AskUserQuestion with the proposal
+  before the worktree is created. Use one AskUserQuestion with the proposal
   first, and "keep it" as the default. Read-only work (answering a question,
   a pickup, a report) needs no worktree until the first write. The name tells
   anyone looking whose branch it is.
@@ -72,7 +71,7 @@ pnpm install && pnpm bootstrap
   cannot check out `dev`, because the main checkout holds it.
 - Close it when finished: `git worktree remove …` and update the registry.
 
-**The hooks that enforce this** are described in [hooks.md](hooks.md):
+The hooks that enforce this are described in [hooks.md](hooks.md):
 
 - refuse writes and commits in the main checkout (exempt per session, keyed by
   session id)
@@ -82,15 +81,14 @@ pnpm install && pnpm bootstrap
 
 ## Provenance: which agent made this?
 
-`git log` says _what_ changed. With five agents it could not say _which line of
-work_ changed it. There are two halves, split by what merges:
+There are two halves, split by what merges:
 
 |                    | scope         | where                                         |
 | ------------------ | ------------- | --------------------------------------------- |
 | branch → session   | global        | `Worktree:` / `Session:` commit trailers      |
 | worktree → session | machine-local | append-only `.claude/worktree-registry.jsonl` |
 
-- The **session id** is the key. Names can be renamed.
+- The session id is the key. Names can be renamed.
 - "Created by" is not "occupied by". Label it that way.
 - A worktree nobody recorded is claimed by the first session found in it, as
   `entered` and never `created`.
@@ -98,20 +96,19 @@ work_ changed it. There are two halves, split by what merges:
 ## Handoffs
 
 - `docs/handoffs/YYYY-MM-DD-<branch>.md` is gitignored. Put the branch in the
-  name: date alone let two agents clobber each other.
+  name.
 - **Write it to the main checkout**, never inside a worktree, where it dies with
-  the tree. If the harness refuses that write, **say that the handoff was not
-  written**.
+  the tree. If the harness refuses that write, say that the handoff was not
+  written.
 - The pickup (`.agents/skills/context-engineering/pickup.md`) reads all
   handoffs for the newest date and checks each against `git`. `pnpm bootstrap`
   lists them at the start of a session.
-  Where the two disagree, the disagreement is the finding.
 - Do not grow handoffs into a coordination protocol. The only cross-agent channel
   that merges is git. Work that two agents must agree on belongs in a plan item or a `Q-` file.
 
 ## Long-running work goes to a sub-agent
 
-Scripts that take more than about a minute run **in the background**, so the
+Scripts that take more than about a minute run in the background, so the
 conversation is never blocked on them. That covers `ci:local`, full test
 suites, journey recording and testing, builds, provisioning, seeding and
 migrations. Either:
@@ -121,13 +118,13 @@ migrations. Either:
 - **a background shell** (`run_in_background`) when it only needs to finish.
 
 The main thread keeps talking with the user and doing work that does not depend
-on the result, and reports when the result arrives. **Never predict or invent
-a result that has not arrived.**
+on the result, and reports when the result arrives. Never predict or invent
+a result that has not arrived.
 
 Two rules keep this safe:
 
 - **A background run must not race the main thread's edits.** `ci:local` tests a
-  **snapshot**: it checks the commit out into `.ci-local/run-<sha>-<random>/` (a shared clone, one per run, behind a per-SHA lock) (with its own
+  snapshot: it checks the commit out into `.ci-local/run-<sha>-<random>/` (a shared clone, one per run, behind a per-SHA lock) (with its own
   `pnpm install --offline`, never a symlinked `node_modules`), so the worktree
   stays free to edit. Anything else long-running that reads the working tree
   either snapshots the same way, or the main thread works elsewhere until it
@@ -140,11 +137,29 @@ Two rules keep this safe:
 Base ships no persona agents (`.claude/agents/` holds the reviewers `/ship`
 fans out to). A project that adds named agents keeps two rules:
 
-- **Scope is a boundary.** Out-of-scope work becomes a **plan item** (through
+- **Scope is a boundary.** Out-of-scope work becomes a plan item (through
   `/spec`), never a message to another agent. An item survives the session
   and shows in `plan:status`. A message is a relay.
 - **Never relay an authorisation.** "The orchestrator said it was fine" says
   nothing about whether you may.
+
+## A sweep across one tree
+
+A change that touches many files at once (a review's fixes, a rename, a prose
+pass) runs as parallel editor agents in one worktree, and the limit is file
+ownership, not agent count: two agents on one file overwrite each other.
+
+- **Split by file group, disjoint, four to six groups** where the files
+  cluster that way (kit process docs, kit domain docs, recipe READMEs, tooling
+  READMEs, skills and root files, tooling code). List the groups before
+  launching and give every file to exactly one; a file nobody owns is the one
+  that gets missed.
+- **Write the set-wide rules once**, verbatim in every prompt: what to cut,
+  what to keep, which side wins where they differ. Consistency then does not
+  depend on how many editors there are.
+- **Editors report; the lead verifies and commits.** Format, lint, the tests,
+  the tree-wide greps and the checks run once over the whole tree, and one
+  commit carries the sweep.
 
 ## Before starting the second agent
 

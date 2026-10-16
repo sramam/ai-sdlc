@@ -16,8 +16,8 @@ in full, with the amendments below. Where they differ, the amendments win.
   the commit, `pnpm promote:staging` deploys it, the journeys a person signs
   off go to QA (`/journeys ready-for-qa`), and `pnpm promote:prod` follows.
   All four are in the `promote` and `journeys` modules.
-- **Staged rollout** is that sequence; feature flags are upstream's, when the
+- Staged rollout is that sequence; feature flags are upstream's, when the
   project decided to use them.
-- **The rollback plan** names `pnpm rollback <env>`: it moves code back and
+- The rollback plan names `pnpm rollback <env>`: it moves code back and
   leaves the schema forward, so a migration in the release must be additive
   (`deprecation-and-migration`).

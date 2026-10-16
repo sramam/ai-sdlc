@@ -15,7 +15,7 @@ number of sections below.
   commit. A `vi.fn()` that asserts what was
   written (a _spy_) is fine. This supersedes upstream's "fake DB" and
   `jest.mock('./database')` examples.
-- A guard is tested by **tripping it**, with a case its author did not write
+- A guard is tested by tripping it, with a case its author did not write
   first.
 
 ### 2. Honest about unknowns

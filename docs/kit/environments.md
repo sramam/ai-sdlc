@@ -1,46 +1,46 @@
-# Environments — dev, staging, production on Cloudflare
+# Environments: dev, staging, production on Cloudflare
 
 **Four environments: local (per checkout), plus three deployed ones (dev,
 staging, production)**, declared as wrangler environments in one
-`wrangler.jsonc`. Two clarifications make them work.
+`wrangler.jsonc`.
 
 1. **"dev" means the shared integration deployment, not your laptop.** Local
    is not deployed, and each checkout runs against its own PGlite database
    (§ _Local_ below; how `wrangler dev` reaches it is in
-   [spike-2026-10.md](spike-2026-10.md) § 4), never the shared dev database.
+   [spike-2026-10-evidence.md](spike-2026-10-evidence.md) § 4), never the
+   shared dev database.
 2. **Previews are optional, and their database is the trap.** A version
-   uploaded with a preview URL uses **that version's own bindings**, so a preview
+   uploaded with a preview URL uses that version's own bindings, so a preview
    uploaded to `dev` reaches dev's database unless it is uploaded with its own
    Hyperdrive config (a throwaway database branch per preview). Workers with
    Durable Objects have no previews at all. Decide in kickoff whether previews
    are worth the per-preview database.
 
-|                | git branch | Worker env            | database                                          | data                                                   | used by                      |
-| -------------- | ---------- | --------------------- | ------------------------------------------------- | ------------------------------------------------------ | ---------------------------- |
-| **local**      | any        | `wrangler dev` / Vite | per checkout                                      | deterministic seed                                     | the agent or developer       |
-| **dev**        | `dev`      | `dev`                 | dev branch, through its own Hyperdrive config     | deterministic seed; reset freely                       | the team, integration checks |
-| **staging**    | `staging`  | `staging`             | staging branch, through its own Hyperdrive config | deterministic **demo** seed; **never production data** | QA, stakeholders, demos      |
-| **production** | `main`     | `production`          | production, through its own Hyperdrive config     | real                                                   | users                        |
+|                | git branch | Worker env            | database                                          | data                                           | used by                      |
+| -------------- | ---------- | --------------------- | ------------------------------------------------- | ---------------------------------------------- | ---------------------------- |
+| **local**      | any        | `wrangler dev` / Vite | per checkout                                      | deterministic seed                             | the agent or developer       |
+| **dev**        | `dev`      | `dev`                 | dev branch, through its own Hyperdrive config     | deterministic seed; reset freely               | the team, integration checks |
+| **staging**    | `staging`  | `staging`             | staging branch, through its own Hyperdrive config | deterministic demo seed; never production data | QA, stakeholders, demos      |
+| **production** | `main`     | `production`          | production, through its own Hyperdrive config     | real                                           | users                        |
 
-Each environment has **its own** R2 buckets, Queues, Hyperdrive config, KV and
+Each environment has its own R2 buckets, Queues, Hyperdrive config, KV and
 Durable Object namespaces, secrets and OTel resource attributes
 (`deployment.environment`). Nothing is shared across environments.
 
 ## Local: a PGlite database per worktree
 
-Every worktree has **its own** Postgres (PGlite, served on a port derived from
+Every worktree has its own Postgres (PGlite, served on a port derived from
 the checkout), under `.localdb/<db>/` in that worktree. Nothing local is
 shared, so an agent can change a schema or wipe data and nobody else notices.
 Under `wrangler dev`, Hyperdrive reaches it through
 `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_<BINDING>`, which beats
 `localConnectionString` and must contain a password (PGlite ignores it;
-[spike-2026-10.md](spike-2026-10.md) § 4).
+[spike-2026-10-evidence.md](spike-2026-10-evidence.md) § 4).
 
 PGlite is one Postgres session, so the server holds it for one connection at a
 time for a whole protocol exchange (`SessionLock` in
-`tooling/localdb/src/socket.mts`; the spike's `portal "" does not exist`
-failures under concurrent requests are covered by
-`tooling/localdb/src/concurrency.test.ts`). The costs that remain: a long
+`tooling/localdb/src/socket.mts`, `tooling/localdb/src/concurrency.test.ts`).
+The costs that remain: a long
 transaction blocks every other connection, and named prepared statements,
 `SET`, temp tables and `LISTEN` are shared across connections, so a driver
 that prepares statements by name is told not to.
@@ -54,13 +54,11 @@ pnpm db:local reset            # empty, then migrate
 ```
 
 - **Revertible by construction**: every migration is preceded by an automatic
-  snapshot, and any state can be snapshotted by name. Reverting a schema
-  experiment is one command, and never touches another agent's data.
+  snapshot, and any state can be snapshotted by name.
 - **Databases are declared in `sdlc.config.json` (`localdb.databases`)**, each with
   the project's own `migrate` command, because the ORM is the project's choice.
   An app needs a database only if kickoff topic 9 says so.
-- **Removing the worktree removes its database.** Nothing outlives the branch
-  that made it.
+- **Removing the worktree removes its database.**
 - **Shared environments (dev, staging, production) are never reached from a
   worktree for experiments.** Migrations reach them only through promotion.
 
@@ -70,7 +68,7 @@ pnpm db:local reset            # empty, then migrate
   `pnpm promote:staging` and `pnpm promote:prod`, run by a person. Never merge
   a pull request into `main`. Each script:
   1. refuses unless the target SHA has a green `local-ci` status
-  2. runs migrations against that environment's **direct** (non-Hyperdrive)
+  2. runs migrations against that environment's direct (non-Hyperdrive)
      connection
   3. `CLOUDFLARE_ENV=<env> vite build`, then `wrangler deploy`, from that exact
      SHA in a clean checkout. The Vite plugin bakes the environment in at build
@@ -82,8 +80,8 @@ pnpm db:local reset            # empty, then migrate
   to it with a one-shot nonce; the mechanism is in the hook's header comment.
   `.claude/settings.json` denies the raw push commands too; both are
   guardrails against a mistake, not a boundary
-  ([security.md](security.md) § _Our own agents and machines_). **A GitHub
-  ruleset on `staging` and `main` is the stronger layer** (restrict updates to
+  ([security.md](security.md) § _Our own agents and machines_). A GitHub
+  ruleset on `staging` and `main` is the stronger layer (restrict updates to
   the people who promote; no force-push, no deletion), and is worth applying
   wherever the plan offers rulesets.
 - **Deploy tokens are scoped** to one account and the Workers, R2 and Queues
@@ -120,15 +118,15 @@ pnpm db:local reset            # empty, then migrate
 - **Capture transports** (email to disk, local storage) are refused on every
   deployed environment, at build time and at call time.
 - **Backups**: rely on the database host's point-in-time recovery, and R2
-  versioning where data matters. Know the retention windows. **Practise one
-  restore before launch.**
+  versioning where data matters. Know the retention windows. Practise one
+  restore before launch.
 
 ## What the bootstrap sets up
 
 - `wrangler.jsonc` with the three environments and their bindings, and
   `.dev.vars.example`
 - `apps/<app>/src/env.ts`, from the `env-schema` recipe: the schema for
-  variables **and bindings**, with deployment-only rules
+  variables and bindings, with deployment-only rules
 - `pnpm promote:staging` and `pnpm promote:prod`, as above
 - `/health` with the database-branch check (to build on the recipe's route)
 - seeding scripts that refuse production (see [data-model.md](data-model.md) § _Seed and demo data_)

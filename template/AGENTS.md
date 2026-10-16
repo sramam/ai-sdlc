@@ -1,7 +1,7 @@
 # This project was created with `ai-sdlc init`
 
-It has not been set up yet. **Read `docs/kit/BOOTSTRAP.md` and follow it,
-starting with Phase 0**, then `/kickoff`. Phase 2 replaces this file with one
+It has not been set up yet. Read `docs/kit/BOOTSTRAP.md` and follow it,
+starting with Phase 0, then `/kickoff`. Phase 2 replaces this file with one
 written from `docs/kit/AGENTS.template.md`.
 
 Until then:

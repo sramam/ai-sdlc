@@ -1,13 +1,12 @@
 # Tech stack
 
-This is the **preferred stack**: the default each project starts from.
-Kickoff presents it, and the user **keeps or changes each choice**; a change is
+This is the preferred stack: the default each project starts from.
+Kickoff presents it, and the user keeps or changes each choice; a change is
 an ADR, and the kit's docs that assume a default (Cloudflare, OpenRouter, Oso or
 SpiceDB, Lovable, visual journeys) then apply only where the choice was kept.
 The SDLC engine (worktrees, the plan, the requirements lock, local CI,
 `pnpm land`, reports) does not depend on any of it.
 
-**Preferred** means kickoff proposes it and the user confirms or changes it.
 **Decide per project** means kickoff asks, using the criteria given here. What
 the October 2026 spike verified is in [spike-2026-10.md](spike-2026-10.md);
 anything it did not reach is checked in the project's platform spike
@@ -27,7 +26,7 @@ anything it did not reach is checked in the project's platform spike
 | model access        | **OpenRouter**, with data-policy settings enforced                                 | [security.md](security.md) § _Model providers_                                            |
 | GPU (if needed)     | **vast.ai**, restricted to the work its trust level allows                         | [security.md](security.md) § _GPU hosts_                                                  |
 | UI                  | **shadcn/ui on Base UI primitives + Tailwind v4**, lucide, Inter or the brand font | the playbook is [ux.md](ux.md)                                                            |
-| forms               | **React Hook Form + zodResolver**, using the **port's own schema**                 | errors land on the field                                                                  |
+| forms               | **React Hook Form + zodResolver**, using the port's own schema                     | errors land on the field                                                                  |
 | validation          | **Zod**                                                                            | one schema serves server validation, forms, OpenAPI and MCP; money is `z.int()` cents     |
 | lifecycles          | **XState**, one machine per entity                                                 | the machine is the only writer of its status column                                       |
 | repo                | **pnpm workspace**, TS `strict`, Node 24 for tooling                               | scripts and hooks run with `node`, no `tsx`                                               |
@@ -37,8 +36,6 @@ anything it did not reach is checked in the project's platform spike
 ## CLIs first
 
 Where a vendor has a CLI, it is how we log in, provision and integrate.
-Commands are scriptable, reviewable and repeatable, and a console click is none
-of those.
 
 | vendor              | CLI                                | used for                                                                                  |
 | ------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------- |
@@ -52,14 +49,14 @@ of those.
 - **CLIs are pinned** as dev dependencies where they are published to npm
   (`wrangler`, `neonctl`), so behaviour does not change underneath a script.
 - **A person runs `login`**, once per machine, through the vendor's browser
-  flow. Agents use the logged-in CLI but are **denied reading its token files**
+  flow. Agents use the logged-in CLI but are denied reading its token files
   (`security.md`).
 - **Provisioning is a script**, idempotent and per environment
   (`pnpm infra:provision --env staging`, written by the infrastructure
   foundation item, [BOOTSTRAP.md](BOOTSTRAP.md)), never a sequence of console
-  clicks. Running it twice changes nothing.
+  clicks.
 - **`pnpm accounts:check`** prints a line per CLI: logged in as whom, not logged
-  in, or **could not ask**. It uses non-interactive flags and a timeout, because
+  in, or _could not ask_. It uses non-interactive flags and a timeout, because
   a CLI waiting on an invisible prompt looks exactly like "not logged in".
 - **No CLI and no API** (for example Lovable): the manual step is written in the
   project brief with its owner, and a check confirms the result where one is
@@ -67,15 +64,15 @@ of those.
 
 ## Decide per project (in `/kickoff`)
 
-|                          | options                                                                             | how to choose                                                                                                                                                                                                                                                                                            |
-| ------------------------ | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **database**             | **Postgres** (Neon, reached from Workers through **Hyperdrive**) or **D1** (SQLite) | Default Postgres: PGlite tests, branches per environment, the richest constraints. D1 only for small single-tenant apps that want zero external services, and it is **outside the kit**: PGlite tests, database branches and the health check all assume Postgres, so D1 needs an ADR that replaces them |
-| **ORM**                  | **Drizzle** (default) or Prisma 7 with a driver adapter                             | Both verified through Hyperdrive. Drizzle is the default: a smaller Worker and a faster first request ([spike-2026-10.md](spike-2026-10.md) § 2–3 has the measurements). Prisma 7 when a project wants its client extensions; pin 7.x                                                                    |
-| **auth**                 | Better Auth (passwordless OTP, passkeys) or a hosted provider                       | Better Auth's email OTP ran on Workers with sessions in Postgres ([spike-2026-10.md](spike-2026-10.md) § 6; MFA and passkeys not tested). Whatever is chosen must support MFA for privileged roles and keep sessions in the DB or a Durable Object, never only in a JWT you cannot revoke                |
-| **authorization engine** | Oso or SpiceDB                                                                      | decided from `access-model.md` (see security.md)                                                                                                                                                                                                                                                         |
-| **email and SMS**        | Resend or Postmark; Twilio                                                          | one package each, named for the capability                                                                                                                                                                                                                                                               |
-| **OTel backend**         | any OTLP endpoint: Grafana, Honeycomb, Axiom, SigNoz                                | vendor-neutral by construction, so swapping one is configuration                                                                                                                                                                                                                                         |
-| **payments**             | Stripe, if any                                                                      | idempotency keys derived from stored keys                                                                                                                                                                                                                                                                |
+|                          | options                                                                     | how to choose                                                                                                                                                                                                                                                                                               |
+| ------------------------ | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **database**             | **Postgres** (Neon, reached from Workers through Hyperdrive) or D1 (SQLite) | Default Postgres: PGlite tests, branches per environment, the richest constraints. D1 only for small single-tenant apps that want zero external services, and it is outside the kit: PGlite tests, database branches and the health check all assume Postgres, so D1 needs an ADR that replaces them        |
+| **ORM**                  | **Drizzle** (default) or Prisma 7 with a driver adapter                     | Both verified through Hyperdrive. Drizzle is the default: a smaller Worker and a faster first request ([spike-2026-10-evidence.md](spike-2026-10-evidence.md) § 2–3 has the measurements). Prisma 7 when a project wants its client extensions; pin 7.x                                                     |
+| **auth**                 | Better Auth (passwordless OTP, passkeys) or a hosted provider               | Better Auth's email OTP ran on Workers with sessions in Postgres ([spike-2026-10-evidence.md](spike-2026-10-evidence.md) § 6; MFA and passkeys not tested). Whatever is chosen must support MFA for privileged roles and keep sessions in the DB or a Durable Object, never only in a JWT you cannot revoke |
+| **authorization engine** | Oso or SpiceDB                                                              | decided from `access-model.md` (see security.md)                                                                                                                                                                                                                                                            |
+| **email and SMS**        | Resend or Postmark; Twilio                                                  | one package each, named for the capability                                                                                                                                                                                                                                                                  |
+| **OTel backend**         | any OTLP endpoint: Grafana, Honeycomb, Axiom, SigNoz                        | vendor-neutral by construction, so swapping one is configuration                                                                                                                                                                                                                                            |
+| **payments**             | Stripe, if any                                                              | idempotency keys derived from stored keys                                                                                                                                                                                                                                                                   |
 
 ## The architecture shape
 
@@ -124,9 +121,8 @@ Each was checked in the October 2026 spike; its verdict is in
 - **No access to the host's disk, and a partial Node API** (`nodejs_compat`).
   `/tmp` is a writable, in-memory, per-request filesystem; vars and secrets also
   appear in `process.env`. Libraries that assume Node may fail at runtime, not
-  at build. **Run `tsc --noEmit` before trusting a build** (the spike's item
-  10: a stale API passed `vite build` and failed every route). Smoke-test the
-  **built Worker** under `wrangler dev`, not only the Vite dev server.
+  at build. Run `tsc --noEmit` before trusting a build. Smoke-test the
+  built Worker under `wrangler dev`, not only the Vite dev server.
 - **Bundle size and cold start.** Keep heavy dependencies out of the request path.
 - **Database connections** go through Hyperdrive, never a direct connection per
   request.
@@ -138,11 +134,11 @@ Each was checked in the October 2026 spike; its verdict is in
 - Server state stays on the server, and fetched rows are never copied into a
   store. TanStack Query, if used, is the cache, and there is only one.
 - A client store (Zustand) is created per mount, never at module scope.
-- A preference the server needs before first paint goes in **one** cookie. A
+- A preference the server needs before first paint goes in one cookie. A
   shareable question (filters, sort) goes in the URL.
 
 ## Money and time
 
 - Integer cents in `BigInt` columns. Guards throw on fractional cents.
-- A date boundary is resolved in the zone of the **thing it belongs to**, not
+- A date boundary is resolved in the zone of the thing it belongs to, not
   the server's. Workers run in UTC.
