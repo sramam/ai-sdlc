@@ -1,11 +1,19 @@
 @ai-sdlc/localdb: `pnpm db:local` — a PGlite database per checkout under `.localdb/<db>/`, on a port derived from the checkout path, with `dumpDataDir` snapshots. See README.md.
 
-- **Open one connection per client.** The socket server multiplexes every
-  connection onto one Postgres session, so the unnamed prepared statement and
-  portal are shared: two pooled connections clobber each other and fail as
-  nonsense (door_nexa met `invalid input syntax for type bigint` on a table with
-  no bigint column). Prisma: `connection_limit=1` is ignored by the `pg` adapter
-  — pass `max: 1` to the pool. `pg`: `new Pool({ max: 1 })`.
+- **Many connections share one Postgres session, serialised per exchange**
+  (`src/socket.mts`). Interleaving per _message_ broke the unnamed portal
+  (`portal "" does not exist`, 9 of 30 in docs/kit/spike-2026-10.md; door_nexa
+  met it as `invalid input syntax for type bigint`). A connection holds the
+  backend from its first message to the ReadyForQuery after `Sync`/`Query`, and
+  through an open transaction — so **a long or idle transaction blocks everyone
+  else**. Named prepared statements and `SET` are still shared.
+- **PGlite sends an extra ReadyForQuery after an extended-protocol error**; the
+  server drops it, or a client's replies shift by one ("unexpected
+  commandComplete"). Do not "simplify" the frame filter away.
+- **Startup is answered from a greeting captured once**, not sent through the
+  backend, so a client can connect while another holds a transaction.
+- `src/concurrency.test.ts` sends Parse/Bind/Execute/Sync as **separate writes**:
+  `pg` writes them in one chunk, which hid the fault from a pg-only test.
 - **A lock naming a dead pid is stale**, cleared and said. A `busy` or
   `starting` lock, or an unreadable one, is could-not-ask; nobody guesses.
   Never delete `server.json` while `status` says running.

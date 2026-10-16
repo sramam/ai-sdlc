@@ -68,7 +68,7 @@ of those.
 |                          | options                                                                             | how to choose                                                                                                                                                                                                                                                                                                                                                                              |
 | ------------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **database**             | **Postgres** (Neon, reached from Workers through **Hyperdrive**) or **D1** (SQLite) | Default Postgres: PGlite tests, branches per environment, the richest constraints. D1 only for small single-tenant apps that want zero external services, and it is **outside the kit**: PGlite tests, database branches and the health check all assume Postgres, so D1 needs an ADR that replaces them. _Verify the Prisma driver adapter and Hyperdrive combination in the first spike_ |
-| **ORM**                  | Prisma 7 with a driver adapter, or Drizzle                                          | Prisma for the scoping extension and the door_nexa patterns. Drizzle if the Worker bundle size or cold start hurts. _Verify both on Workers_                                                                                                                                                                                                                                               |
+| **ORM**                  | **Drizzle** (default) or Prisma 7 with a driver adapter                             | Both verified through Hyperdrive (docs/kit/spike-2026-10.md). Drizzle is the default: about 5× smaller and about 2.5× faster on the first request. Prisma 7 when a project wants its client extensions; pin 7.x                                                                                                                                                                            |
 | **auth**                 | Better Auth (passwordless OTP, passkeys) or a hosted provider                       | It must run on Workers (_verify_), support MFA for privileged roles, and keep sessions in the DB or a Durable Object, never only in a JWT you cannot revoke                                                                                                                                                                                                                                |
 | **authorization engine** | Oso or SpiceDB                                                                      | decided from `access-model.md` (see security.md)                                                                                                                                                                                                                                                                                                                                           |
 | **email and SMS**        | Resend or Postmark; Twilio                                                          | one package each, named for the capability                                                                                                                                                                                                                                                                                                                                                 |
@@ -105,9 +105,13 @@ packages/api      capabilities: authorize (Oso/SpiceDB) + scoped data + state ma
 
 - **No long requests.** CPU and wall-time limits apply, so anything heavy goes
   to a Queue or a Workflow, and it must be idempotent.
-- **No filesystem, and a partial Node API** (`nodejs_compat`). Libraries that
-  assume Node may fail at runtime, not at build. Smoke-test the **built Worker**
-  under `wrangler dev`, not only the Vite dev server.
+- **No access to the host's disk, and a partial Node API** (`nodejs_compat`).
+  `/tmp` is a writable, in-memory, per-request filesystem; vars and secrets also
+  appear in `process.env`. Libraries that assume Node may fail at runtime, not
+  at build. **Run `tsc --noEmit` before trusting a build**: in the spike, an API
+  named in the current docs but missing from the installed version passed
+  `vite build` and failed every route at runtime. Smoke-test the **built
+  Worker** under `wrangler dev`, not only the Vite dev server.
 - **Bundle size and cold start.** Keep heavy dependencies out of the request path.
 - **Database connections** go through Hyperdrive, never a direct connection per
   request.

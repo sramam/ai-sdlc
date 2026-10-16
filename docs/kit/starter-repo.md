@@ -70,11 +70,10 @@ apps/                      EMPTY; kickoff decides the apps
 packages/                  EMPTY; kickoff decides the packages, instantiated from recipes
 docs/
   kit/                     the kit's docs (this directory), upstream-owned
-    recipes/               reference packages: api (port skeleton), db (client,
-                           createTestDb, retention map), ui (shadcn on Base UI,
-                           shell, patterns), telemetry, authz-oso, authz-spicedb,
-                           llm-openrouter, env-schema, app-tanstack-workers,
-                           dev-session (signs in a seeded account for scripts)
+    recipes/               reference packages (index: recipes/README.md): app-tanstack-workers,
+                           db-drizzle (default), db-prisma, env-schema, telemetry,
+                           journeys-adapter; in progress: api (port skeleton), ui (shadcn on
+                           Base UI), authz-oso, authz-spicedb, llm-openrouter, dev-session
   requirements/            LOCKED: written only by /kickoff, /idea, /add-requirement
     sources/               imported documents, never edited
   guardrails.md            the non-negotiables: the starter's, then the project's own

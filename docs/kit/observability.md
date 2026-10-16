@@ -57,10 +57,16 @@ whatever you send it:
 - Workers has built-in observability and can export traces and logs to an OTLP
   endpoint. Check what it captures automatically, and add the capability spans
   through `@<scope>/telemetry`, which must work under that model.
-- `ctx.waitUntil` flushes telemetry after the response, so a slow exporter never
-  delays a user.
-- Queues and Workflows **propagate trace context** in the message, so a job's
-  trace links to the request that enqueued it.
+- **Cloudflare exports natively** (OTLP/JSON, configured with
+  `observability.*.destinations`), so there is no in-Worker exporter to flush.
+  `ctx.waitUntil` matters only for a self-managed exporter.
+- **Custom spans** come from `tracing.enterSpan` in `cloudflare:workers`. User
+  code cannot read trace or span IDs yet, so propagating trace context by hand
+  through Queues or Workflows is not possible today; whether the platform links
+  them was not tested (docs/kit/spike-2026-10.md).
+- **`wrangler dev` stores spans locally** and answers SQL at
+  `/cdn-cgi/local/explorer/api/local/observability/query`, so an end-to-end test
+  can assert real spans, not only a test exporter's.
 - Local and tests: a console or in-memory exporter. **Tests assert spans**: the
   capability name, the outcome, and that no unregistered attribute appears.
 

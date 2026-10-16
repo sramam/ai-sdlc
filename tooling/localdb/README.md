@@ -15,26 +15,29 @@ wire protocol by a background process, with its data in the checkout:
 
 ## Configure
 
+A `localdb` block in the project's `sdlc.config.json` — added to the existing
+file, not a file of its own: the loader validates the whole config, so a file
+holding only `localdb` is refused (`branches: required`, `dirs: required` …).
+
 ```json
 {
+  "…": "the rest of sdlc.config.json",
   "localdb": {
     "databases": [
       {
         "name": "app",
-        "migrate": "pnpm --filter @app/db exec drizzle-kit migrate",
-        "env": ["CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE"]
+        "migrate": "pnpm --filter @app/db exec drizzle-kit migrate"
       }
     ]
   }
 }
 ```
 
-A top-level key of `sdlc.config.json`. `migrate` is the project's command; `env` names extra
-variables that also get the URL.
-
-`migrate` runs from the repository root with `DATABASE_URL` (and every name in
-`env`) set to the database's URL. The ORM is the project's choice, so applying
-migrations is the project's command.
+`migrate` is the project's command, run from the repository root with
+`DATABASE_URL` set to the database's URL. The ORM is the project's choice, so
+applying migrations is the project's command. `env` (optional) names further
+variables that also get the URL, for a migrate command that reads a different
+name; most need none.
 
 ## Commands
 
@@ -62,6 +65,25 @@ every worktree. It is probed by actually binding it (on 127.0.0.1, ::1 and the
 wildcard), and a held port steps to the next, up to 16, saying which it skipped.
 The port in use is the one in the lock, so `url` is always right even after a step.
 
+## Many connections, one backend
+
+PGlite is a single Postgres session, and the extended query protocol keeps
+per-session state (the unnamed statement and portal) as does a transaction. So
+`src/socket.mts` gives the backend to **one connection at a time, for a whole
+exchange**: from its first message until the ReadyForQuery that answers its
+`Sync` (or its simple `Query`), and for as long as that ReadyForQuery says it is
+inside a transaction. Others queue, first come first served. A pool of any size
+works; nothing has to be told to open one connection.
+
+The cost: work is serial — which PGlite already was — and **a transaction held
+open blocks every other connection** until it commits or rolls back. Fine on a
+laptop; a client that sits idle in a transaction stalls the rest. A connection
+that drops mid-exchange or mid-transaction is synced and rolled back for it.
+
+Still shared between connections, because there is only one session: named
+prepared statements, `SET`, temp tables, `LISTEN`. A driver that prepares by
+name (postgres.js by default) should have it turned off.
+
 ## Snapshots
 
 PGlite `dumpDataDir("gzip")` tarballs, one format whether the database is running
@@ -80,7 +102,7 @@ Automatic snapshots (`pre-migrate-…`, `pre-reset-…`) are pruned to the newes
 ## Library
 
 `src/lib.mts` (pure: paths, port derivation, lock classification, pruning),
-`src/ports.mts` (bind probing), `src/wire.mts` (a dependency-free simple-query
+`src/ports.mts` (bind probing), `src/socket.mts` (the wire-protocol server and its session lock), `src/wire.mts` (a dependency-free simple-query
 client, also runnable: `DATABASE_URL=… node tooling/localdb/src/wire.mts "select 1"`),
 `src/localdb.mts` (the operations; `runningUrl(root, db)` is what `pnpm seed` uses).
 

@@ -17,8 +17,8 @@ import type { AddressInfo } from "node:net";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { PGlite } from "@electric-sql/pglite";
-import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
 import { SNAPSHOT_EXT, databaseUrl, validLabel } from "./lib.mts";
+import { serveSocket } from "./socket.mts";
 import type { Lock } from "./lib.mts";
 
 const { values } = parseArgs({
@@ -44,21 +44,28 @@ mkdirSync(snapshots, { recursive: true });
 
 const db = await PGlite.create({ dataDir: data });
 /*
- * maxConnections defaults to 1, and an app with a pool then deadlocks on its
- * second concurrent query. Many connections are multiplexed onto one Postgres
- * session — which is also why a client should open ONE (see agents.md).
+ * Many connections, one Postgres session: socket.mts gives the session to one
+ * connection at a time, for a whole exchange or transaction, so a pooled app
+ * works without being told to open a single connection.
  */
-const server = new PGLiteSocketServer({ db, port, host: "127.0.0.1", maxConnections: 100 });
-await server.start();
+const server = await serveSocket(db, { port, host: "127.0.0.1", maxConnections: 100 });
 say(`serving ${data} on 127.0.0.1:${port}`);
 
 /** Dump the data directory to `<snapshots>/<label>.tar.gz`, atomically. */
 async function snapshot(label: string): Promise<{ path: string; bytes: number }> {
-  // A checkpoint first, so the tarball does not lean on WAL replay. Inside a
-  // client's open transaction it cannot run; the dump is still consistent,
+  // A checkpoint first, so the tarball does not lean on WAL replay — taken
+  // between client exchanges, never inside one. A client holding a transaction
+  // open longer than the wait gets no checkpoint; the dump is still consistent,
   // because loading it recovers and the open transaction rolls back.
-  if (!db.isInTransaction()) await db.exec("CHECKPOINT").catch(() => {});
-  const dump = await db.dumpDataDir("gzip");
+  const me = {};
+  const idle = await server.lock.acquire(me, 5_000);
+  let dump: Blob;
+  try {
+    if (idle) await db.exec("CHECKPOINT").catch(() => {});
+    dump = await db.dumpDataDir("gzip");
+  } finally {
+    if (idle) server.lock.release(me);
+  }
   const bytes = Buffer.from(await dump.arrayBuffer());
   const path = join(snapshots!, `${label}${SNAPSHOT_EXT}`);
   const temp = `${path}.${process.pid}.tmp`;

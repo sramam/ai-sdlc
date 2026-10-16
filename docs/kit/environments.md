@@ -7,14 +7,19 @@ staging, production)**, declared as wrangler environments in one
 1. **"dev" means the shared integration deployment, not your laptop.** Local
    is not deployed. Each checkout runs against its **own** database
    (PGlite in tests; for the dev server, a per-checkout local Postgres from
-   `pnpm playground`, which Hyperdrive's local connection string points at
-   under `wrangler dev`, _verify the setting name_), never the shared dev database. door_nexa's shared dev database,
+   `pnpm db:local`, which Hyperdrive reaches under `wrangler dev` through
+   `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_<BINDING>`, verified in
+   docs/kit/spike-2026-10.md. It beats `localConnectionString`, and the URL
+   **must contain a password**; PGlite ignores it, so use a dummy one), never
+   the shared dev database. door_nexa's shared dev database,
    written to by every agent, caused migration drift that nobody could create a
    migration past.
-2. **Previews per branch are optional.** Workers can upload a version with a
-   preview URL without promoting it (_verify the current mechanism_). If you
-   use previews, each one gets its own database branch or a seeded throwaway,
-   never the shared dev database.
+2. **Previews are optional, and their database is the trap.** A version
+   uploaded with a preview URL uses **that version's own bindings**, so a preview
+   uploaded to `dev` reaches dev's database unless it is uploaded with its own
+   Hyperdrive config (a throwaway database branch per preview). Workers with
+   Durable Objects have no previews at all. Decide in kickoff whether previews
+   are worth the per-preview database.
 
 |                | git branch | Worker env            | database                                          | data                                                   | used by                      |
 | -------------- | ---------- | --------------------- | ------------------------------------------------- | ------------------------------------------------------ | ---------------------------- |
@@ -60,7 +65,9 @@ pnpm db:local reset            # empty, then migrate
   1. refuses unless the target SHA has a green `local-ci` status
   2. runs migrations against that environment's **direct** (non-Hyperdrive)
      connection
-  3. `wrangler deploy --env <env>` from that exact SHA, with a clean tree
+  3. `CLOUDFLARE_ENV=<env> vite build`, then `wrangler deploy`, from that exact
+     SHA in a clean checkout. The Vite plugin bakes the environment in at build
+     time; `--env` at deploy time does nothing
   4. fast-forwards the git branch
   5. smoke-tests the deployed URL (sign in, reach a page) and fails loudly
 - **Deploy tokens are scoped** to one account and the Workers, R2 and Queues

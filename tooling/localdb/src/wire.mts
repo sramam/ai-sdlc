@@ -2,7 +2,7 @@
  * A dependency-free Postgres client for the **simple query** protocol: start up,
  * send one query string, read text rows back. It exists so `db:local` can ask a
  * running server "do you answer?" and so tests can prove the socket server
- * serves, without adding `pg` to the starter.
+ * serves, without a driver in the runtime (`pg` is a test-only devDependency).
  *
  * Deliberately tiny: no extended protocol, no binary formats, no SSL, no
  * authentication beyond "trust" (which is what the PGlite socket server does).

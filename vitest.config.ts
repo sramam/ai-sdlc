@@ -2,6 +2,11 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
+    // Vitest's 5s default is scenery, not a check: no test here asserts speed.
+    // Several do real work (PNG diffs, PGlite servers, Chromium) and crossed 5s
+    // only under full parallel load (one pixel-delta test at 5021ms). Bounded,
+    // not removed, so genuine slowness still fails (docs/kit/principles.md §13).
+    testTimeout: 20_000,
     include: [
       "tooling/**/*.test.{ts,mts}",
       "scripts/**/*.test.{ts,mts}",

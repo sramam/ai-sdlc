@@ -50,14 +50,14 @@ Both sections are optional. Without `environments` there is nothing to promote. 
     "staging": {
       "branch": "staging",
       "migrate": "pnpm run db:migrate:staging",
-      "deploy": "pnpm exec wrangler deploy --env staging",
+      "deploy": "CLOUDFLARE_ENV=staging pnpm exec vite build && pnpm exec wrangler deploy",
       "smokeUrl": "https://staging.example.com/api/health",
       "rollback": "pnpm exec wrangler rollback --env staging"
     },
     "production": {
       "branch": "main",
       "migrate": "pnpm run db:migrate:production",
-      "deploy": "pnpm exec wrangler deploy --env production",
+      "deploy": "CLOUDFLARE_ENV=production pnpm exec vite build && pnpm exec wrangler deploy",
       "smoke": "pnpm run smoke:production",
       "smokeUrl": "https://example.com/api/health",
       "rollback": "pnpm exec wrangler rollback --env production",

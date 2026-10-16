@@ -15,10 +15,11 @@ These root `devDependencies` are accounted for by this ADR: `typescript`,
 `prettier`, `husky`, `lint-staged`, `vitest`. They exist to run the SDLC
 tooling, linting, formatting and tests.
 
-The `tooling/localdb` package depends on `@electric-sql/pglite` and
-`@electric-sql/pglite-socket`: Postgres compiled to WebAssembly, served over the
-wire protocol, so each checkout gets its own database with no install and no
-shared server (docs/kit/multi-agent.md, docs/kit/testing.md).
+The `tooling/localdb` package depends on `@electric-sql/pglite`: Postgres
+compiled to WebAssembly, served over the wire protocol by localdb's own socket
+server, so each checkout gets its own database with no install and no shared
+server (docs/kit/multi-agent.md, docs/kit/testing.md). Its tests use `pg` (and
+`@types/pg`) as a real client to prove concurrent connections.
 
 The `tooling/journeys` package depends on `pngjs` and `pixelmatch` (and the
 dev-only `@types/pngjs`): decoding journey screenshots and diffing two of them
@@ -30,7 +31,7 @@ from the project, for journeys that capture a PDF: rendered in the browser page
 by page so a document is gated like a screenshot, and never installed by a
 project that captures none.
 
-Dependencies: @eslint/js, @types/node, eslint, globals, husky, lint-staged, prettier, typescript, typescript-eslint, vitest, pixelmatch, pngjs, @types/pngjs, @playwright/test, pdfjs-dist, @electric-sql/pglite, @electric-sql/pglite-socket, @vitest/coverage-v8
+Dependencies: @eslint/js, @types/node, eslint, globals, husky, lint-staged, prettier, typescript, typescript-eslint, vitest, pixelmatch, pngjs, @types/pngjs, @playwright/test, pdfjs-dist, @electric-sql/pglite, @vitest/coverage-v8, pg, @types/pg
 
 ## Consequences
 

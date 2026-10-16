@@ -6,7 +6,10 @@
   "description": "db:local — a PGlite database per checkout, served over the Postgres wire protocol, with snapshots.",
   "dependencies": {
     "@ai-sdlc/core": "workspace:*",
-    "@electric-sql/pglite": "^0.5.10",
-    "@electric-sql/pglite-socket": "^0.2.13"
+    "@electric-sql/pglite": "^0.5.10"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1"
   }
 }
