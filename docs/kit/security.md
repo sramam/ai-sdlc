@@ -123,6 +123,35 @@ vast.ai is a marketplace, and many hosts are third parties you cannot audit. So:
 - **Verify outputs.** Checksum artifacts, and evaluate models before promoting
   them. A host can return what it likes.
 
+## API authentication — one rule per binding
+
+Every project exposes its capabilities as an HTTP API, an SDK and an MCP server
+(tech-stack.md § _The architecture shape_). Each binding proves **who** is
+calling and nothing else: the tenant and role always come from the person's
+relationship in the database, never from a header, a query or a body.
+
+| binding                    | credential                                                                                  | notes                                                                                                                         |
+| -------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| HTTP from the app          | the session cookie, accepted **only from the app's own origin**                             | every call is `POST` with `Content-Type: application/json`, which a cross-site page cannot send without a preflight           |
+| HTTP and SDK, programmatic | an **API key** as `Authorization: Bearer` (Better Auth's api-key plugin)                    | bound at creation to one user and one relationship, server-side; re-checked on every call, so revoking access revokes the key |
+| MCP                        | an **OAuth 2.1 access token** per the MCP authorization spec (Better Auth's `mcp()` plugin) | audience-bound to the MCP endpoint (RFC 8707), discovered through RFC 9728 metadata; a token for another resource is refused  |
+
+- **A bearer header is used alone.** A bad token never falls back to a cookie
+  the browser also sent.
+- **A credential has a ceiling.** Keys and tokens carry scopes (`api:read`,
+  `api:write`), so a call needs the caller's authority **and** the credential's
+  scope. An MCP tool or SDK call can never do more than its caller could in the
+  app, and an agent gets the caller's permissions ∩ the agent's declared scope
+  (ai.md).
+- **Three answers.** No valid credential is 401; authenticated but unable to act
+  is 403; a key store or JWKS that cannot be asked is 503, never 401.
+- **Rate-limit per credential**, not per IP: per API key, per OAuth client and
+  user, per session user. Better Auth's api-key plugin has its own limiter with
+  a low default (10 a day in 1.7.7); set it on purpose or turn it off and limit
+  in the binding.
+- **Keys and tokens are secrets in the user's hands**: shown once, stored
+  hashed, expiring, revocable from the app, and never logged or put in a span.
+
 ## Application controls (the baseline every project gets)
 
 | area               | control                                                                                                                                                                                              |

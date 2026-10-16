@@ -16,7 +16,7 @@ runs in Node under Vitest and on workerd unchanged ([tech-stack.md](../../tech-s
 | `src/refusal.ts`                      | `Refusal = { ok: false, code, detail, field? }`; codes `INVALID`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `UNAVAILABLE`                                                      |
 | `src/scoped-db.ts`                    | `scopedDb(db, tenantId)`: every read and write on a tenant table conjoined with `tenant_id`; `whereAllowed(idColumn, filter)` puts the policy's list filter in the query   |
 | `src/capability.ts`                   | `capability({ name, summary, effect, input, output, access, run })` and `invoke(cap, deps, caller, raw)`                                                                   |
-| `src/manifest.ts`, `manifest.test.ts` | the list every non-hand-written binding renders; a census: unique names, JSON-Schema-describable inputs and outputs, no authority key in any input                         |
+| `src/manifest.ts`, `manifest.test.ts` | the list every binding renders (`as const`, so the SDK is typed from it), and `exclusions`; unique names, JSON-Schema-describable schemas, no authority key in any input   |
 | `src/authz.ts`                        | the `@scope/authz` interface (identical in `authz-oso` and `authz-spicedb`)                                                                                                |
 | `src/scripted-authz.ts`               | for the port's own suite: an `Authz` whose answers the test states (the policy matrix lives in the authz recipes)                                                          |
 | `src/example/*`                       | `project.create`, `project.list`, `project.rename`, and the contract suite                                                                                                 |
@@ -96,5 +96,6 @@ clean. **Proved by tripping**: removing the tenant conjunction from
 ## Not here
 
 The session-to-relationship resolver (it depends on the access model's
-tables), XState machines, an HTTP or MCP binding over the manifest, OpenAPI
-generation, `createTestDb`, and the retention map.
+tables), XState machines, `createTestDb`, and the retention map. The HTTP API,
+OpenAPI, MCP and SDK bindings over the manifest are
+[`api-bindings`](../api-bindings/).

@@ -22,6 +22,7 @@ which assembled them into a scratch project and ran them on workerd:
 | [`authz-spicedb/`](authz-spicedb/)               | `@scope/authz` over SpiceDB's HTTP API, relationships through an outbox, matrix test                       |
 | [`llm-openrouter/`](llm-openrouter/)             | `@scope/llm`: routing by data class (ZDR for real data), model per role, cost caps, recordings             |
 | [`dev-session/`](dev-session/)                   | `pnpm dev:session`: a real passwordless sign-in for a seeded account, for curl and Playwright              |
+| [`api-bindings/`](api-bindings/)                 | the manifest as an HTTP API with OpenAPI, an MCP server and a typed SDK; caller resolution per binding     |
 
 The second group was built after the spike, against current vendor docs and,
 where one could run, the vendor's local engine; each README says what was run

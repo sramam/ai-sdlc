@@ -76,8 +76,12 @@ the census.
 See [AGENTS.template.md](AGENTS.template.md) § Building for the rules, and
 [tech-stack.md](tech-stack.md) for the shape. The core of it: **one port, many
 bindings.** Every capability is implemented once, in a framework-free package.
-Server actions, server functions, HTTP routes, MCP tools and agent tools are thin
-transports over it.
+Server functions, HTTP routes, MCP tools and agent tools are thin transports over
+it. **Every project exposes its API three ways from the start**: a typed SDK, an
+HTTP API with OpenAPI, and an MCP server, all rendered from the manifest so they
+cannot drift. A capability missing from any of them needs an exclusion in the
+manifest with a reason that is a property of the mechanism, and a pattern check
+fails the build otherwise ([`recipes/api-bindings`](recipes/api-bindings/)).
 
 ## 4. Committing
 

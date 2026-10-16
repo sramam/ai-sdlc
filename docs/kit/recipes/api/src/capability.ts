@@ -48,9 +48,13 @@ export type Capability<IS extends z.ZodType = z.ZodType, OS extends z.ZodType = 
   run(ctx: Context<z.output<IS>>): Promise<z.output<OS> | Refusal>;
 };
 
-export function capability<IS extends z.ZodType, OS extends z.ZodType>(
-  def: Capability<IS, OS>,
-): Capability<IS, OS> {
+/**
+ * Declares a capability. The name is kept as a literal type, so the manifest's
+ * type names every capability and the SDK binding can be typed from it alone.
+ */
+export function capability<const N extends string, IS extends z.ZodType, OS extends z.ZodType>(
+  def: Capability<IS, OS> & { name: N },
+): Capability<IS, OS> & { name: N } {
   return def;
 }
 

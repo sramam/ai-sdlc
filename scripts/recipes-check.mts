@@ -67,7 +67,10 @@ const ASSEMBLE: Record<
  * (`../../db-drizzle/src/…`). The sibling is copied beside the scratch
  * workspace, sharing its node_modules, so the relative import resolves.
  */
-const SIBLINGS: Record<string, string[]> = { "dev-session": ["db-drizzle"] };
+const SIBLINGS: Record<string, string[]> = {
+  "dev-session": ["db-drizzle"],
+  "api-bindings": ["api"],
+};
 
 /**
  * Files left out of the harness's typecheck, each with the reason. A CLI whose

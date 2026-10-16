@@ -242,7 +242,15 @@ Kickoff decides **how** the project will be built. **What** is built belongs to
     Record every decision in `docs/requirements/technology.md` with its ADR.
 12. **AI architecture**: from the `## AI` section of `prd.md`, settle what
     `docs/kit/ai.md` § _Architecture_ describes:
-    - the agent binding and an MCP binding over the capability manifest
+    - the agent binding over the capability manifest. The SDK, HTTP API and
+      MCP bindings are a default every project gets (`docs/kit/tech-stack.md`
+      § _The architecture shape_), so ask instead:
+      - **which capabilities are excluded** from which binding, each with a
+        reason that is a property of the mechanism (a browser-only upload
+        step), never "not needed yet"
+      - **how external clients authenticate**: API keys for programmatic HTTP
+        and SDK callers (who may create them, their scopes, expiry), and OAuth
+        for MCP (which clients may register, what the consent screen offers)
     - propose-then-approve for consequential actions
     - the semantic layer for plain-language BI (the model never writes SQL)
     - the onboarding draft lifecycle

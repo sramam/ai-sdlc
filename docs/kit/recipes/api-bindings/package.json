@@ -1,0 +1,29 @@
+{
+  "name": "@app/bindings",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "openapi:write": "OPENAPI_WRITE=1 vitest run src/http/openapi.test.ts"
+  },
+  "dependencies": {
+    "@better-auth/api-key": "1.7.7",
+    "@better-auth/mcp": "1.7.7",
+    "@better-auth/oauth-provider": "1.7.7",
+    "@better-auth/utils": "0.4.2",
+    "@modelcontextprotocol/server": "2.2.0",
+    "better-auth": "1.7.7",
+    "better-call": "1.4.0",
+    "drizzle-orm": "0.45.4",
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.10",
+    "@modelcontextprotocol/client": "2.2.0",
+    "@types/node": "^24.0.0",
+    "jose": "6.2.12",
+    "typescript": "^5.9.0",
+    "vitest": "3.2.4"
+  }
+}

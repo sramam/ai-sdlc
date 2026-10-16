@@ -81,6 +81,8 @@ of those.
 apps/<app> (TanStack Start on Workers; which apps exist is decided in /kickoff)
   routes, server functions = transport: resolve Caller, start span, call port, invalidate
      │
+packages/bindings the manifest rendered three ways: HTTP API + OpenAPI, MCP server, typed SDK
+     │
 packages/api      capabilities: authorize (Oso/SpiceDB) + scoped data + state machine + write
    ├── domain/    framework-free schemas, machines, money, dates
    ├── @<scope>/db      DB client; data scope enforced in one place
@@ -100,6 +102,15 @@ packages/api      capabilities: authorize (Oso/SpiceDB) + scoped data + state ma
 - **Refusals are returned, not thrown:** `{ ok: false, code, detail, field? }`.
 - **Capabilities return identifiers and the facts that changed, never rows.**
 - **Every capability call is one span** (see observability.md).
+- **Three bindings by default: SDK, HTTP API, MCP.** Each is rendered from the
+  manifest (routes, OpenAPI, tools, SDK types), never written by hand, so a new
+  capability reaches all three with no extra work. A capability left out of one
+  is declared in the manifest's `exclusions` with a reason that is a property of
+  the mechanism, and a pattern check fails on a missing capability, a stale
+  exclusion or a reason under four words. Reads and writes are both `POST` with
+  a JSON body. MCP is the official SDK v2 (`@modelcontextprotocol/server`), served
+  from a server route. See [`recipes/api-bindings`](recipes/api-bindings/), and
+  security.md § _API authentication_ for how each binding finds its caller.
 
 ## Workers constraints to design for (_verify each in the first spike_)
 

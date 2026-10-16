@@ -82,11 +82,15 @@ form**.
 
 The architecture door_nexa already had makes this cheap: **one port, many
 bindings.** Every capability is implemented once, so AI is just another binding.
+Every project gets three by default, rendered from the capability manifest: a
+typed **SDK**, an **HTTP API** with an OpenAPI document, and an **MCP server**
+([`recipes/api-bindings`](recipes/api-bindings/)). A capability missing from
+one needs a declared exclusion with a reason, and a pattern check enforces it.
 
 | need                           | how                                                                                                                                                                                                                                                                                              |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | agents performing actions      | an **agent binding** over the capability manifest. A tool _is_ a capability, so an agent can do nothing a capability cannot. Its authority is the **caller's permissions ∩ the agent's declared scope**, and activating an agent requires holding every permission in that scope                 |
-| external agents and assistants | an **MCP binding** over the same manifest, with the same authorization                                                                                                                                                                                                                           |
+| external agents and assistants | the **MCP binding** every project has: one tool per capability, OAuth 2.1 per the MCP authorization spec, and exactly the caller's authority, narrowed by the token's scope                                                                                                                      |
 | consequential actions          | **propose, then approve**: the agent writes a proposal, a person approves it, and the capability runs with that person's authority. A hold window, during which a person can cancel, suits time-sensitive automation                                                                             |
 | plain-language BI              | a **semantic layer**: named metrics and dimensions defined in code, executed through scoped capabilities. The model chooses _which_ metric, filter and grouping; **it never writes SQL against the database.** Row scope and field visibility therefore come from the access model automatically |
 | charts and explanations        | the model returns a structured chart spec, validated by Zod and rendered by our chart components, plus an explanation that cites the numbers it used                                                                                                                                             |
