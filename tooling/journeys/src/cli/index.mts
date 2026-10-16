@@ -2,7 +2,7 @@
  * `journeys index` — rewrite the evidence index, every journey's pointer page,
  * and every walk's status line, from what is on disk. No browser, no stack,
  * seconds. Run by the Playwright teardown after every run, and by
- * `/journey-ready-for-qa` to publish a sign-off. See `index/index-lib.mts`.
+ * `/journeys ready-for-qa` to publish a sign-off. See `index/index-lib.mts`.
  *
  * ```
  * journeys index            write what is derived

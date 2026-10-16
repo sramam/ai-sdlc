@@ -8,13 +8,19 @@
  *
  * Two kinds of check, by what depends on them:
  *
- *   required        node, pnpm, git, node_modules, checkout (worktree detection)
- *                   and the env links. The workflow cannot run without them, so
- *                   FAIL exits 1 and could-not-ask exits 2 ("could not answer").
- *   informational   gh, git-lfs. Only some steps need them — gh for sdlc:init
- *                   and land, git-lfs for committing journey evidence — so a
+ *   required        node, pnpm, git, node_modules, checkout (worktree detection),
+ *                   the env links and the skill links (`.claude/skills/` →
+ *                   `.agents/skills/`, repaired here). The workflow cannot run
+ *                   without them, so FAIL exits 1 and could-not-ask exits 2.
+ *   informational   gh, git-lfs, claude-security. Only some steps need them —
+ *                   gh for sdlc:init and land, git-lfs for committing journey
+ *                   evidence, the security plugin for reviews and /ship — so a
  *                   missing or unanswering one is a `warn` line and never fails
  *                   the run. sdlc:init checks git-lfs properly where it matters.
+ *
+ * It also lists the newest day's handoffs, which a new session picks up first.
+ * Run as the SessionStart hook (`--session-start`), its output is the
+ * session's first context and it always exits 0.
  *
  * Exit: 1 if any required check failed, else 2 if any required check could
  * not ask, else 0.
@@ -24,16 +30,20 @@
  * variable, and fails as "authenticated as nobody", which reads as a code bug.
  * Their contents are never read.
  */
-import { existsSync, lstatSync, readFileSync, symlinkSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync, symlinkSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { exec as realExec, firstLine, isEntry } from "../../core/src/exec.mts";
 import type { Exec } from "../../core/src/exec.mts";
 import { findRoot } from "../../core/src/config.mts";
+import { ensureSkillLinks } from "../../core/src/skill-links.mjs";
 
 export type CheckState = "ok" | "fail" | "could-not-ask" | "warn" | "n/a";
 
 /** Checks that only inform: a failure is a warning (see the header). */
-export const INFORMATIONAL = new Set(["gh", "git-lfs"]);
+export const INFORMATIONAL = new Set(["gh", "git-lfs", "claude-security"]);
+
+/** A plugin the project declares in `.claude/settings.json` and bootstrap checks for. */
+export const SECURITY_PLUGIN = "claude-security@claude-plugins-official";
 
 export interface Check {
   name: string;
@@ -160,6 +170,74 @@ export function linkEnvFile(
   }
 }
 
+/**
+ * Skills live in `.agents/skills/`; Claude Code sees them through symlinks in
+ * `.claude/skills/`, which this repairs (a fresh clone on a filesystem that
+ * dropped them, a skill added by hand). n/a when the project has no skills.
+ */
+export function checkSkills(root: string): Check | null {
+  if (!existsSync(join(root, ".agents", "skills"))) return null;
+  const r = ensureSkillLinks(root);
+  if (r.failed.length)
+    return { name: "skills", state: "fail", detail: `could not link ${r.failed.join("; ")}` };
+  const kept = r.kept.length ? `; ${r.kept.join(", ")} not a link (the project's own)` : "";
+  return {
+    name: "skills",
+    state: "ok",
+    detail: r.created.length
+      ? `linked ${r.created.length} into .claude/skills/${kept}`
+      : `all visible to Claude Code${kept}`,
+  };
+}
+
+/**
+ * The security plugin, when `.claude/settings.json` declares it. Its license
+ * lets each user install it but not the project ship it, so each machine
+ * installs it once; this says when that has not happened.
+ */
+export async function checkSecurityPlugin(
+  deps: Pick<BootstrapDeps, "exec" | "root">,
+): Promise<Check | null> {
+  const settings = readJson(join(deps.root, ".claude", "settings.json"));
+  const enabled = settings?.enabledPlugins as Record<string, unknown> | undefined;
+  if (!enabled?.[SECURITY_PLUGIN]) return null;
+  const install = `claude plugin install ${SECURITY_PLUGIN} --scope project`;
+  const r = await deps.exec("claude", ["plugin", "list", "--json"], {
+    cwd: deps.root,
+    timeoutMs: 15_000,
+  });
+  if (r.notFound)
+    return { name: "claude-security", state: "fail", detail: `no claude CLI to ask — ${install}` };
+  if (r.timedOut || r.code !== 0)
+    return {
+      name: "claude-security",
+      state: "could-not-ask",
+      detail: r.timedOut ? "timed out" : firstLine(r.stderr || r.stdout) || `exit ${r.code}`,
+    };
+  let ids: string[];
+  try {
+    ids = (JSON.parse(r.stdout) as { id?: string }[]).map((p) => p.id ?? "");
+  } catch {
+    return { name: "claude-security", state: "could-not-ask", detail: "unreadable plugin list" };
+  }
+  return ids.includes(SECURITY_PLUGIN)
+    ? { name: "claude-security", state: "ok", detail: "installed" }
+    : { name: "claude-security", state: "fail", detail: `not installed — ${install}` };
+}
+
+/** The newest day's handoffs in the main checkout, which a new session picks up first. */
+export function newestHandoffs(main: string): { date: string; files: string[] } | null {
+  const dir = join(main, "docs", "handoffs");
+  if (!existsSync(dir)) return null;
+  const dated = readdirSync(dir).filter((f) => /^\d{4}-\d{2}-\d{2}-.+\.md$/.test(f));
+  if (!dated.length) return null;
+  const date = dated
+    .map((f) => f.slice(0, 10))
+    .sort()
+    .at(-1) as string;
+  return { date, files: dated.filter((f) => f.startsWith(date)).sort() };
+}
+
 function readJson(file: string): Record<string, unknown> | null {
   try {
     return JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>;
@@ -241,6 +319,19 @@ export async function runBootstrap(
     for (const f of LINKED_ENV_FILES) add(linkEnvFile(root, wt.main, f, symlink));
   }
 
+  const skills = checkSkills(root);
+  if (skills) add(skills);
+  const plugin = await checkSecurityPlugin(deps);
+  if (plugin) add(plugin);
+  const main = wt.kind === "worktree" ? wt.main : wt.kind === "main" ? root : null;
+  const handoffs = main ? newestHandoffs(main) : null;
+  if (handoffs)
+    add({
+      name: "handoffs",
+      state: "ok",
+      detail: `${handoffs.files.length} from ${handoffs.date}: ${handoffs.files.join(", ")} — pick up before any work (.agents/skills/context-engineering/pickup.md)`,
+    });
+
   const failed = checks.filter((c) => c.state === "fail").length;
   const unknown = checks.filter((c) => c.state === "could-not-ask").length;
   const warned = checks.filter((c) => c.state === "warn").length;
@@ -252,14 +343,22 @@ export async function runBootstrap(
 
 async function main(): Promise<void> {
   const root = findRoot() ?? process.cwd();
-  console.log(`bootstrap ${root}`);
+  // As a SessionStart hook its output becomes the session's first context, so
+  // it names the workflow too, and it never fails the hook: a session that
+  // cannot start helps nobody fix what this found.
+  const sessionStart = process.argv.includes("--session-start");
+  console.log(
+    sessionStart
+      ? `pnpm bootstrap (session start) ${root}\nThe workflow: .agents/skills/using-agent-skills/SKILL.md. Fix any FAIL below before other work.`
+      : `bootstrap ${root}`,
+  );
   const { exit } = await runBootstrap({
     exec: realExec,
     root,
     nodeVersion: process.version,
     log: (l) => console.log(l),
   });
-  process.exit(exit);
+  process.exit(sessionStart ? 0 : exit);
 }
 
 if (isEntry(import.meta.url)) await main();

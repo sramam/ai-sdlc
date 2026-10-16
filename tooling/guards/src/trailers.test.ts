@@ -17,8 +17,11 @@ import {
   itemOfBranch,
   checkItemTrailers,
   checkRangeHasItem,
+  checkRangeTests,
   checkRequirementsTrailer,
   indexedItemIds,
+  isSource,
+  isTest,
   messageMode,
   rangeMode,
   readAttribution,
@@ -36,6 +39,50 @@ afterEach(() => {
 
 const ATTR = "Co-Authored-By: Claude <noreply@anthropic.com>";
 const T = (key: string, value: string) => ({ key, value });
+
+describe("test evidence", () => {
+  const commit = (...trailers: { key: string; value: string }[]) => ({
+    commit: "a".repeat(40),
+    time: 0,
+    subject: "s",
+    trailers,
+  });
+
+  it("tells source from tests, fixtures, declarations and config", () => {
+    for (const p of ["apps/web/src/a.ts", "packages/api/x.tsx", "tooling/x/src/y.mts", "s.mjs"])
+      expect(isSource(p), p).toBe(true);
+    for (const p of [
+      "apps/web/src/a.test.ts",
+      "e2e/j1.spec.ts",
+      "e2e/stack.mts",
+      "x/__fixtures__/a.ts",
+      "types.d.ts",
+      "vitest.config.ts",
+      "docs/a.md",
+    ])
+      expect(isSource(p), p).toBe(false);
+    expect(isTest("e2e/stack.mts")).toBe(true);
+  });
+
+  it("passes when nothing runnable changed, or a test changed with it", () => {
+    expect(checkRangeTests(["docs/a.md"], [commit()]).state).toBe("ok");
+    expect(checkRangeTests(["src/a.ts", "src/a.test.ts"], [commit()]).state).toBe("ok");
+  });
+
+  it("refuses source with no test, naming the files", () => {
+    const r = checkRangeTests(["src/a.ts", "src/b.ts"], [commit(T("Progress", "F01-001 x"))]);
+    expect(r.state).toBe("refused");
+    expect(r.text).toMatch(/src\/a\.ts, src\/b\.ts.*No-Test: <reason>/);
+  });
+
+  it("accepts a reason, and not an empty one", () => {
+    expect(checkRangeTests(["src/a.ts"], [commit(T("No-Test", "a rename"))])).toMatchObject({
+      state: "ok",
+      text: expect.stringMatching(/because: a rename/),
+    });
+    expect(checkRangeTests(["src/a.ts"], [commit(T("No-Test", " "))]).state).toBe("refused");
+  });
+});
 
 describe("pure checks", () => {
   it("requirements: refuses a docs/requirements change without the trailer", () => {
@@ -267,7 +314,7 @@ describe("--range reads every commit, not the range as a whole", () => {
     commit(d, "docs: brd\n\nProgress: X-000 brd\nRequirements: idea");
     sh(d, ["checkout", "-q", "dev"]);
     write(d, "src/a.ts", "1\n");
-    commit(d, "feat: a\n\nProgress: X-000 a");
+    commit(d, "feat: a\n\nProgress: X-000 a\nNo-Test: a fixture, not the subject here");
     sh(d, ["merge", "-q", "--no-ff", "side", "-m", "merge side"]);
     // The merge takes brd.md from side unchanged: side's commit answers for it.
     expect(await rangeMode(d, "base", false)).toBe(0);
@@ -275,7 +322,7 @@ describe("--range reads every commit, not the range as a whole", () => {
     // An edit made while merging is the merge's own, and needs its own trailer.
     sh(d, ["checkout", "-q", "-b", "side2", "base"]);
     write(d, "src/b.ts", "1\n");
-    commit(d, "feat: b\n\nProgress: X-000 b");
+    commit(d, "feat: b\n\nProgress: X-000 b\nNo-Test: a fixture, not the subject here");
     sh(d, ["checkout", "-q", "dev"]);
     sh(d, ["merge", "-q", "--no-ff", "--no-commit", "side2"]);
     write(d, "docs/requirements/prd.md", "evil\n");

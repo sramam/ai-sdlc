@@ -4,7 +4,7 @@
  *   node tooling/guards/src/trailers.mts --message <file>       commit-msg hook
  *   node tooling/guards/src/trailers.mts --range [<base>] [--allow-unknown]   ci:local
  *
- * **A trailer is an assertion, not proof.** `Requirements: idea` says a
+ * **A trailer is an assertion, not proof.** `Requirements: spec` says a
  * requirements skill made the change; nothing here can tell which skill ran,
  * or whether any did. What these checks buy is consistency — every
  * requirements change asserts one, every named item exists, a branch closes
@@ -12,7 +12,7 @@
  *
  * `--message` refuses (exit 1) when:
  *   - the change touches docs/requirements/ without
- *     `Requirements: kickoff|idea|add-requirement`. During a merge (MERGE_HEAD
+ *     `Requirements: kickoff|spec` (or a pre-2026-10 name). During a merge (MERGE_HEAD
  *     present) only the merge's **own** changes count — staged paths that also
  *     differ from every merged head (a conflict resolution, an edit made while
  *     merging); what a merged head brings landed with its own trailer
@@ -36,6 +36,8 @@
  *   - every requirements path in the aggregate `base...HEAD` diff is owned by
  *     some commit in the range — a backstop for history the per-commit walk
  *     cannot attribute
+ *   - when the aggregate diff changes source, it changes a test too, or some
+ *     commit carries `No-Test: <reason>` (test-driven-development's evidence)
  *   - on a branch named after an item (`<id>` lowercased, optionally
  *     `-<slug>`), every `Closes:` names that item; a `Progress:` naming another
  *     item warns
@@ -83,7 +85,12 @@ export interface CheckLine {
   text: string;
 }
 
-export const REQUIREMENTS_SKILLS = ["kickoff", "idea", "add-requirement"];
+/**
+ * `kickoff` and `spec` write requirements now. `idea` and `add-requirement`
+ * were their names before October 2026, and a branch older than that still
+ * carries them, so they stay valid here; the lock no longer accepts them.
+ */
+export const REQUIREMENTS_SKILLS = ["kickoff", "spec", "idea", "add-requirement"];
 
 /**
  * `paths` are the change's own paths. For a merge (`merging`), the caller has
@@ -117,7 +124,7 @@ export function checkRequirementsTrailer(
   return {
     name: "requirements",
     state: "refused",
-    text: `this ${merging ? "merge itself" : "commit"} changes ${prefix} (${touched.slice(0, 3).join(", ")}${touched.length > 3 ? ", …" : ""}) and has no Requirements: ${REQUIREMENTS_SKILLS.join("|")} trailer${got}. Only /kickoff, /idea and /add-requirement write there`,
+    text: `this ${merging ? "merge itself" : "commit"} changes ${prefix} (${touched.slice(0, 3).join(", ")}${touched.length > 3 ? ", …" : ""}) and has no Requirements: ${REQUIREMENTS_SKILLS.join("|")} trailer${got}. Only /kickoff and /spec write there`,
   };
 }
 
@@ -260,6 +267,54 @@ export function checkRangeNoItem(commits: CommitTrailers[]): CheckLine {
   if (bad.length) return { name: "no-item", state: "refused", text: bad.join("\n      ") };
   const n = commits.filter((c) => trailerValues(c.trailers, "No-Item").length).length;
   return { name: "no-item", state: "ok", text: `${n} commit(s) carry a well-formed No-Item:` };
+}
+
+/** Code that runs: TypeScript or JavaScript outside tests, fixtures and type declarations. */
+export function isSource(path: string): boolean {
+  return (
+    /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/.test(path) &&
+    !isTest(path) &&
+    !/\.d\.[cm]?ts$/.test(path) &&
+    !/(?:^|\/)__fixtures__\//.test(path) &&
+    !/(?:^|\/)[^/]*\.config\.[cm]?[jt]s$/.test(path)
+  );
+}
+
+export function isTest(path: string): boolean {
+  return /\.(?:test|spec)\.[cm]?[jt]sx?$/.test(path) || /^e2e\//.test(path);
+}
+
+/**
+ * A branch that changes source carries a test, the evidence that
+ * test-driven-development's red step happened, unless a commit says why not
+ * with `No-Test: <reason>` (a rename, a type-only change, generated code).
+ */
+export function checkRangeTests(paths: string[], commits: CommitTrailers[]): CheckLine {
+  const source = paths.filter(isSource);
+  const tests = paths.filter(isTest);
+  if (!source.length) return { name: "tests", state: "ok", text: "no source changed" };
+  if (tests.length)
+    return {
+      name: "tests",
+      state: "ok",
+      text: `${source.length} source file(s) changed, ${tests.length} test file(s) with them`,
+    };
+  const reasons = commits
+    .flatMap((c) => trailerValues(c.trailers, "No-Test"))
+    .filter((r) => r.trim());
+  if (reasons.length)
+    return {
+      name: "tests",
+      state: "ok",
+      text: `${source.length} source file(s) changed and no test, because: ${reasons.join("; ")}`,
+    };
+  return {
+    name: "tests",
+    state: "refused",
+    text:
+      `${source.length} source file(s) changed (${source.slice(0, 3).join(", ")}${source.length > 3 ? ", …" : ""}) ` +
+      "and no test file did: add the test that proves it, or say why not with a `No-Test: <reason>` trailer",
+  };
 }
 
 /** A commit with the paths it is answerable for (its own diff; see the header). */
@@ -603,18 +658,20 @@ export async function rangeMode(
   else {
     lines.push(checkRangeRequirements(withPaths, dirs.requirements));
     const agg = git(root, ["diff", "--name-only", "-z", `${from}...HEAD`]);
+    const aggPaths = agg.ok ? agg.stdout.split("\0").filter(Boolean) : [];
     lines.push(
       agg.ok
-        ? checkAggregateRequirements(
-            agg.stdout.split("\0").filter(Boolean),
-            withPaths,
-            dirs.requirements,
-          )
+        ? checkAggregateRequirements(aggPaths, withPaths, dirs.requirements)
         : {
             name: "aggregate",
             state: "unknown",
             text: `could not ask git for ${from}...HEAD: ${agg.reason}`,
           },
+    );
+    lines.push(
+      agg.ok
+        ? checkRangeTests(aggPaths, commits)
+        : { name: "tests", state: "unknown", text: `could not ask git for ${from}...HEAD` },
     );
   }
 

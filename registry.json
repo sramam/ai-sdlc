@@ -20,7 +20,8 @@
       "recipes:check": "builds every recipe through add (manual: installs)",
       "registry:check": "init, add, diff and update end to end (manual: installs)",
       "sdlc": "the CLI from this checkout; init writes a project's own, pinned to its source",
-      "registry:patterns": "prints the registry pattern check's table (it also runs in pnpm test)"
+      "registry:patterns": "prints the registry pattern check's table (it also runs in pnpm test)",
+      "3rdparty": "third-party skills: sync <name> re-copies one from upstream and shows what changed; check; link"
     },
     "omit": {
       "prepare": "pnpm dlx github:… fetches this repository as a git dependency and refuses one with a prepare script; postinstall does the same job here and is merely skipped there"
@@ -29,19 +30,23 @@
   "items": {
     "base": {
       "kind": "base",
-      "description": "The process: the kit (docs/kit), the core skills, the hooks and guards, the plan, local CI and setup. Installed by init.",
+      "description": "The process: the kit (docs/kit), the workflow's skills (Addy Osmani's agent-skills, wrapped, plus kickoff, progress-report and ai-sdlc), the hooks and guards, the plan, local CI and setup. Installed by init.",
       "files": [
         ".claude/settings.json",
-        ".claude/skills/kickoff/",
-        ".claude/skills/idea/",
-        ".claude/skills/add-requirement/",
-        ".claude/skills/plan/",
-        ".claude/skills/land/",
-        ".claude/skills/handoff/",
-        ".claude/skills/pickup/",
-        ".claude/skills/progress-report/",
-        ".claude/skills/commit-reviewer/",
-        ".claude/skills/code-reviewer/",
+        {
+          "from": ".agents/skills/",
+          "except": [
+            ".agents/skills/humanizer/",
+            ".agents/skills/stripe-best-practices/",
+            ".agents/skills/scroll-craft/",
+            ".agents/skills/journeys/",
+            ".agents/skills/test-driven-development/coverage.md",
+            ".agents/skills/git-workflow-and-versioning/release.md",
+            ".agents/skills/security-and-hardening/threat-model-review.md"
+          ]
+        },
+        ".agents/3rdparty/agent-skills/",
+        ".claude/agents/",
         ".husky/commit-msg",
         ".husky/pre-commit",
         ".husky/pre-push",
@@ -124,7 +129,8 @@
           "land": "node tooling/ci/src/land.mts",
           "claim": "node tooling/plan/src/claim.mts",
           "sources:add": "node tooling/guards/src/sources-manifest.mts --add",
-          "sources:check": "node tooling/guards/src/sources-manifest.mts --check"
+          "sources:check": "node tooling/guards/src/sources-manifest.mts --check",
+          "usage": "node tooling/core/src/usage.mts"
         },
         "devDependencies": {
           "@eslint/js": "9.39.5",
@@ -143,12 +149,8 @@
     "journeys": {
       "kind": "module",
       "description": "Playwright journeys: three-pass recording with learned masks, one-pass testing, delta, drift and the index.",
-      "files": [
-        "tooling/journeys/",
-        ".claude/skills/journey-add/",
-        ".claude/skills/journey-test/",
-        ".claude/skills/journey-ready-for-qa/"
-      ],
+      "when": "the requirements have journeys to record as evidence (most projects with a UI); added with the test-harness foundation item",
+      "files": ["tooling/journeys/", ".agents/skills/journeys/"],
       "package": {
         "scripts": {
           "journeys:learn": "node tooling/journeys/src/cli/learn.mts",
@@ -164,6 +166,7 @@
     "localdb": {
       "kind": "module",
       "description": "pnpm db:local: a PGlite Postgres per checkout, snapshotted before every migrate or reset.",
+      "when": "an app has a database; every worktree then gets its own",
       "files": ["tooling/localdb/"],
       "package": {
         "scripts": {
@@ -175,6 +178,7 @@
     "seed": {
       "kind": "module",
       "description": "pnpm seed: deterministic mock data, opt-in per app.",
+      "when": "an app needs mock data to demo, develop or record journeys against",
       "requires": ["localdb"],
       "files": ["tooling/seed/"],
       "package": {
@@ -187,7 +191,8 @@
     "coverage": {
       "kind": "module",
       "description": "Merged coverage, per-path floors from sdlc.config.json, and the published report.",
-      "files": ["tooling/coverage/", ".claude/skills/coverage-report/"],
+      "when": "always, at setup (BOOTSTRAP Phase 2), once there is code worth guarding with floors",
+      "files": ["tooling/coverage/", ".agents/skills/test-driven-development/coverage.md"],
       "package": {
         "scripts": {
           "coverage": "node tooling/coverage/src/coverage.mts",
@@ -214,7 +219,8 @@
     "promote": {
       "kind": "module",
       "description": "promote:staging, promote:prod, rollback and release: fast-forward only, green local-ci required, smoke-tested.",
-      "files": ["tooling/promote/", ".claude/skills/release/"],
+      "when": "the project deploys to staging and production",
+      "files": ["tooling/promote/", ".agents/skills/git-workflow-and-versioning/release.md"],
       "package": {
         "scripts": {
           "promote:staging": "node tooling/promote/src/promote.mts staging",
@@ -228,7 +234,12 @@
     "security": {
       "kind": "module",
       "description": "security:scan: secrets, dependency audit, licences, install scripts and release age.",
-      "files": ["tooling/security/", ".claude/skills/security-review/", "security.config.json"],
+      "when": "always, at setup (BOOTSTRAP Phase 2); it brings the secrets and supply-chain CI steps and the threat-model review",
+      "files": [
+        "tooling/security/",
+        "security.config.json",
+        ".agents/skills/security-and-hardening/threat-model-review.md"
+      ],
       "package": {
         "scripts": {
           "security:scan": "node tooling/security/src/scan.mts",
@@ -255,9 +266,30 @@
       },
       "notes": "Install trufflehog or gitleaks for the full secrets scan; without either the built-in patterns run and the step says so."
     },
+    "humanizer": {
+      "kind": "skill",
+      "description": "humanizer (blader/humanizer): rewrites AI-sounding prose so it reads like its writer, without changing what it says.",
+      "when": "the project writes prose people read: a README, docs, release notes, PR text, product copy",
+      "files": [".agents/3rdparty/humanizer/", ".agents/skills/humanizer/"]
+    },
+    "stripe-best-practices": {
+      "kind": "skill",
+      "description": "Stripe's own integration guidance (stripe/ai): Checkout Sessions over PaymentIntents, Connect, billing, tax, webhooks, restricted keys.",
+      "when": "the project takes payments, subscriptions or tax through Stripe",
+      "files": [".agents/3rdparty/stripe/", ".agents/skills/stripe-best-practices/"]
+    },
+    "scroll-craft": {
+      "kind": "skill",
+      "description": "scroll-craft (nateherkai/scroll-craft): premium scroll-driven landing pages, verified on desktop, mobile and reduced motion.",
+      "when": "a marketing or landing page has to stand out with scroll-driven motion",
+      "files": [".agents/3rdparty/scroll-craft/", ".agents/skills/scroll-craft/"],
+      "gitignore": ["scrollcraft/"],
+      "notes": "Needs Playwright and ffmpeg on the machine. Generating images or video uses kie.ai (KIE_AI_API_KEY), which is paid and receives the prompts; it works without one when the user supplies the media. Its workspace is scrollcraft/ (gitignored)."
+    },
     "api": {
       "kind": "recipe",
       "description": "The port skeleton: Caller, refusals, invoke (validate, scope, authorize, run), the manifest, a PGlite contract suite.",
+      "when": "the project has capabilities to expose (nearly every app); kickoff names it among the packages",
       "files": [
         "docs/kit/recipes/api/README.md",
         {
@@ -274,6 +306,7 @@
     "api-bindings": {
       "kind": "recipe",
       "description": "The manifest as an HTTP API with OpenAPI, an MCP server and a typed SDK.",
+      "when": "with api: the capabilities need their HTTP API, MCP server and SDK (every project, by default)",
       "requires": ["api"],
       "files": [
         "docs/kit/recipes/api-bindings/README.md",
@@ -291,6 +324,7 @@
     "app-tanstack-workers": {
       "kind": "recipe",
       "description": "TanStack Start on Cloudflare Workers as apps/web: SSR, server functions over a port, Better Auth, four environments.",
+      "when": "kickoff keeps the preferred stack and the project has a web app",
       "requires": ["env-schema", "db-drizzle", "telemetry"],
       "files": [
         "docs/kit/recipes/app-tanstack-workers/README.md",
@@ -313,6 +347,7 @@
     "env-schema": {
       "kind": "recipe",
       "description": "One Zod schema for a Worker's variables and bindings (apps/web/src/env.ts).",
+      "when": "a Worker app reads variables or bindings (with app-tanstack-workers)",
       "files": [
         "docs/kit/recipes/env-schema/README.md",
         {
@@ -336,6 +371,7 @@
     "db-drizzle": {
       "kind": "recipe",
       "description": "Drizzle + pg through Hyperdrive, one client per request (apps/web/src/db); the default ORM.",
+      "when": "an app has a Postgres database and kickoff chose Drizzle (the default ORM)",
       "requires": ["localdb"],
       "requiresBecause": {
         "localdb": "its migrations are applied by pnpm db:local migrate"
@@ -373,6 +409,7 @@
     "db-prisma": {
       "kind": "recipe",
       "description": "Prisma 7 + @prisma/adapter-pg through Hyperdrive (apps/web/src/db); the alternative to db-drizzle.",
+      "when": "an app has a Postgres database and kickoff chose Prisma instead of Drizzle",
       "conflicts": ["db-drizzle"],
       "files": [
         "docs/kit/recipes/db-prisma/README.md",
@@ -409,6 +446,7 @@
     "telemetry": {
       "kind": "recipe",
       "description": "One span per capability call, an attribute registry, a Workers tracer and a test exporter (apps/web/src/telemetry).",
+      "when": "always, with the first app: every capability call is a span (the telemetry foundation item)",
       "files": [
         "docs/kit/recipes/telemetry/README.md",
         {
@@ -429,6 +467,7 @@
     "journeys-adapter": {
       "kind": "recipe",
       "description": "A journeys StackAdapter for app-tanstack-workers: the built Worker under wrangler dev, localdb through Hyperdrive (e2e/stack.mts).",
+      "when": "the journeys module records against app-tanstack-workers",
       "requires": ["journeys", "app-tanstack-workers"],
       "requiresBecause": {
         "app-tanstack-workers": "it builds and serves apps/web"
@@ -453,6 +492,7 @@
     "dev-session": {
       "kind": "recipe",
       "description": "pnpm dev:session: a real passwordless sign-in for a seeded account, for curl and Playwright.",
+      "when": "agents need to sign in as a seeded account to curl or drive authenticated pages",
       "requires": ["db-drizzle", "app-tanstack-workers"],
       "requiresBecause": {
         "app-tanstack-workers": "it signs in to the app's Better Auth"
@@ -483,6 +523,7 @@
     "llm-openrouter": {
       "kind": "recipe",
       "description": "@scope/llm: OpenRouter by data class (ZDR for real data), a model per role, cost caps, recordings (packages/llm).",
+      "when": "the product calls a model (any AI feature kickoff recorded)",
       "files": [
         "docs/kit/recipes/llm-openrouter/README.md",
         {
@@ -498,6 +539,7 @@
     "authz-oso": {
       "kind": "recipe",
       "description": "@scope/authz over Oso Cloud: a Polar policy, local authorization from Postgres, the matrix test (packages/authz).",
+      "when": "kickoff chose Oso as the authorization engine",
       "conflicts": ["authz-spicedb"],
       "files": [
         "docs/kit/recipes/authz-oso/README.md",
@@ -515,6 +557,7 @@
     "authz-spicedb": {
       "kind": "recipe",
       "description": "@scope/authz over SpiceDB's HTTP API, relationships through an outbox, the matrix test (packages/authz).",
+      "when": "kickoff chose SpiceDB as the authorization engine",
       "conflicts": ["authz-oso"],
       "files": [
         "docs/kit/recipes/authz-spicedb/README.md",
@@ -532,6 +575,7 @@
     "ui": {
       "kind": "recipe",
       "description": "shadcn on Base UI: tokens, the shell with ⌘K and the role switcher, the five screen patterns (apps/web/src/kit).",
+      "when": "the project has screens (with app-tanstack-workers)",
       "files": [
         "docs/kit/recipes/ui/README.md",
         {

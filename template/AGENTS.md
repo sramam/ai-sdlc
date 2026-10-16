@@ -6,11 +6,16 @@ written from `docs/kit/AGENTS.template.md`.
 
 Until then:
 
+- The workflow is `.agents/skills/using-agent-skills/SKILL.md`: `/kickoff`
+  defines the project, `/spec` each change, then `/build auto` runs the rest.
 - Work in a worktree forked from `origin/dev`. Propose a name, and let the user
   change it before creating it. The main checkout is read-only to agents.
-- `docs/requirements/` is written only by `/kickoff`, `/idea` and `/add-requirement`.
+- `docs/requirements/` is written only by `/kickoff` and `/spec`.
 - Commit trailers follow `docs/kit/hooks.md`.
 - Run long scripts in the background, in a sub-agent or a background shell.
-- Optional modules and recipes arrive with `pnpm sdlc add <item>`
+- Optional modules, recipes and skills arrive with `pnpm sdlc add <item>`
   (`pnpm sdlc list` shows them). Everything in this repository is the
   project's to change (`docs/kit/registry.md`).
+- Everything written for an agent to act on meets the five tenets
+  (`docs/kit/principles.md` § 0): clarity, actionability, fidelity, efficiency,
+  security. The checklist is `.agents/skills/context-engineering/context-quality.md`.

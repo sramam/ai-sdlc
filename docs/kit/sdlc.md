@@ -1,27 +1,38 @@
 # The SDLC, end to end
 
+The phases and commands are Addy Osmani's
+[agent-skills](https://github.com/addyosmani/agent-skills) (copied verbatim into
+`.agents/3rdparty/agent-skills/`); what this project puts behind each is in
+the wrapper skills in `.agents/skills/`, and the map is
+`.agents/skills/using-agent-skills/SKILL.md`.
+
 ```
- /kickoff (how) ─▶ /idea (what: conversation → BRD + PRD) ─▶ docs/requirements/
-                               │
-                            /plan ─▶ docs/plan/items/*  (one file per item; status from git)
-                               │
-   any request ─▶ /add-requirement ─▶ item ─▶ /plan next (claim: push the item's branch)
-                                            │
-                     worktree from origin/dev ─▶ build · test ─▶ commit (Progress:, Closes: <item>)
-                                                                         │
-   /plan sync, progress reports ◀── plan:status ◀── dev ◀── /land: ci:local, local-ci status, merge commit
-                                                    │
-                                         promotion: dev ─ff─▶ staging ─ff─▶ main
+ DEFINE   /kickoff (once: people, product, personas + journeys, stack, architecture)
+          /spec    (each change after: docs/requirements/, under the lock)
+            │
+            ▼  a person approves the spec (Approved:)   ← the only human gate
+ PLAN     /plan ─▶ docs/plan/items/*  (platform X- items first, then features by journey; status from git)
+            │
+ BUILD    /build auto: for every ready item ─▶ claim ─▶ worktree from origin/dev
+            │        ─▶ slices: red · green · commit (Progress:, Closes: <item>)
+ VERIFY   /test, /journeys test (recorded evidence per persona journey)
+ REVIEW   hooks on every commit; /review; security-and-hardening + claude-security
+            │
+ SHIP     pnpm land: ci:local, local-ci status, merge commit ─▶ dev
+          /ship: release ─▶ dev ─ff─▶ staging ─▶ journeys to QA ─▶ ─ff─▶ main
+            │
+ CONTINUE handoff ─▶ (next session) pnpm bootstrap lists it ─▶ pickup; /plan sync; progress reports
 ```
 
-## 0. Before any code: orient, vet, plan
+## 0. Before any code: define, approve, plan
 
-| step                                                              | skill                                      | produces                                                                                                                              |
-| ----------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| orient the author: first pass, then the second pass after `/idea` | `/kickoff`                                 | the project brief, the decisions, `docs/architecture.md`, ADRs                                                                        |
-| define the product                                                | `/idea`                                    | from a conversation or existing docs: `brd.md`, `prd.md`, discovered personas and access model, features and journeys with stable IDs |
-| plan                                                              | `/plan`                                    | `docs/plan/`: milestones, items, the critical path                                                                                    |
-| work                                                              | `/plan next` at the start of every session | the next ready item, claimed                                                                                                          |
+| step                              | skill                                       | produces                                                                                                               |
+| --------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| configure the checkout            | `pnpm bootstrap` (runs at session start)    | one line per check; repairs what it can                                                                                |
+| define the project                | `/kickoff`                                  | the project brief, BRD, PRD, personas, journeys, access and domain models, the decisions, `docs/architecture.md`, ADRs |
+| approve the first features' specs | a person                                    | an `Approved:` line on each feature                                                                                    |
+| plan, then build every ready item | `/build auto` (plans if nothing is planned) | `docs/plan/`, then landed items                                                                                        |
+| a new ask, later                  | `/spec`                                     | a triaged change: no spec, a plan item, or edited requirements awaiting approval                                       |
 
 ## 1. Where work comes from
 
@@ -29,15 +40,20 @@
 [plan-and-requirements.md](plan-and-requirements.md) has the layout, the IDs and
 the pattern check.
 
-- **`docs/requirements/` is locked.** Only `/kickoff`, `/idea` and
-  `/add-requirement` may write it, enforced by a hook and a commit trailer.
-- **Every request after discovery goes through `/add-requirement` first.** It
-  triages: a trivial request gets no questions, work an existing requirement
-  covers becomes a plan item, and a new feature gets the full checklist.
-  Anything implying a new technology runs the decision dialog
+- **`docs/requirements/` is locked.** Only `/kickoff` and `/spec` may write it,
+  enforced by a hook and a commit trailer.
+- **Every request after kickoff goes through `/spec` first.** It triages: a
+  trivial request gets no questions, work an existing requirement covers becomes
+  a plan item, and a new feature gets the full checklist. Anything implying a
+  new technology runs the decision dialog
   ([technology-decisions.md](technology-decisions.md)) and the user decides. It
-  answers what it can from the repository, asks only what it cannot, and ends
-  in a plan item.
+  answers what it can from the repository, asks only what it cannot, and stops
+  for a person to approve the spec.
+- **A person approves each spec, once; nothing after that waits for one.** The
+  approval is an `Approved:` line on the feature, and `plan:check` refuses an
+  item built from a feature without it. From there `/build auto` plans, claims,
+  builds, reviews and lands, and stops only on red, ambiguity, or something
+  irreversible.
 - **Every change names its work**: a `Progress:` trailer for its item, or
   `No-Item: <reason>` for the genuinely item-less (a revert, a dependency bump,
   a report). A merge that names nothing appears in no report, so a productive
@@ -97,11 +113,15 @@ fails the build otherwise ([`recipes/api-bindings`](recipes/api-bindings/)).
   what makes the item _done_ once it reaches `origin/dev`.
 - The trailers are `Co-Authored-By:` (model-free), `Worktree:` and `Session:`
   (automatic in a worktree).
-- Agent reviewers run on `git commit` and block only on a concrete defect.
+- A branch that changes source changes a test too, or a commit says why not
+  (`No-Test: <reason>`); the trailer check in `ci:local` refuses it otherwise.
+- Agent reviewers run on `git commit` (the commit review and the code review's
+  project criteria) and block only on a concrete defect.
 
 ## 5. The pull request
 
-- Into `dev`, always, from the item's branch. Use `/land`, which runs `pnpm land`:
+- Into `dev`, always, from the item's branch, through `pnpm land`
+  (`.agents/skills/git-workflow-and-versioning/landing.md`):
   - make sure `origin/dev` is an ancestor (merge it in if not)
   - push
   - run `pnpm ci:local`, which also runs `plan:check` and posts a `local-ci`

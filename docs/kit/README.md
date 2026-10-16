@@ -24,16 +24,18 @@ gets a copy. It is both the registry's specification and its documentation.
 The flow:
 
 1. Create the project: `pnpm dlx github:sramam/ai-sdlc#<tag> init <name>`.
-2. `/kickoff` (how it will be built, first pass).
-3. `/idea` (what: the BRD and PRD from a conversation, or vetting existing
-   documents).
-4. `/kickoff` again, to decide the stack, the technologies, the apps and the
+2. `/kickoff` stage 1, orientation (how it will be built).
+3. `/kickoff` stage 2, the product (what: the BRD and PRD from a conversation,
+   or vetting existing documents).
+4. `/kickoff` stage 3, decisions: the stack, the technologies, the apps and the
    architecture. You decide each new technology through a pros-and-cons dialog.
 5. `/plan`, with foundation items first.
-6. `/plan next` at the start of every session after that.
+6. `/build` at the start of every session after that: it claims the next ready
+   item. Once a person approves a spec, `/build auto` plans and builds every
+   ready item.
 
-Every later request goes through `/add-requirement`, the only way requirements
-change. CI runs locally. The plan lives in the repository, with personas,
+Every later request goes through `/spec`, and a new persona or product area
+through `/kickoff revisit product`; nothing else changes requirements. CI runs locally. The plan lives in the repository, with personas,
 features, requirements, journeys and work items each carrying a stable ID, and
 status is derived from git. There are no GitHub Issues or Projects.
 
@@ -45,7 +47,7 @@ Then keep the directory around. The other files are what the bootstrap points at
 | [principles.md](principles.md)                                        | everyone                             | before writing any guard, check, test or doc                                                                              |
 | [AGENTS.template.md](AGENTS.template.md)                              | the setup agent                      | to write the new repo's root `AGENTS.md` / `CLAUDE.md`                                                                    |
 | [sdlc.md](sdlc.md)                                                    | everyone                             | how work moves from a request to production                                                                               |
-| [ux.md](ux.md)                                                        | everyone building UI                 | the UX questions `/idea` asks, the shadcn defaults, the screen patterns, the traps                                        |
+| [ux.md](ux.md)                                                        | everyone building UI                 | the UX questions `/kickoff` asks, the shadcn defaults, the screen patterns, the traps                                     |
 | [data-model.md](data-model.md)                                        | everyone touching data               | discovering the domain model; designing it for simplicity and efficiency                                                  |
 | [environments.md](environments.md)                                    | the setup agent                      | local, dev, staging, production, and the rules between them                                                               |
 | [ai.md](ai.md)                                                        | everyone                             | AI designed in from discovery: act, assist, see, notice, AI-prompted onboarding, and the architecture that makes it safe  |
@@ -60,7 +62,7 @@ Then keep the directory around. The other files are what the bootstrap points at
 | [observability.md](observability.md)                                  | everyone                             | OpenTelemetry from the first commit: span conventions, privacy, Workers                                                   |
 | [hooks.md](hooks.md)                                                  | the setup agent                      | wiring git hooks and Claude Code hooks                                                                                    |
 | [recipes/](recipes/)                                                  | the setup agent                      | reference packages the foundation items add with `pnpm sdlc add`                                                          |
-| [skills.md](skills.md) and [`.claude/skills/`](../../.claude/skills/) | the setup agent                      | the skills base and the modules ship, and those added later                                                               |
+| [skills.md](skills.md) and [`.agents/skills/`](../../.agents/skills/) | the setup agent                      | the skills base and the modules ship, and those added later                                                               |
 | [what-did-not-work.md](what-did-not-work.md)                          | everyone                             | the expensive mistakes, so they are not repeated                                                                          |
 
 ## The one-paragraph version

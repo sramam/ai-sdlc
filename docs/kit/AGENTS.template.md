@@ -42,15 +42,23 @@ Packages (each has its own `agents.md`):
 
 ## Working here
 
-- **Start every session with `/pickup`, then `/plan next`**, which claims the
-  next ready item by pushing a branch named after its ID.
-- **`docs/requirements/` is read-only** unless `/kickoff`, `/idea` or
-  `/add-requirement` is running. _Enforced by a hook and a `Requirements:` commit
-  trailer._ `docs/requirements/sources/` is never edited.
-- **Every new request goes through `/add-requirement` before work starts.** It
-  triages, answers from the repository first, and ends in plan items citing
-  requirements. **A new technology is never added silently**: the decision
-  dialog runs, and the user decides.
+- **The workflow is `.agents/skills/using-agent-skills/SKILL.md`**: Addy
+  Osmani's phases (spec, plan, build, test, review, ship) with this project's
+  amendments. Skills are invoked by the pipeline, not waited for.
+- **Start every session by picking up the handoffs `pnpm bootstrap` lists**
+  (it runs at session start), then `/build`, which claims the next ready item
+  by pushing a branch named after its ID. `/build auto` works every ready item.
+- **`docs/requirements/` is read-only** unless `/kickoff` or `/spec` is running.
+  _Enforced by a hook and a `Requirements:` commit trailer._
+  `docs/requirements/sources/` is never edited.
+- **Every new request goes through `/spec` before work starts.** It triages,
+  answers from the repository first, and stops for a person to approve the
+  spec (`Approved:`, the one human gate); `plan:check` refuses items from an
+  unapproved feature. **A new technology is never added silently**: the
+  decision dialog runs, and the user decides.
+- **Everything written for an agent meets the five context tenets**: clarity,
+  actionability, fidelity, efficiency, security (`docs/kit/principles.md` § 0;
+  checklist `.agents/skills/context-engineering/context-quality.md`).
 - **Architecture is traceable.** Every app, package and integration in
   `docs/architecture.md` cites a requirement or an ADR. _Pattern check: `plan:check`._
 - **Blocked on a person? Ask once, write a `Q-` file, and keep working.**
@@ -96,10 +104,11 @@ Packages (each has its own `agents.md`):
   status on the exact head SHA.** Do not add workflows without asking.
 - **Merge with a merge commit, never squash.** Squashing destroys trailers and
   `Progress:` granularity.
-- **Use `/land`** (it runs `pnpm land`, the only merge path agents have) to take a committed branch to `dev`. It runs `ci:local` and
+- **Use `pnpm land`** (the only merge path agents have) to take a committed branch to `dev`. It runs `ci:local` and
   refuses to merge without it.
-- **Write a `/handoff` before a session ends. `/pickup` reads it.** Check every
-  claim in it against `git` before acting on it.
+- **Write a handoff before a session ends** (`context-engineering`); the next
+  session picks it up, checking every claim in it against `git` before acting
+  on it.
 
 ## Building
 
@@ -158,7 +167,8 @@ Packages (each has its own `agents.md`):
 | ------------------ | --------------------------------------------------------------------------------------------------- |
 | `pnpm bootstrap`   | is this checkout ready? (prints one line per check)                                                 |
 | `pnpm ci:local`    | the full CI gate, run here; posts the `local-ci` status (fingerprinted, so an unchanged tree skips) |
-| `/plan next`       | what to work on now, and claims it                                                                  |
+| `/build`           | claims the next ready item and builds it; `/build auto` works every ready item                      |
+| `pnpm usage`       | AI cost for every worktree of this repository, from this machine's agent logs                       |
 | `pnpm plan:status` | every item's status, derived from git; open questions and what they block                           |
 | `pnpm plan:check`  | IDs unique and resolvable; nothing orphaned                                                         |
 | `pnpm worktrees`   | live worktrees, who created them, and drift                                                         |

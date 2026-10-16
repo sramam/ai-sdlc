@@ -16,3 +16,11 @@ It is not a project and not a template. `README.md` says what it is;
   `init`, `add`, `diff` and `update` end to end; `pnpm recipes:check` (installs)
   builds every recipe through `add`.
 - Work in a worktree forked from `origin/dev`, as in any project here.
+- Skills live in `.agents/skills/` (Claude Code sees them through symlinks in
+  `.claude/skills/`). Third-party skills are copied verbatim into
+  `.agents/3rdparty/<name>/`, pinned to a commit, and amended only in our
+  wrapper beside them; `pnpm 3rdparty sync <name>` refreshes one and shows
+  what changed upstream. `scripts/registry/third-party.mts` says how.
+- Everything here is context an agent acts on, in this repository and in every
+  project it creates. Hold it to the five tenets (`docs/kit/principles.md`
+  § 0) with `.agents/skills/context-engineering/context-quality.md`.

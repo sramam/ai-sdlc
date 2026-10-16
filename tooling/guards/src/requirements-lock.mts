@@ -3,12 +3,12 @@
  *
  * Requirements are what the code is checked against, so a change to them is a
  * deliberate act with its own branch and PR (docs/kit/hooks.md). The skills
- * that make that act — `kickoff`, `idea`, `add-requirement` — mark the session
+ * that make that act — `kickoff` and `spec` — mark the session
  * by writing `<session_id> <skill>` to `.claude/requirements-session` in the
  * checkout being written. Anything else is refused.
  *
  *     docs/requirements/sources/**   refused, except Write creating a NEW file
- *                                    in a marked session — that is /idea
+ *                                    in a marked session — that is /kickoff
  *                                    importing a document. Edit, and Write over
  *                                    an existing source, are refused always:
  *                                    source material is immutable once there
@@ -30,7 +30,7 @@ import { canonical, checkoutRoot } from "../../core/src/git-command.mts";
 import { denyOutput } from "./worktree-base.mts";
 
 const NAMED_WRITE = new Set(["Edit", "Write", "NotebookEdit", "MultiEdit"]);
-export const SKILLS = ["kickoff", "idea", "add-requirement"] as const;
+export const SKILLS = ["kickoff", "spec"] as const;
 export const SESSION_FILE = ".claude/requirements-session";
 export const DEFAULT_REQUIREMENTS_DIR = "docs/requirements";
 
@@ -101,7 +101,7 @@ export function verdict(input: HookInput, facts: Facts): Verdict {
           "sha256 of a newly imported source."
         : `\`${dir}/sources/\` holds the source material requirements are derived from, ` +
           "and is never edited — by anyone, in any skill. A requirements skill " +
-          "(/kickoff, /idea, /add-requirement) may import a **new** file there with Write" +
+          "(/kickoff or /spec) may import a **new** file there with Write" +
           (importing ? ", and this session is not marked as running one" : "") +
           "; to disagree with a source, record a requirement instead.",
     };
@@ -112,8 +112,8 @@ export function verdict(input: HookInput, facts: Facts): Verdict {
   return {
     decision: "deny",
     reason:
-      `\`${dir}/\` is written only by a requirements skill — /kickoff, /idea or ` +
-      "/add-requirement — which marks this session in " +
+      `\`${dir}/\` is written only by a requirements skill — /kickoff or /spec — which ` +
+      "marks this session in " +
       `\`${SESSION_FILE}\` as \`<session_id> <skill>\`. This session is not marked` +
       (facts.marks.length ? " (the file names other sessions)" : "") +
       ". Run the skill rather than editing requirements directly; a requirements change " +

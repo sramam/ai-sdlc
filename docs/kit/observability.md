@@ -73,7 +73,7 @@ whatever you send it:
 ## What uses it
 
 - Handoffs link a trace for anything left broken.
-- `/idea` and `/add-requirement` ask, for any feature: **what would we need to see to
+- `/kickoff` and `/spec` ask, for any feature: **what would we need to see to
   know it works in production?** That answer becomes a span attribute or a
   metric, written as part of the requirement.
 - Alerting: error rate per capability, queue age, model spend per day, and

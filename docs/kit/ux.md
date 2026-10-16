@@ -5,14 +5,14 @@ effortless**. It is not a design showcase. Use shadcn/ui, apply its conventions
 consistently, get the states right, and take clicks away. Most "beautiful"
 interfaces are consistent ones.
 
-**Discovery** happens in `/idea` (PRD step 6, the design brief) and produces
+**Discovery** happens in `/kickoff` (stage 2, PRD step 6, the design brief) and produces
 `docs/requirements/ux.md`, the project's design brief. **Building** follows the
 playbook below. Where a mockup and the brief disagree, **the brief wins**, and
 the divergence is written down.
 
 ---
 
-## What `/idea` asks (PRD step 6)
+## What kickoff asks (PRD step 6)
 
 Ask these questions, in batches, with recommendations. The answers become `docs/requirements/ux.md`.
 
@@ -200,8 +200,8 @@ can do is also reachable by hand.
 minutes, which is the fastest way to find out what the author actually wants.
 People react to screens far better than to descriptions.
 
-- **When**: in `/idea` once the brief exists, for the effortless tasks and the
-  main screen patterns. Later, in `/add-requirement`, for any new screen that is
+- **When**: in `/kickoff` once the brief exists, for the effortless tasks and the
+  main screen patterns. Later, in `/spec`, for any new screen that is
   not an obvious instance of an existing pattern.
 - **How**: generate the prompt from `ux.md`: the feel, references, personas,
   tasks, patterns, and the **glossary terms and realistic sample data** (never
@@ -236,7 +236,9 @@ direction goes back into the brief.
 - **Journeys record screenshots** of every path, and a person reviews them. The
   steps are compared with their references under learned masks in a one-pass
   test, and a person reviews every re-recording (see [testing.md](testing.md)).
-- **UI review checklist** in `code-reviewer` for any change to a screen:
+- **UI review checklist** in the code review's project criteria (criterion 6,
+  `.agents/skills/code-review-and-quality/project-criteria.md`) for any change
+  to a screen:
   - tokens only
   - all four states present
   - errors sit on their fields

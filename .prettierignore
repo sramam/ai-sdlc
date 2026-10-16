@@ -5,3 +5,4 @@ node_modules
 scripts/one-of
 pnpm-lock.yaml
 docs/requirements/sources
+.agents/3rdparty

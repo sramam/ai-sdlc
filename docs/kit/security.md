@@ -25,8 +25,8 @@ anticipation).
 
 ## Authorization — Oso or SpiceDB, chosen by the access model
 
-`/idea` writes `access-model.md` (tenancy, roles, row scope). The engine is
-chosen from it in `/kickoff`, and recorded in an ADR:
+`/kickoff` writes `access-model.md` (tenancy, roles, row scope) in stage 2. The
+engine is chosen from it in stage 3, and recorded in an ADR:
 
 | choose                                                                                                                   | when the access model looks like                                                                                                                                                                                                         |
 | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -178,7 +178,7 @@ relationship in the database, never from a header, a query or a body.
   not taken on day one (_verify the pnpm setting_).
 - `ci:local` runs a dependency audit, a secret scan (TruffleHog or Gitleaks),
   and a license check.
-- Dependency updates are batched weekly, read, and landed through `/land`.
+- Dependency updates are batched weekly, read, and landed through `pnpm land`.
 
 ## Our own agents and machines
 
@@ -203,18 +203,23 @@ relationship in the database, never from a header, a query or a body.
 
 ## Process
 
-- **`/idea` and `/add-requirement` ask a threat question for every feature**
-  (the full checklist):
+- **`/kickoff` and `/spec` ask a threat question for every feature**
+  (the checklist in `.agents/skills/spec-driven-development/requirements.md`):
   - what asset this touches
   - who would attack it, and how
   - what stops them
 
   The answer becomes a `Security:` line in the requirement, and tests come from it.
 
-- **`code-reviewer` criterion 6** covers authorization, input, output, secrets
-  and telemetry hygiene for every diff.
-- **`/security-review`** runs before every release, and on any change to auth,
-  authorization, money, uploads, webhooks or model routing.
+- **The code review's access-safety criterion** (criterion 3 in
+  `.agents/skills/code-review-and-quality/project-criteria.md`) covers
+  authorization, input, output, secrets and telemetry hygiene for every diff.
+- **The threat-model review**
+  (`.agents/skills/security-and-hardening/threat-model-review.md`, security
+  module) runs before every release, and on any change to auth,
+  authorization, money, uploads, webhooks or model routing. The
+  `claude-security` plugin, declared in `.claude/settings.json` and installed
+  per user, scans beside it.
 - **Before launch**: an external penetration test, a restore drill, a rehearsed
   secret rotation, and a written incident runbook (who is paged, how to revoke
   sessions and keys, how to notify).

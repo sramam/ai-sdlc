@@ -1,0 +1,40 @@
+{
+  "repo": "https://github.com/nateherkai/scroll-craft.git",
+  "ref": "75d81f7",
+  "commit": "75d81f74e83692add18cd7a8a8e078b8a887a579",
+  "license": "MIT",
+  "paths": [
+    "LICENSE",
+    "plugins/nateherk-design/skills/scroll-craft/"
+  ],
+  "wrap": [
+    "plugins/nateherk-design/skills/*/SKILL.md"
+  ],
+  "files": {
+    "LICENSE": "dd471a27eca72488a53e6ea6fbe9392d81aa3f01e950e63fe328affb2ddfa6e3",
+    "plugins/nateherk-design/skills/scroll-craft/CHANGELOG.md": "1be4ff92fc5076895b071f39c067cafe1c5063c40d6890cfd3d20b23b64fc68b",
+    "plugins/nateherk-design/skills/scroll-craft/engine/scrollcraft.css": "e19eb3aa73b0944626ca56e6e427c76f44753481e04d60f4bac20e8cf1d7758a",
+    "plugins/nateherk-design/skills/scroll-craft/engine/scrollcraft.js": "4a419b3ede51f64790af7b56c0195ea01c98a84df8e0e768ebf343956b922f39",
+    "plugins/nateherk-design/skills/scroll-craft/references/approved-collection.md": "8a963a46af4c6ed40656fb5b21589629ee3ce30aa06a8b31c10bc132b74f2780",
+    "plugins/nateherk-design/skills/scroll-craft/references/assets.md": "0cc3871ad903ccaf3bf769cf3a05a54a9326ed558ac3e45e57f19043ce70efa6",
+    "plugins/nateherk-design/skills/scroll-craft/references/device-diag.html": "8ec61db711e3f74ec38a81f418a051a88d9574240f5bbde4716ed9f053775e59",
+    "plugins/nateherk-design/skills/scroll-craft/references/devices.md": "e5ae5a4f2924fc1b13177bf0b0ac10f04e686edd916dc33755ed1420a6a478f5",
+    "plugins/nateherk-design/skills/scroll-craft/references/feel.md": "3951f1f0331f329dab14e8766edeecb6ce8e05437ea8986c48a074726bef41a0",
+    "plugins/nateherk-design/skills/scroll-craft/references/hero-depth.md": "2426fb9703d4398b1e3b666b2db7f4b68e7cd41112da77700a7d63f2965dd726",
+    "plugins/nateherk-design/skills/scroll-craft/references/taste.md": "f33c581024f466ab98612ae291aa46ccbc326875f8fa0918a3f45455a2c60e80",
+    "plugins/nateherk-design/skills/scroll-craft/references/template.html": "4be3e8d772cf063ea5d1e695d6c39443920b2ff0e8491656013bebb87d098096",
+    "plugins/nateherk-design/skills/scroll-craft/references/uniqueness.md": "0fd65a43624da868ca2027946bd4ce152605d6ea856eeae93b35721714c8b20e",
+    "plugins/nateherk-design/skills/scroll-craft/references/verify.md": "de645d648f738f3e19452083eadcc649cb8477058b6ad79ab4fa29198406150a",
+    "plugins/nateherk-design/skills/scroll-craft/references/worldflight.md": "451fead8f90604423b113cd0b0d3bfb6be1f7ca7a7b5ab9e2688ea3da762af4c",
+    "plugins/nateherk-design/skills/scroll-craft/references/worlds.md": "dea3e4cc20c7245f87638a6d88eb2e3fc22a69dabc9f75f001dd97a3121077bd",
+    "plugins/nateherk-design/skills/scroll-craft/scripts/doctor.mjs": "92aade1921c12cce3ebc27e3c0f727d1bfaf1e0678deb7bd930a93248dbb37d9",
+    "plugins/nateherk-design/skills/scroll-craft/scripts/encode.sh": "01eedead388130fdce1052f4ed2e99a7420d4fffcde8621587c840b40a325d79",
+    "plugins/nateherk-design/skills/scroll-craft/scripts/kie.mjs": "6d4a1d4cfb3ed6400cd9a453064b2949d72581f03ba56abe2038be4c78ebc136",
+    "plugins/nateherk-design/skills/scroll-craft/scripts/serve.mjs": "3dff774c47f1ebecb22f6bb2618d1ec13c99f21a92ce53e984ed0ae525c3327e",
+    "plugins/nateherk-design/skills/scroll-craft/scripts/shoot.mjs": "963b1f2f0425783979b41ce0fcd2c668d47376735612816a83ca8142bb225be0",
+    "plugins/nateherk-design/skills/scroll-craft/scripts/workspace.mjs": "98896557c62c12452d2258c26e7984b0f0d69d87938650fa20705ba1b0ba193b",
+    "plugins/nateherk-design/skills/scroll-craft/scripts/worldflight-assert.mjs": "6932652d313a5e72d9d023f74eaa4dd893752ad7db33d010d586a56f929c8449",
+    "plugins/nateherk-design/skills/scroll-craft/SKILL.md": "6e798bb51c3dcbe4f35f098dcdd3cdd20d08e538a33993bcae909c9fd0a500a1",
+    "plugins/nateherk-design/skills/scroll-craft/templates/FINGERPRINTS.md": "8c1597e6b068bfa77086f847cf90b9e2ebeba3ec42f1e6cc522e222e2700da16"
+  }
+}

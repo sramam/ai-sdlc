@@ -93,6 +93,8 @@ function landDeps(rules: Rule[], ci: (o: CiOptions) => CiResult = () => passCi) 
     log: (l) => lines.push(l),
     runCi: async (o) => (ciCalls.push(o), ci(o)),
     tempDir: () => mkdtempSync(join(tmp, "body-")),
+    // Never the real githubstatus.com from a test.
+    githubStatus: async () => ({ state: "operational" }),
   };
   return { d, fake, ciCalls, lines, out: () => lines.join("\n"), body: () => body };
 }
@@ -188,7 +190,7 @@ describe("refusals — each precondition stops before anything is pushed or merg
     expect(o.exit, out()).not.toBe(0);
     expect(out()).toMatch(re);
     expect(merged(fake)).toBe(false);
-    return { o, fake };
+    return { o, fake, out: out() };
   };
 
   it("on the integration branch", async () => {
@@ -269,10 +271,46 @@ describe("refusals — each precondition stops before anything is pushed or merg
   });
 
   it("when the push fails", async () => {
-    await refuses(
+    const { out } = await refuses(
       happy([["git push -u origin HEAD", result(1, "", "rejected (non-fast-forward)")]]),
       /push/,
     );
+    // A rejected push is about the repository, not the network: no diagnosis.
+    expect(out).not.toMatch(/ github /);
+  });
+
+  it("after a network failure, says GitHub is fine and the problem is local, with the fix", async () => {
+    const { o, out } = await refuses(
+      happy([
+        [
+          "git push -u origin HEAD",
+          result(
+            1,
+            "",
+            "error: RPC failed; HTTP 408 curl 22 The requested URL returned error: 408",
+          ),
+        ],
+      ]),
+      /push/,
+    );
+    expect(out).toMatch(/github .*all systems operational.*upload stalled/);
+    expect(o.stoppedAt).toBe("push");
+  });
+
+  it("after a network failure, points at GitHub when it reports a problem", async () => {
+    const { d, out } = landDeps(
+      happy([
+        [
+          /^git fetch/,
+          result(128, "", "fatal: unable to access: Error in the HTTP2 framing layer"),
+        ],
+      ]),
+    );
+    d.githubStatus = async () => ({ state: "degraded", summary: "Git Operations: major outage" });
+    const o = await runLand({ allowUnknown: false }, d);
+    expect(o.exit).toBe(2);
+    expect(o.stoppedAt).toBe("fetch");
+    expect(out()).toMatch(/GitHub reports a problem \(Git Operations: major outage\)/);
   });
 
   it("when ci:local fails, after pushing and before any PR", async () => {

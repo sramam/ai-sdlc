@@ -9,7 +9,7 @@ architecture cites.
 
 ## When a decision is triggered
 
-`/kickoff`, `/idea` and `/add-requirement` each scan the requirements for these
+`/kickoff` and `/spec` each scan the requirements for these
 triggers. A trigger found with no decision behind it is **blocking** for the
 items that depend on it.
 
@@ -81,8 +81,8 @@ answer the follow-up, run the spike, or bring in a second opinion. While the
 decision is open, carry on with work that does not depend on it (principles.md
 §15).
 
-**6. Record it.** During discovery, `/idea` records the trigger and `/kickoff`
-runs this dialog; after discovery, `/add-requirement` runs it. Either way, add
+**6. Record it.** During discovery, `/kickoff` records the trigger in stage 2
+and runs this dialog in stage 3; after discovery, `/spec` runs it. Either way, add
 the trigger, its requirement IDs and the ADR to
 `docs/requirements/technology.md`, and write an ADR with the context (requirement IDs), the options
 compared (the table), the decision and who made it, the rejected options and

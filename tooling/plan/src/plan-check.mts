@@ -69,6 +69,7 @@ import {
   git,
   hasHead,
   isRepo,
+  leafJourneys,
   logTrailers,
   normPersona,
   parseDependencyLines,
@@ -308,7 +309,8 @@ export function checkRequirementJourneys(m: Model): CheckResult {
 
 export function checkJourneySteps(m: Model): CheckResult {
   const problems: string[] = [];
-  for (const j of m.journeys) {
+  // A journey with persona journeys under it may have no tasks of its own.
+  for (const j of leafJourneys(m.journeys)) {
     if (!j.steps.length) problems.push(`${j.id} (${at(j)}) has no steps`);
     for (const s of j.steps)
       if (!s.requirements.length)
@@ -324,18 +326,38 @@ export function checkJourneySteps(m: Model): CheckResult {
 }
 
 export function checkJourneyPersona(m: Model): CheckResult {
-  const problems = m.journeys
+  const leaves = leafJourneys(m.journeys);
+  const problems = leaves
     .filter((j) => j.personas.length !== 1)
     .map(
       (j) =>
-        `${j.id} (${at(j)}) names ${j.personas.length ? j.personas.map((p) => `@${p}`).join(", ") : "no persona"}; a journey names exactly one`,
+        `${j.id} (${at(j)}) names ${j.personas.length ? j.personas.map((p) => `@${p}`).join(", ") : "no persona"}; a persona journey names exactly one (split a shared one into ${j.id}.1, ${j.id}.2…)`,
     );
   return result(
     "requirements",
     "journey-persona",
     problems,
-    `${m.journeys.length} journey(s), one persona each`,
+    `${leaves.length} persona journey(s), one persona each`,
     m.journeys.length ? null : missing("no journeys"),
+  );
+}
+
+/** `J12.1` sits under a `J12` that exists. */
+export function checkJourneyParents(m: Model): CheckResult {
+  const ids = new Set(m.journeys.map((j) => j.id));
+  const nested = m.journeys.filter((j) => j.parent);
+  const problems = nested
+    .filter((j) => !ids.has(j.parent as string))
+    .map((j) => `${j.id} (${at(j)}) is a persona journey of ${j.parent}, which is not defined`);
+  return result(
+    "requirements",
+    "journey-parents",
+    problems,
+    // Optional: a project whose journeys each have one persona passes.
+    nested.length
+      ? `${nested.length} persona journey(s), each under its journey`
+      : "no journey spans personas (optional)",
+    null,
   );
 }
 
@@ -531,7 +553,7 @@ export function checkDiscoveryNotStarted(m: Model): CheckResult {
     stage: "pre-discovery",
     name: "discovery",
     state: "not started",
-    summary: `discovery not started: ${m.dirs.requirements} holds none of ${REQUIRED_DISCOVERY.join(", ")} (run /idea, docs/kit/BOOTSTRAP.md Phase 1)`,
+    summary: `discovery not started: ${m.dirs.requirements} holds none of ${REQUIRED_DISCOVERY.join(", ")} (run /kickoff, docs/kit/BOOTSTRAP.md Phase 1)`,
     details: [],
   };
 }
@@ -641,6 +663,33 @@ export function checkItemsCite(m: Model): CheckResult {
     problems,
     `${live.length} item(s); every feature item cites a requirement`,
     live.length ? null : "no items yet",
+  );
+}
+
+/**
+ * A person approved the spec before anything was planned from it: every live
+ * feature item's features carry `Approved:`. This is the one human gate; the
+ * pipeline (`/build auto`) starts from here.
+ */
+export function checkItemsApproved(m: Model): CheckResult {
+  const featureOf = new Map(m.requirements.map((r) => [r.id, r.feature]));
+  const unapproved = new Map(m.features.filter((f) => !f.approved).map((f) => [f.id, f]));
+  const live = m.items.filter((i) => !i.dropped && !i.id.startsWith("X-"));
+  const problems: string[] = [];
+  for (const i of live) {
+    const features = [...new Set(i.requirements.map((r) => featureOf.get(r)).filter(Boolean))];
+    const pending = features.filter((f) => unapproved.has(f as string));
+    if (pending.length)
+      problems.push(
+        `${i.id} (${i.file}) builds ${pending.join(", ")}, whose spec has no Approved: line (a person approves it; spec-driven-development)`,
+      );
+  }
+  return result(
+    "plan",
+    "items-approved",
+    problems,
+    `${live.length} feature item(s), each from an approved spec`,
+    live.length ? null : "no feature items yet",
   );
 }
 
@@ -891,6 +940,7 @@ export function runPatternCheck(m: Model, stage: Stage, build?: BuildFacts): Che
       checkRequirementJourneys(m),
       checkJourneySteps(m),
       checkJourneyPersona(m),
+      checkJourneyParents(m),
       checkFeaturePersonas(m),
       checkPersonaJourneys(m),
       checkActors(m),
@@ -904,6 +954,7 @@ export function runPatternCheck(m: Model, stage: Stage, build?: BuildFacts): Che
     out.push(
       checkPlanReadiness(m),
       checkItemsCite(m),
+      checkItemsApproved(m),
       checkMvpCoverage(m),
       checkDependsCycle(m),
       checkPendingBlocks(m),

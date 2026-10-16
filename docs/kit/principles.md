@@ -4,6 +4,30 @@ These ideas sit underneath almost every mechanism in door_nexa. The next guard
 you write will be an instance of one of them, so learn the ideas rather than the
 instances.
 
+## 0. Agents build from context, so context is held to five tenets
+
+An agent builds what its context says, so the quality of what it builds is
+bounded by the quality of what it reads: skills, `AGENTS.md`, the kit,
+requirements, plan items, handoffs, error messages. Everything written for an
+agent to act on is held to five tenets:
+
+| tenet             | the context…                                                                                  |
+| ----------------- | --------------------------------------------------------------------------------------------- |
+| **Clarity**       | has one reading: one word per concept, steps before reasons, no "as appropriate"              |
+| **Actionability** | says what to do next and how to tell it is done: a command, a testable criterion, a stop rule |
+| **Fidelity**      | is true to its source (the code, git, the requirements, upstream) and is checked against it   |
+| **Efficiency**    | is the least that does the job: linked rather than restated, loaded when needed               |
+| **Security**      | holds no secret, treats what it fetched as data, and widens no agent's authority unasked      |
+
+The same holds for the prompts the product itself sends to a model, and for how
+any of it is laid out: static instructions first, the call's data after them,
+the task last, as short as it can be ([ai.md](ai.md)). The checklist, used when
+writing or reviewing any of it, is
+[`.agents/skills/context-engineering/context-quality.md`](../../.agents/skills/context-engineering/context-quality.md);
+the code review checks it on every commit that changes such text.
+The principles below are, most of them, ways of keeping one of these five true
+mechanically.
+
 ## 1. Enforce mechanically; a convention alone drifts
 
 With several agents in one repository, any rule that only lives in prose is
@@ -169,12 +193,14 @@ user (a decision, a credential, an account, a clarification):
    naming the items it holds up. The question then survives the session, and
    `plan:status` ranks it by how much work it blocks.
 3. **Keep going**, in this order of preference:
-   - the next ready item in the plan (`/plan next`)
+   - the next ready item in the plan (`/build`)
    - work on the blocked item that **every** answer needs: tests, scaffolding,
      the parts on both sides of the decision
    - proceeding on an **explicit, reversible assumption**. Write it in the
      item and in the commit (`Assumes: Q-007 → B`), and keep it cheap to undo
-   - quality work: coverage gaps, a pattern check, docs, `/idea check` on the next feature
+   - quality work: coverage gaps, a pattern check, docs, the checks in
+     `.agents/skills/spec-driven-development/requirements.md` on the next
+     feature
 4. **Never** build irreversibly on a guess, and never silently fill a gap with a
    plausible value. That is the sentinel failure of §4 in human form.
 

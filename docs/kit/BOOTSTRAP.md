@@ -6,13 +6,13 @@ work in at the same time. **Precondition: the project was created with
 base: this kit, its tooling, skills and hooks, and no product code. Everything
 else arrives with `pnpm sdlc add <item>` when a foundation item needs it.
 
-| phase                              | who                           | item                                     | output                                                                |
-| ---------------------------------- | ----------------------------- | ---------------------------------------- | --------------------------------------------------------------------- |
-| 0. create the project              | a person, then the agent      | none (no item can exist before the repo) | a GitHub repo from `ai-sdlc init`, `dev` as default, settings applied |
-| 1. discovery                       | agent with the author         | `X-000`                                  | requirements, project brief, architecture, decisions                  |
-| 2. configure and prove the tooling | agent (in parallel with 1)    | `X-001`                                  | `sdlc.config.json`, `AGENTS.md`, every guard tripped                  |
-| 3. plan                            | agent, approved by the author | `X-000` (its last PR)                    | `docs/plan/`: foundation items first, then features by journey        |
-| 4. work the plan                   | agents                        | one item each                            | the product                                                           |
+| phase                              | who                        | item                                     | output                                                                |
+| ---------------------------------- | -------------------------- | ---------------------------------------- | --------------------------------------------------------------------- |
+| 0. create the project              | a person, then the agent   | none (no item can exist before the repo) | a GitHub repo from `ai-sdlc init`, `dev` as default, settings applied |
+| 1. discovery                       | agent with the author      | `X-000`                                  | requirements, project brief, architecture, decisions                  |
+| 2. configure and prove the tooling | agent (in parallel with 1) | `X-001`                                  | `sdlc.config.json`, `AGENTS.md`, every guard tripped                  |
+| 3. plan                            | agent, from approved specs | `X-000` (its last PR)                    | `docs/plan/`: foundation items first, then features by journey        |
+| 4. work the plan                   | agents                     | one item each                            | the product                                                           |
 
 `X-000-discovery` and `X-001-configure` ship in base's `docs/plan/items/`,
 because every project has them. So every commit after Phase 0 has an item to
@@ -78,30 +78,31 @@ cd .claude/worktrees/x-000-discovery && pnpm install && pnpm bootstrap
 # then EnterWorktree({ path: ".claude/worktrees/x-000-discovery" })
 ```
 
-Discovery runs in three steps, each skill restartable. **No skill calls another**,
-so the requirements lock always has one holder.
+Discovery is `/kickoff`, one restartable skill in three stages that holds
+the requirements lock throughout.
 
-1. **`/kickoff`, first pass.** It decides what does not depend on the product:
-   people, SDLC defaults, budget, the first accounts and working agreements. The
-   topics that need the product (stack, delivery risks, apps and packages,
-   architecture, technology, AI architecture) are marked _waiting on /idea_.
-2. **`/idea`.** It holds the conversation (or imports and vets existing
+1. **Orientation.** It decides what does not depend on the product: people
+   (including who approves specs), SDLC defaults, budget, the first accounts
+   and working agreements. The topics that need the product (stack, delivery
+   risks, apps and packages, architecture, technology, AI architecture) wait.
+2. **The product.** It holds the conversation (or imports and vets existing
    documents) and writes the requirements: BRD, PRD, personas, access model,
-   domain model, design brief, features, journeys, glossary and review. It
-   **records** what needs deciding (technology triggers, the authorization-engine
+   domain model, design brief, features, journeys (a journey may span personas,
+   with one journey per persona under it), glossary and review. It **records**
+   what needs deciding (technology triggers, the authorization-engine
    recommendation, the backoffice candidates) in `technology.md`, and does not
    decide them. Its verdict can be **ready, pending decisions**.
-3. **`/kickoff`, second pass.** It **decides** the waiting topics: the stack,
-   every recorded technology trigger (through the dialog in
+3. **Decisions.** It **decides** the waiting topics: the stack, every recorded
+   technology trigger (through the dialog in
    [technology-decisions.md](technology-decisions.md); the user decides), the
    apps, packages and package scope, the backoffice split, the AI architecture,
-   and it writes `docs/architecture.md`. Then `/idea status` recomputes the
-   verdict.
+   and it writes `docs/architecture.md`. Then the verdict is recomputed.
 
 Phase 1 is done when the verdict is **ready to plan** or **ready with
 assumptions**, the project brief's **Blocking** list is empty, and
-`pnpm plan:check --stage requirements` passes. Land it with `/land`: one PR, or
-several as sections settle.
+`pnpm plan:check --stage requirements` passes. Land it with `pnpm land`: one
+PR, or several as sections settle. Then **a person approves the first
+features' specs** (an `Approved:` line on each; the one human gate).
 
 ## Phase 2 — Configure and prove the tooling (`X-001`)
 
@@ -142,7 +143,7 @@ It runs **in parallel with Phase 1**, in another session and worktree
 | `worktree-base`     | `git worktree add … main`                                                                                                             |
 | `worktree-single`   | a second worktree in the same session                                                                                                 |
 | `ci:local`          | a dirty tree; a branch without `origin/dev` as ancestor; no `Progress:`/`No-Item:`                                                    |
-| `/land`             | merging without a green `local-ci` status on the head SHA                                                                             |
+| `pnpm land`         | merging without a green `local-ci` status on the head SHA                                                                             |
 | `plan:check`        | a duplicate ID; an item citing a missing requirement                                                                                  |
 
 Guards that need product code (seed refusal, capture transports, `promote`,
@@ -151,8 +152,9 @@ The commit that lands this phase carries `Closes: X-001`.
 
 ## Phase 3 — Plan
 
-Run **`/plan`** in the `X-000` worktree as discovery's last step. **Foundation
-first, as `X-` items**, in this order, each with its own acceptance and trip tests:
+`/plan` (or `/build auto`, which plans when nothing is planned) runs in the
+`X-000` worktree once the first specs are approved. **Foundation first, as `X-`
+items**, in this order, each with its own acceptance and trip tests:
 
 | item                       | does                                                                                                                                                                                                                                                                                                                               |
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -165,17 +167,21 @@ first, as `X-` items**, in this order, each with its own acceptance and trip tes
 | UI foundation              | tokens from the design brief, the shells, the patterns, ⌘K, the component viewer, the UI scan floor                                                                                                                                                                                                                                |
 | test harness               | `createTestDb()`, the database-fake pattern check, the smoke test against the built Worker, `pnpm sdlc add journeys journeys-adapter`, journey ports, capture transports                                                                                                                                                           |
 
-Then **features, ordered by journey**. Show the plan to the author before code
-starts, and land it with `Closes: X-000`. `plan:check --stage plan` must pass.
+Then **features, ordered by journey**: each milestone completes whole journeys,
+for every persona in them. Land it with `Closes: X-000`; `plan:check --stage
+plan` must pass, and refuses an item from a feature whose spec has no
+`Approved:` line. There is no separate plan approval: the spec was the gate.
 
 ## Phase 4 — Work the plan
 
-Every session runs `/pickup`, then `/plan next`. That claims the next ready
-item, proposes a worktree name (the item ID; the user may change the slug),
-creates the worktree and branch, and pushes the claim. Long-running scripts run
-in the background ([multi-agent.md](multi-agent.md)). Build, commit with `Progress:` and `Closes:`,
-then `/land`. Every new ask goes through `/add-requirement`. Reports follow the
-cadence in `sdlc.config.json`, and `/pickup` says when one is due.
+Every session starts with `pnpm bootstrap` (a SessionStart hook runs it) and
+picks up the handoffs it lists. Then `/build auto` works the plan: it claims the
+next ready item (`pnpm claim`), creates its worktree from the claim branch,
+builds it in slices with `Progress:` and `Closes:`, reviews it, lands it with
+`pnpm land`, and moves to the next, until nothing is ready or something needs a
+person. Long-running scripts run in the background
+([multi-agent.md](multi-agent.md)). Every new ask goes through `/spec`. Reports
+follow the cadence in `sdlc.config.json`, and the pickup says when one is due.
 
 ## Defaults kickoff confirms rather than asks
 
@@ -188,7 +194,7 @@ cadence in `sdlc.config.json`, and `/pickup` says when one is due.
 | framework and hosting | TanStack Start on Cloudflare Workers; R2, Queues, Cron Triggers, Workflows; Hyperdrive when Postgres ([tech-stack.md](tech-stack.md)) |
 | environments          | local (per checkout), plus dev, staging and production ([environments.md](environments.md))                                           |
 | auth                  | passwordless OTP or passkeys; MFA for privileged roles                                                                                |
-| authorization         | Oso or SpiceDB, recommended by `/idea`, decided by `/kickoff` ([security.md](security.md))                                            |
+| authorization         | Oso or SpiceDB, recommended and decided in `/kickoff` ([security.md](security.md))                                                    |
 | observability         | OpenTelemetry from the first commit ([observability.md](observability.md))                                                            |
 | security              | highest threat model; ASVS L3 for auth, authorization, money and personal data                                                        |
 | models and GPUs       | OpenRouter with zero-data-retention routing for real data; vast.ai for non-sensitive work only                                        |
@@ -204,5 +210,5 @@ cadence in `sdlc.config.json`, and `/pickup` says when one is due.
 pnpm ci:local` green, one line per check, and posts a `local-ci` status.
 - `pnpm plan:check --stage plan` passes, and `pnpm plan:status` shows every item
   and every open question.
-- A second agent can run `/plan next` and start work, asking nothing but to
-  confirm its worktree name.
+- A second agent can run `/build` and start work on the next ready item,
+  asking nothing.

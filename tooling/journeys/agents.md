@@ -1,4 +1,4 @@
-@ai-sdlc/journeys: journey testing — the recorder, the mask core, the QA verdict, the stack host that runs an app through a `StackAdapter`, and the `journeys` CLIs (learn, test, delta, drift, index, timing, stack). See README.md for the layout and configuration; the procedures are the `/journey-*` skills.
+@ai-sdlc/journeys: journey testing — the recorder, the mask core, the QA verdict, the stack host that runs an app through a `StackAdapter`, and the `journeys` CLIs (learn, test, delta, drift, index, timing, stack). See README.md for the layout and configuration; the procedures are the `journeys` skill (`/journeys add`, `/journeys test`, `/journeys ready-for-qa`).
 
 Preserved failure modes — each is asserted by a test here; do not weaken one to make a build green:
 

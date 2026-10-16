@@ -85,7 +85,7 @@
  *   access-model.md, domain-model.md, ux.md, technology.md, review.md — under
  *   the requirements directory. Any one of them existing means discovery has
  *   started; the starter ships none. `README.md`, `project-brief.md` (kickoff's
- *   first pass) and `sources/` are not discovery outputs.
+ *   stage 1) and `sources/` are not discovery outputs.
  *
  * `Dependencies:` lines — what an ADR accounts for
  *   In docs/adr/*.md and docs/architecture.md, a line (outside fenced code and
@@ -139,7 +139,7 @@ export const RE = {
   requirement: /\bF\d+-R\d+\b/gi,
   item: /\b(?:F\d+-\d+|X-\d+)\b/gi,
   feature: /\bF\d+\b(?!-)/g,
-  journey: /\bJ\d+\b/g,
+  journey: /\bJ\d+(?:\.\d+)?\b/g,
   question: /\bQ-\d+\b/gi,
   adr: /\bADR-\d+\b/gi,
   persona: /(?<![\w@./-])@([a-z][a-z0-9-]*[a-z0-9]|[a-z])(?![\w/@-])/gi,
@@ -267,6 +267,7 @@ export const FIELD_LABELS = [
   "Journeys",
   "Journey",
   "Phase",
+  "Approved",
   "Owner",
   "Status",
   "Blocks",
@@ -445,6 +446,8 @@ export interface Feature extends Loc {
   personas: string[];
   journeys: string[];
   phase: string | null;
+  /** `Approved: YYYY-MM-DD by <name>`: a person approved this spec (the one human gate). */
+  approved: string | null;
 }
 
 export interface Requirement extends Loc {
@@ -468,6 +471,8 @@ export interface Step extends Loc {
 
 export interface Journey extends Loc {
   id: string;
+  /** `J12` for `J12.1`, a persona-level journey; null for a top-level journey. */
+  parent: string | null;
   title: string;
   personas: string[];
   steps: Step[];
@@ -650,6 +655,7 @@ export function parseFeature(
   const personasF = pick("personas") ?? pick("persona");
   const journeysF = pick("journeys") ?? pick("journey");
   const phaseF = pick("phase");
+  const approvedF = fieldIn(preamble, "approved");
   const title = (heads.find((h) => h.level === 1)?.text ?? featureId)
     .replace(/^`?F\d+`?\s*[—–:-]?\s*/i, "")
     .trim();
@@ -659,6 +665,7 @@ export function parseFeature(
     personas: personasF ? extractIds(personasF.value).personas : [],
     journeys: journeysF ? extractIds(journeysF.value).journeys : [],
     phase: phaseF ? cleanName(phaseF.value) || null : null,
+    approved: approvedF?.value.trim() || null,
     file,
     line: 1,
   };
@@ -707,11 +714,24 @@ export function parseJourneys(text: string, file: string): Journey[] {
   const lines = linesForParsing(text);
   const heads = headingsOf(lines);
   const out: Journey[] = [];
+  const journeyId = (h: Heading) =>
+    h.level >= 2 && h.level <= 4
+      ? /^`?(J\d+(?:\.\d+)?)`?(?![\w.])\s*[—–:-]?\s*(.*)$/i.exec(h.text.trim())
+      : null;
   for (const h of heads) {
-    if (h.level < 2 || h.level > 4) continue;
-    const m = /^`?(J\d+)`?\b\s*[—–:-]?\s*(.*)$/i.exec(h.text.trim());
+    const m = journeyId(h);
     if (!m || !m[1]) continue;
-    const body = sectionBody(lines, heads, h);
+    const id = normId(m[1]);
+    // A journey with persona journeys under it owns only its own text: their
+    // tasks and personas are theirs.
+    const full = sectionBody(lines, heads, h);
+    const hasChildren = heads.some(
+      (o) =>
+        o.index > h.index &&
+        o.index <= h.index + full.length &&
+        normId(journeyId(o)?.[1] ?? "").startsWith(`${id}.`),
+    );
+    const body = hasChildren ? ownBody(lines, heads, h) : full;
     const pf = fieldIn(body, "persona", "personas");
     const personas = pf ? extractIds(pf.value).personas : extractIds(h.text).personas;
     const steps: Step[] = [];
@@ -726,7 +746,8 @@ export function parseJourneys(text: string, file: string): Journey[] {
       });
     });
     out.push({
-      id: normId(m[1]),
+      id,
+      parent: id.includes(".") ? (id.split(".")[0] ?? null) : null,
       title: (m[2] ?? "").trim(),
       personas,
       steps,
@@ -734,7 +755,19 @@ export function parseJourneys(text: string, file: string): Journey[] {
       line: h.index + 1,
     });
   }
+  // A journey spanning personas walks with every persona of the journeys under it.
+  for (const j of out) {
+    const children = out.filter((c) => c.parent === j.id);
+    if (children.length)
+      j.personas = [...new Set([...j.personas, ...children.flatMap((c) => c.personas)])];
+  }
   return out;
+}
+
+/** Journeys with no persona journeys under them: the ones a persona walks step by step. */
+export function leafJourneys(journeys: Journey[]): Journey[] {
+  const parents = new Set(journeys.map((j) => j.parent).filter(Boolean));
+  return journeys.filter((j) => !parents.has(j.id));
 }
 
 export function parseDomainModel(text: string, file: string): Entity[] {
@@ -1130,7 +1163,7 @@ export function reached(s: Stage, of: Stage): boolean {
   return STAGES.indexOf(s) >= STAGES.indexOf(of);
 }
 
-/** What discovery (`/idea`) must leave in the requirements directory. */
+/** What discovery (`/kickoff`, stage 2) must leave in the requirements directory. */
 export const REQUIRED_DISCOVERY = [
   "brd.md",
   "prd.md",

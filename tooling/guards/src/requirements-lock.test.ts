@@ -45,7 +45,7 @@ describe("inside the requirements", () => {
   it("refuses an unmarked session, naming the skills", () => {
     const v = write(`${ROOT}/docs/requirements/brd.md`, facts());
     expect(v.decision).toBe("deny");
-    expect(reasonOf(v)).toContain("/add-requirement");
+    expect(reasonOf(v)).toContain("/spec");
     expect(reasonOf(v)).toContain(SESSION_FILE);
   });
 
@@ -64,13 +64,18 @@ describe("inside the requirements", () => {
     expect(nb.decision).toBe("deny");
   });
 
-  it("allows a session marked with one of the three skills", () => {
-    for (const skill of ["kickoff", "idea", "add-requirement"]) {
+  it("allows a session marked with either skill", () => {
+    for (const skill of ["kickoff", "spec"]) {
       expect(write("docs/requirements/a.md", facts([`s1 ${skill}`]))).toEqual({
         decision: "allow",
         note: `requirements session: ${skill}`,
       });
     }
+  });
+
+  it("refuses a mark with a retired skill name", () => {
+    for (const skill of ["idea", "add-requirement"])
+      expect(write("docs/requirements/a.md", facts([`s1 ${skill}`])).decision, skill).toBe("deny");
   });
 
   it("refuses another session's mark, and says the file names others", () => {
@@ -92,14 +97,14 @@ describe("inside the requirements", () => {
     const v = write("docs/requirements/sources/brd.pdf", facts(["s1 kickoff"]));
     expect(v.decision).toBe("deny");
     expect(reasonOf(v)).toContain("sources/");
-    const existing = { ...facts(["s1 idea"]), exists: true };
+    const existing = { ...facts(["s1 kickoff"]), exists: true };
     expect(write("docs/requirements/sources/brd.pdf", existing).decision).toBe("deny");
-    const fresh = { ...facts(["s1 idea"]), exists: false };
+    const fresh = { ...facts(["s1 kickoff"]), exists: false };
     expect(write("docs/requirements/sources/brd.pdf", fresh, "s1", "Edit").decision).toBe("deny");
   });
 
   it("lets a marked session import a NEW source with Write, and names the manifest step", () => {
-    const fresh = { ...facts(["s1 idea"]), exists: false };
+    const fresh = { ...facts(["s1 kickoff"]), exists: false };
     const v = write("docs/requirements/sources/notes.md", fresh);
     expect(v).toMatchObject({ decision: "allow", note: expect.stringContaining("--add") });
     // Unmarked, or another session's mark: still refused.
@@ -108,13 +113,13 @@ describe("inside the requirements", () => {
     ).toBe("deny");
     expect(
       reasonOf(
-        write("docs/requirements/sources/notes.md", { ...facts(["s2 idea"]), exists: false }),
+        write("docs/requirements/sources/notes.md", { ...facts(["s2 kickoff"]), exists: false }),
       ),
     ).toContain("not marked");
   });
 
   it("never lets a tool write MANIFEST, which only --add appends", () => {
-    const fresh = { ...facts(["s1 idea"]), exists: false };
+    const fresh = { ...facts(["s1 kickoff"]), exists: false };
     const v = write("docs/requirements/sources/MANIFEST", fresh);
     expect(v.decision).toBe("deny");
     expect(reasonOf(v)).toContain("sources-manifest.mts --add");

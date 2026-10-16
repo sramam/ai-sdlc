@@ -64,7 +64,7 @@ export function assertTitle(registry: Registry, id: string, title: string): Regi
   const known = findJourney(registry, id);
   if (!known) {
     throw new Error(
-      `JOURNEY-020: ${id} is not in the journey registry — add it with /journey-add first ` +
+      `JOURNEY-020: ${id} is not in the journey registry — add it with /journeys add first ` +
         `(registry in journeys.config.mts)`,
     );
   }

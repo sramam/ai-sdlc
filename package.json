@@ -1,6 +1,6 @@
 {
   "name": "ai-sdlc",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "The ai-sdlc registry: the kit, its tooling and recipes, and the CLI that copies them into a project. No product code.",
   "type": "module",
@@ -28,6 +28,7 @@
     "seed": "node tooling/seed/src/seed.mts",
     "accounts:check": "node tooling/setup/src/accounts-check.mts",
     "bootstrap": "node tooling/setup/src/bootstrap.mts",
+    "usage": "node tooling/core/src/usage.mts",
     "sdlc:init": "node tooling/setup/src/sdlc-init.mts",
     "land": "node tooling/ci/src/land.mts",
     "claim": "node tooling/plan/src/claim.mts",
@@ -50,7 +51,8 @@
     "recipes:check": "node scripts/recipes-check.mts",
     "sdlc": "node scripts/registry/cli.mjs",
     "registry:check": "node scripts/registry/e2e.mts",
-    "registry:patterns": "node scripts/registry/pattern-check.mts"
+    "registry:patterns": "node scripts/registry/pattern-check.mts",
+    "3rdparty": "node scripts/registry/third-party.mts"
   },
   "lint-staged": {
     "*.{ts,mts,tsx,js,mjs}": [
