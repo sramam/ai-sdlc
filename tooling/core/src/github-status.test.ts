@@ -51,7 +51,7 @@ describe("diagnoseGitFailure", () => {
       /all systems operational.*http\.version HTTP\/1\.1/,
     );
     expect(await diagnoseGitFailure(PUSH_408, status({ state: "operational" }))).toMatch(
-      /http\.postBuffer/,
+      /upload stalled.*push over SSH/,
     );
   });
 

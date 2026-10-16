@@ -293,7 +293,7 @@ describe("refusals — each precondition stops before anything is pushed or merg
       ]),
       /push/,
     );
-    expect(out).toMatch(/github .*all systems operational.*http\.postBuffer/);
+    expect(out).toMatch(/github .*all systems operational.*upload stalled/);
     expect(o.stoppedAt).toBe("push");
   });
 

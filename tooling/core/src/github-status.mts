@@ -64,7 +64,7 @@ export function localHint(stderr: string): string {
   if (/HTTP2|HTTP\/2|framing layer/i.test(stderr))
     return "HTTP/2 is failing on this connection: `git config http.version HTTP/1.1`, or a different network";
   if (/RPC failed|returned error: 408|early EOF|hung up/i.test(stderr))
-    return "the upload was cut off: `git config http.postBuffer 524288000` and retry, or push over SSH";
+    return "the upload stalled and the server gave up (it is not about size: git sends anything under 1 MB in one request): retry, push over SSH, or try another network";
   if (/SSL/i.test(stderr))
     return "the TLS connection was dropped: check a VPN, proxy or filter in the way, or retry on another network";
   if (/Could not resolve host/i.test(stderr))
