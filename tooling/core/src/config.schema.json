@@ -148,6 +148,15 @@
               "history": {
                 "type": "boolean",
                 "description": "Reads a commit range: runs even on a cache hit."
+              },
+              "unknownExitCodes": {
+                "type": "array",
+                "description": "Exit codes meaning the step could not run, not that it failed.",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 255
+                }
               }
             },
             "required": ["name", "run", "applies"],
@@ -212,7 +221,19 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["core", "guards", "plan", "ci", "setup", "journeys", "localdb", "seed"]
+            "enum": [
+              "core",
+              "guards",
+              "plan",
+              "ci",
+              "setup",
+              "journeys",
+              "localdb",
+              "seed",
+              "coverage",
+              "promote",
+              "security"
+            ]
           }
         }
       },
@@ -279,6 +300,64 @@
         "required": ["app", "run"],
         "additionalProperties": false
       }
+    },
+    "environments": {
+      "type": "object",
+      "description": "Deployed environments by name, promoted with `pnpm promote <name>` (tooling/promote).",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "branch": {
+            "type": "string",
+            "description": "The branch this environment deploys: branches.staging or branches.production.",
+            "minLength": 1
+          },
+          "deploy": {
+            "type": "string",
+            "description": "Shell command, run in a clean checkout of the promoted SHA.",
+            "minLength": 1
+          },
+          "migrate": {
+            "type": "string",
+            "description": "Shell command migrating this environment over its direct connection; runs before deploy.",
+            "minLength": 1
+          },
+          "smokeUrl": {
+            "type": "string",
+            "description": "GET after the push; a status below 400 passes.",
+            "minLength": 1
+          },
+          "smoke": {
+            "type": "string",
+            "description": "Shell command run after the push; exit 0 passes.",
+            "minLength": 1
+          },
+          "rollback": {
+            "type": "string",
+            "description": "Shell command for `pnpm rollback <env>`. The schema stays forward.",
+            "minLength": 1
+          },
+          "requiresApproval": {
+            "type": "boolean",
+            "description": "Promote prints the plan and requires --yes."
+          }
+        },
+        "required": ["branch", "deploy"],
+        "additionalProperties": false
+      }
+    },
+    "release": {
+      "type": "object",
+      "description": "Version tags (`pnpm release`). Absent: tagPrefix \"v\".",
+      "properties": {
+        "tagPrefix": {
+          "type": "string",
+          "description": "Prefix of version tags, e.g. \"v\" for v1.2.3.",
+          "pattern": "^[A-Za-z0-9._/-]*$"
+        }
+      },
+      "required": ["tagPrefix"],
+      "additionalProperties": false
     }
   },
   "required": ["branches", "dirs", "claimStaleDays", "cadence", "accounts", "ci", "coverage"],

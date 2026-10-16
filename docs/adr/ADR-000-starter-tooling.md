@@ -30,7 +30,7 @@ from the project, for journeys that capture a PDF: rendered in the browser page
 by page so a document is gated like a screenshot, and never installed by a
 project that captures none.
 
-Dependencies: @eslint/js, @types/node, eslint, globals, husky, lint-staged, prettier, typescript, typescript-eslint, vitest, pixelmatch, pngjs, @types/pngjs, @playwright/test, pdfjs-dist, @electric-sql/pglite, @electric-sql/pglite-socket
+Dependencies: @eslint/js, @types/node, eslint, globals, husky, lint-staged, prettier, typescript, typescript-eslint, vitest, pixelmatch, pngjs, @types/pngjs, @playwright/test, pdfjs-dist, @electric-sql/pglite, @electric-sql/pglite-socket, @vitest/coverage-v8
 
 ## Consequences
 

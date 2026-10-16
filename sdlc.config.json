@@ -1,6 +1,10 @@
 {
   "configVersion": 1,
-  "branches": { "integration": "dev", "staging": "staging", "production": "main" },
+  "branches": {
+    "integration": "dev",
+    "staging": "staging",
+    "production": "main"
+  },
   "dirs": {
     "requirements": "docs/requirements",
     "plan": "docs/plan",
@@ -9,32 +13,87 @@
     "handoffs": "docs/handoffs"
   },
   "claimStaleDays": 7,
-  "cadence": { "progressReportWeekdays": [1, 4], "planSyncDays": 7 },
+  "cadence": {
+    "progressReportWeekdays": [1, 4],
+    "planSyncDays": 7
+  },
   "accounts": [
-    { "name": "GitHub", "cli": "gh", "check": ["auth", "status", "--active"] },
-    { "name": "Cloudflare", "cli": "wrangler", "check": ["whoami"] }
+    {
+      "name": "GitHub",
+      "cli": "gh",
+      "check": ["auth", "status", "--active"]
+    },
+    {
+      "name": "Cloudflare",
+      "cli": "wrangler",
+      "check": ["whoami"]
+    }
   ],
   "ci": {
     "steps": [
-      { "name": "plan:check", "run": "node tooling/plan/src/plan-check.mts", "applies": "always" },
+      {
+        "name": "plan:check",
+        "run": "node tooling/plan/src/plan-check.mts",
+        "applies": "always",
+        "unknownExitCodes": [2]
+      },
       {
         "name": "sources",
         "run": "node tooling/guards/src/sources-manifest.mts --check",
-        "applies": "always"
+        "applies": "always",
+        "unknownExitCodes": [2]
       },
       {
         "name": "trailers",
         "run": "node tooling/guards/src/trailers.mts --range",
         "applies": "always",
-        "history": true
+        "history": true,
+        "unknownExitCodes": [2]
       },
-      { "name": "lint", "run": "pnpm run lint", "applies": "always" },
-      { "name": "typecheck", "run": "pnpm run typecheck", "applies": "always" },
-      { "name": "unit", "run": "pnpm run test", "applies": "always" },
-      { "name": "format", "run": "pnpm run format:check", "applies": "always" },
-      { "name": "audit", "run": "pnpm audit --prod --audit-level high", "applies": "has-packages" }
+      {
+        "name": "lint",
+        "run": "pnpm run lint",
+        "applies": "always"
+      },
+      {
+        "name": "typecheck",
+        "run": "pnpm run typecheck",
+        "applies": "always"
+      },
+      {
+        "name": "unit",
+        "run": "pnpm run test",
+        "applies": "always"
+      },
+      {
+        "name": "format",
+        "run": "pnpm run format:check",
+        "applies": "always"
+      },
+      {
+        "name": "secrets",
+        "run": "node tooling/security/src/scan.mts --only secrets",
+        "applies": "always",
+        "unknownExitCodes": [2]
+      },
+      {
+        "name": "supply-chain",
+        "run": "node tooling/security/src/scan.mts --only deps,licenses,install-scripts,release-age",
+        "applies": "always",
+        "unknownExitCodes": [2]
+      },
+      {
+        "name": "coverage",
+        "run": "node tooling/coverage/src/coverage.mts",
+        "applies": "has-source",
+        "unknownExitCodes": [2]
+      }
     ]
   },
-  "coverage": { "floors": {} },
-  "modules": { "replaced": [] }
+  "coverage": {
+    "floors": {}
+  },
+  "modules": {
+    "replaced": []
+  }
 }

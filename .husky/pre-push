@@ -14,6 +14,16 @@ while read -r local_ref local_sha remote_ref remote_sha; do
       continue
       ;;
   esac
+  # A promotion pushes an exact SHA (pnpm promote:*), so git hands this hook the
+  # raw SHA as the local ref. Allow it only when that SHA is already on the
+  # branch it promotes from, so nothing unreviewed can be published this way.
+  case "$target" in staging) from=dev ;; main) from=staging ;; *) from= ;; esac
+  if [ -n "$from" ] && [ "$local_ref" = "$local_sha" ] &&
+    git merge-base --is-ancestor "$local_sha" "refs/remotes/origin/$from" 2>/dev/null; then
+    echo "pre-push: promoting origin/$from ($local_sha) → $target"
+    continue
+  fi
+
   echo "pre-push: refusing to push $target directly. Land work with /land (a PR into dev)."
   echo "  Promotion is exempt: pnpm promote:staging, pnpm promote:prod."
   exit 1

@@ -139,9 +139,24 @@
           "journeys:delta",
           "journeys:drift",
           "journeys:index",
-          "journeys:timing"
+          "journeys:timing",
+          "coverage",
+          "coverage:report",
+          "promote:staging",
+          "promote:prod",
+          "rollback",
+          "release",
+          "security:scan",
+          "security:scan:staged"
         ],
-        "devDependencies": ["@types/node", "husky", "lint-staged", "typescript", "vitest"]
+        "devDependencies": [
+          "@types/node",
+          "husky",
+          "lint-staged",
+          "typescript",
+          "vitest",
+          "@vitest/coverage-v8"
+        ]
       }
     },
     {
@@ -155,6 +170,30 @@
     {
       "path": "pnpm-workspace.yaml",
       "kind": "merge-lines"
+    },
+    {
+      "path": "tooling/coverage/",
+      "kind": "replace"
+    },
+    {
+      "path": "tooling/promote/",
+      "kind": "replace"
+    },
+    {
+      "path": "tooling/security/",
+      "kind": "replace"
+    },
+    {
+      "path": ".claude/skills/coverage-report/",
+      "kind": "replace"
+    },
+    {
+      "path": ".claude/skills/release/",
+      "kind": "replace"
+    },
+    {
+      "path": ".claude/skills/security-review/",
+      "kind": "replace"
     }
   ]
 }

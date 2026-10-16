@@ -58,6 +58,17 @@ describe("validation", () => {
       c.modules = { replaced: ["journeys"] };
       c.localdb = { databases: [{ name: "app", migrate: "m", env: ["E"] }] };
       c.seeds = [{ app: "web", run: "s", database: "app", sizes: ["dev"] }];
+      c.environments = {
+        staging: {
+          branch: "staging",
+          deploy: "d",
+          migrate: "m",
+          smokeUrl: "https://s",
+          smoke: "s",
+        },
+        production: { branch: "main", deploy: "d", rollback: "r", requiresApproval: true },
+      };
+      c.release = { tagPrefix: "" };
     });
     expect(problems(full)).toEqual([]);
   });
@@ -112,6 +123,17 @@ describe("validation", () => {
     expect(
       problems(edited((c) => (c.seeds = [{ app: "web", run: "s", database: "nope" }]))),
     ).toEqual(['seeds[0].database: "nope" is not a localdb.databases name']);
+  });
+
+  it("an environment deploys the staging or production branch, never the integration branch", () => {
+    expect(
+      problems(edited((c) => (c.environments = { preview: { branch: "dev", deploy: "d" } }))),
+    ).toEqual([
+      'environments.preview.branch: "dev" is neither branches.staging ("staging") nor branches.production ("main")',
+    ]);
+    expect(problems(edited((c) => (c.environments = { staging: { branch: "staging" } })))).toEqual([
+      "environments.staging.deploy: required",
+    ]);
   });
 
   it("parseConfig throws a ConfigError naming every problem, and the source", () => {
@@ -338,6 +360,25 @@ describe("config.schema.json", () => {
     ["a replaced module", edited((c) => (c.modules = { replaced: ["seed"] }))],
     ["an unknown replaced module", edited((c) => (c.modules = { replaced: ["nope"] }))],
     ["configVersion 0", edited((c) => (c.configVersion = 0))],
+    [
+      "an environment",
+      edited((c) => (c.environments = { staging: { branch: "staging", deploy: "d" } })),
+    ],
+    [
+      "an environment with a typo",
+      edited(
+        (c) => (c.environments = { staging: { branch: "staging", deploy: "d", smokeURL: "u" } }),
+      ),
+    ],
+    [
+      "a string requiresApproval",
+      edited(
+        (c) => (c.environments = { p: { branch: "main", deploy: "d", requiresApproval: "yes" } }),
+      ),
+    ],
+    ["a tag prefix", edited((c) => (c.release = { tagPrefix: "v" }))],
+    ["a tag prefix with a space", edited((c) => (c.release = { tagPrefix: "v " }))],
+    ["a release without a prefix", edited((c) => (c.release = {}))],
   ];
 
   it.each(examples)("agrees with the validator on %s", (_name, value) => {

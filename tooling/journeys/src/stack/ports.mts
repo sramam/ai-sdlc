@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { createServer } from "node:net";
 import { dirname, resolve } from "node:path";
 
 /**
@@ -242,40 +241,9 @@ export function resolveJourneyPorts(
  * a readiness probe passed against another agent's server. Over-stepping
  * costs a port number; under-stepping costs an afternoon.
  */
-const PROBE_HOSTS: (string | undefined)[] = ["127.0.0.1", "::1", undefined];
-
-/** One bind, on one address. */
-function bindable(port: number, host: string | undefined): Promise<boolean> {
-  return new Promise((resolve) => {
-    const probe = createServer();
-    probe.unref();
-    probe.once("error", () => resolve(false));
-    probe.listen(
-      host === undefined ? { port, exclusive: true } : { port, host, exclusive: true },
-      () => probe.close(() => resolve(true)),
-    );
-  });
-}
-
-/**
- * Can this process bind `port` right now?
- *
- * **Node's own answer, not `lsof`'s.** `createServer().listen()` either
- * succeeds or fails with `EADDRINUSE`, which is the exact question a server is
- * about to ask — and it needs no external tool, so it holds on a tester's
- * laptop where `lsof` may not. `listenerPids` above stays for the other half,
- * *who* holds it, which a bind cannot say.
- *
- * `::1` is absent on a host with no IPv6 at all, where the bind fails with
- * `EADDRNOTAVAIL` rather than `EADDRINUSE` and this reports the port held.
- * Accepted: it costs a step on a machine that has none, and the alternative is
- * reading an error code to decide whether a failure counts, which is the third
- * answer this repository keeps refusing to guess at.
- */
-export async function portIsFree(port: number): Promise<boolean> {
-  for (const host of PROBE_HOSTS) if (!(await bindable(port, host))) return false;
-  return true;
-}
+// One answer for the whole repo: tooling/core/src/ports.mts.
+import { portIsFree } from "../../../core/src/ports.mts";
+export { portIsFree };
 
 /** `theirs` names the checkout; the rest say what can be said. */
 export function describeHolder(holder: PortHolder): string {

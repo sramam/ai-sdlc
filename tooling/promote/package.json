@@ -1,0 +1,11 @@
+{
+  "name": "@ai-sdlc/promote",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "promote, rollback and release: fast-forward promotion from a green local-ci, the configured rollback, and version tags.",
+  "dependencies": {
+    "@ai-sdlc/ci": "workspace:*",
+    "@ai-sdlc/core": "workspace:*"
+  }
+}

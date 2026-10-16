@@ -44,6 +44,12 @@ export interface CiStep {
    * tree says nothing about it: it runs on every invocation (tooling/ci).
    */
   history?: boolean;
+  /**
+   * Exit codes that mean the step *could not run* (a missing tool, a network
+   * failure) rather than failed. Opt-in per step, because many tools use 2 for a
+   * real error; the starter's own tools use 2 for could-not-run.
+   */
+  unknownExitCodes?: number[];
 }
 
 /** `ci:local --container`: run install and every step inside this image. */
@@ -75,6 +81,9 @@ export const STARTER_MODULES = [
   "journeys",
   "localdb",
   "seed",
+  "coverage",
+  "promote",
+  "security",
 ];
 
 /** Skills the starter ships, upstream-owned like the modules. */
@@ -92,6 +101,9 @@ export const STARTER_SKILLS = [
   "journey-add",
   "journey-test",
   "journey-ready-for-qa",
+  "coverage-report",
+  "release",
+  "security-review",
 ];
 
 /**
@@ -140,6 +152,28 @@ export interface SeedApp {
   sizes?: string[];
 }
 
+/**
+ * A deployed environment that `pnpm promote <name>` moves forward
+ * (tooling/promote). Its `branch` is the staging or production branch; it is
+ * promoted from the branch before it in `integration → staging → production`.
+ */
+export interface EnvironmentConfig {
+  /** The git branch this environment deploys: `branches.staging` or `branches.production`. */
+  branch: string;
+  /** Shell command that deploys, run in a clean checkout of the promoted SHA. */
+  deploy: string;
+  /** Shell command that migrates this environment's database over its direct connection. Runs before deploy. */
+  migrate?: string;
+  /** GET after the push; any status below 400 passes. */
+  smokeUrl?: string;
+  /** Shell command run after the push, in the checkout; exit 0 passes. */
+  smoke?: string;
+  /** Shell command `pnpm rollback <name>` runs. The schema stays forward. */
+  rollback?: string;
+  /** Promote prints the plan and requires `--yes`. */
+  requiresApproval?: boolean;
+}
+
 export interface SdlcConfig {
   /**
    * Which config format this file is written in. Default 1. The starter's
@@ -168,6 +202,10 @@ export interface SdlcConfig {
   localdb?: { databases: LocaldbDatabase[] };
   /** Applications with deterministic mock data (`pnpm seed`). Absent: none. */
   seeds?: SeedApp[];
+  /** Deployed environments, by name (`pnpm promote <name>`). Absent: nothing to promote. */
+  environments?: Record<string, EnvironmentConfig>;
+  /** Version tags (`pnpm release`). Absent: tagPrefix "v". */
+  release?: { tagPrefix: string };
 }
 
 /** Kept for tests that build a config in code; the file itself is JSON. */
@@ -233,6 +271,10 @@ export const SHAPE: Shape = obj({
           applies: req({ t: "enum", values: APPLIES }),
           env: opt(strList, "Environment variables the step may see."),
           history: opt({ t: "boolean" }, "Reads a commit range: runs even on a cache hit."),
+          unknownExitCodes: opt(
+            { t: "array", items: { t: "integer", min: 1, max: 255 } },
+            "Exit codes meaning the step could not run, not that it failed.",
+          ),
         }),
       }),
       container: opt(
@@ -280,6 +322,36 @@ export const SHAPE: Shape = obj({
       sizes: opt(strList),
     }),
   }),
+  environments: opt(
+    {
+      t: "record",
+      values: obj({
+        branch: req(
+          str,
+          "The branch this environment deploys: branches.staging or branches.production.",
+        ),
+        deploy: req(str, "Shell command, run in a clean checkout of the promoted SHA."),
+        migrate: opt(
+          str,
+          "Shell command migrating this environment over its direct connection; runs before deploy.",
+        ),
+        smokeUrl: opt(str, "GET after the push; a status below 400 passes."),
+        smoke: opt(str, "Shell command run after the push; exit 0 passes."),
+        rollback: opt(str, "Shell command for `pnpm rollback <env>`. The schema stays forward."),
+        requiresApproval: opt({ t: "boolean" }, "Promote prints the plan and requires --yes."),
+      }),
+    },
+    "Deployed environments by name, promoted with `pnpm promote <name>` (tooling/promote).",
+  ),
+  release: opt(
+    obj({
+      tagPrefix: req(
+        { t: "string", pattern: "^[A-Za-z0-9._/-]*$" },
+        'Prefix of version tags, e.g. "v" for v1.2.3.',
+      ),
+    }),
+    'Version tags (`pnpm release`). Absent: tagPrefix "v".',
+  ),
 });
 
 export class ConfigError extends Error {
@@ -307,6 +379,13 @@ export function validateConfig(
       ? [`seeds[${i}].database: "${s.database}" is not a localdb.databases name`]
       : [],
   );
+  // Cross-field: an environment deploys a branch that has a branch before it.
+  const promotable = [config.branches.staging, config.branches.production];
+  for (const [name, env] of Object.entries(config.environments ?? {}))
+    if (!promotable.includes(env.branch))
+      cross.push(
+        `environments.${name}.branch: "${env.branch}" is neither branches.staging ("${config.branches.staging}") nor branches.production ("${config.branches.production}")`,
+      );
   return cross.length ? { ok: false, problems: cross } : { ok: true, config };
 }
 

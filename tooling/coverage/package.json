@@ -1,0 +1,11 @@
+{
+  "name": "@ai-sdlc/coverage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "coverage: one gate over the merged unit + integration run, floors from sdlc.config.json, and the published figure written by the gate's own run.",
+  "dependencies": {
+    "@ai-sdlc/core": "workspace:*",
+    "@vitest/coverage-v8": "^4.1.11"
+  }
+}

@@ -271,6 +271,16 @@ describe("a full run", () => {
     expect(field(statusCall(fake), "state")).toBe("error");
   });
 
+  it("an exit code the step declares in unknownExitCodes is could-not-run; others fail", async () => {
+    const declared = steps.map((s) => (s.name === "lint" ? { ...s, unknownExitCodes: [2] } : s));
+    const a = deps([[/^sh -c pnpm run lint/, result(2)], ...gitRules()], config(declared));
+    const o = await runCiLocal(opts({ noStatus: true }), a.d);
+    expect(o.steps.find((s) => s.name === "lint")?.state).toBe("could-not-run");
+    const b = deps([[/^sh -c pnpm run lint/, result(2)], ...gitRules()], config(steps));
+    const p = await runCiLocal(opts({ noStatus: true }), b.d);
+    expect(p.steps.find((s) => s.name === "lint")?.state).toBe("fail");
+  });
+
   it("treats a timeout as could-not-run", async () => {
     const timedOut: ExecResult = {
       code: null,

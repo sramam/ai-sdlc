@@ -947,6 +947,22 @@ async function runStep(
       output,
     );
   }
+  if (
+    r.code !== null &&
+    r.code !== undefined &&
+    r.code !== 0 &&
+    (step.unknownExitCodes ?? []).includes(r.code)
+  ) {
+    return record(
+      {
+        name: step.name,
+        state: "could-not-run",
+        detail: `exit ${r.code}: the step says it could not run`,
+        ms,
+      },
+      output,
+    );
+  }
   if (r.notFound || r.code === 127) {
     return record(
       {

@@ -1,0 +1,10 @@
+{
+  "name": "@ai-sdlc/security",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "security:scan — secrets, dependency audit, licenses, install-script census and release age, one line per check.",
+  "dependencies": {
+    "@ai-sdlc/core": "workspace:*"
+  }
+}

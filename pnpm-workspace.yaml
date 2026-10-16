@@ -7,3 +7,7 @@ packages:
 
 # Install scripts are denied unless listed here (docs/kit/security.md § Supply chain).
 onlyBuiltDependencies: []
+
+# New package versions are not installed until they are a day old
+# (docs/kit/security.md § Supply chain).
+minimumReleaseAge: 1440

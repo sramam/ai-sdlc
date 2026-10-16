@@ -1,0 +1,16 @@
+# @ai-sdlc/coverage
+
+**`coverage [--report] [--only <path>] [--unit-only] [--force]`** runs vitest with `@vitest/coverage-v8`, merges the suites, and applies the floors in `sdlc.config.json`.
+
+- **One gate over a merged run.** The unit suite always runs. When the project has `vitest.integration.config.*` at its root, that suite runs too, and the two istanbul outputs are merged by source location (v8 numbers branches per run, so merging by key adds unrelated branches). A module exercised only through a real client otherwise reads as barely tested.
+- **Floors are declared once.** `coverage.floors` maps a path prefix (relative to the root, `.` for everything) to `{ lines, branches }`. Every floor is checked before exit. A prefix matching no covered file fails: a typo must not read as 100%. With no floors declared the gate prints `n/a` and judges nothing.
+- **A run that cannot see every suite reports and does not judge.** `--unit-only` (the integration suite cannot run here) prints the figures and exits 0; its coverage of integration-only code is unknown, not zero, so it refuses to overwrite a merged report unless `--force`. `--only <path>` runs a subset, lists that path's files weakest first, and may not be combined with `--report`.
+- **The published figure is the gate's own run.** `--report` rewrites `docs/quality/coverage.md` between `<!-- coverage:start -->` and `<!-- coverage:end -->`, keeping anything outside the markers. It is written before the gate (a red run still shows where coverage went) and stamped with the fingerprint only after a pass. The reading of it (what moved, what it would let through) belongs in `docs/quality/README.md`, written by `/coverage-report`.
+- **An unchanged tree skips.** A green full run writes `.ci-local/coverage-<fingerprint>`: a content hash of every source file outside dot directories, `node_modules`, `dist`, `build`, the root `coverage/` and `docs/`, plus `pnpm-lock.yaml`, `sdlc.config.json`, `package.json`, this module, and which suites ran. A red run stamps nothing, so it is never skipped past. `--force` runs anyway.
+- **Provider resolution.** vitest loads the provider from the project root. If the root has no `@vitest/coverage-v8`, the CLI passes this package's copy as a custom provider module and says so; adding it to the root `devDependencies` removes the note.
+
+Exit 0 pass (or reported, not judged), 1 fail (a suite failed or a floor was missed), 2 could not run (vitest or the provider unavailable, no coverage written, bad arguments, or a unit-only report refused over a merged one).
+
+**`floor-prose.test-helper.mts`** exports `floorProseCensus(root, { floors, declared })`: every markdown file under `docs/` except `docs/quality/coverage.md` is scanned, and a percentage, a figure pair (`92 / 88`) or a bare declared floor value within 80 characters of _floor_ or _coverage_ is an offence. A historical quote (past tense about a floor that no longer exists) may be declared with a reason; a declaration whose text has left its file fails. A project test calls it and asserts no offences, as `floor-prose.test.ts` does for this repository.
+
+Upstream-owned: changed in the ai-sdlc starter, pulled with `pnpm sdlc:update`. A project that needs different behaviour replaces the module and lists it in `sdlc.config.json` `modules.replaced` (docs/kit/starter-repo.md).

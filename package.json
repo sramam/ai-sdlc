@@ -36,7 +36,15 @@
     "journeys:delta": "node tooling/journeys/src/cli/delta.mts",
     "journeys:drift": "node tooling/journeys/src/cli/drift.mts",
     "journeys:index": "node tooling/journeys/src/cli/index.mts",
-    "journeys:timing": "node tooling/journeys/src/cli/timing.mts"
+    "journeys:timing": "node tooling/journeys/src/cli/timing.mts",
+    "coverage": "node tooling/coverage/src/coverage.mts",
+    "coverage:report": "node tooling/coverage/src/coverage.mts --report",
+    "promote:staging": "node tooling/promote/src/promote.mts staging",
+    "promote:prod": "node tooling/promote/src/promote.mts production",
+    "rollback": "node tooling/promote/src/rollback.mts",
+    "release": "node tooling/promote/src/release.mts",
+    "security:scan": "node tooling/security/src/scan.mts",
+    "security:scan:staged": "node tooling/security/src/scan.mts --staged"
   },
   "lint-staged": {
     "*.{ts,mts,tsx,js,mjs}": [
@@ -57,6 +65,7 @@
     "prettier": "^3.6.0",
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.46.0",
-    "vitest": "^3.2.0"
+    "vitest": "^4.1.11",
+    "@vitest/coverage-v8": "^4.1.11"
   }
 }
