@@ -69,6 +69,37 @@ whatever you send it:
 - Local and tests: a console or in-memory exporter. Tests assert spans: the
   capability name, the outcome, and that no unregistered attribute appears.
 
+## Backends
+
+Instrumentation never knows the backend: the same spans, logs and attributes
+go to an endpoint chosen by configuration per environment, so changing the
+backend is a configuration change and nothing else.
+
+- **Local: VictoriaLogs**, run by Docker Compose with persistent storage,
+  receiving OTLP from every local service, with its built-in UI as the
+  debugging view. The telemetry foundation item adds the compose file and the
+  exporter configuration; once a project has proven that setup, it belongs in
+  the registry as a recipe ([memory.md](memory.md) § _Across projects_).
+  Whether `wrangler dev`'s native export can be pointed at a local endpoint is
+  unverified as of 2026-10-16; its own local span store (above) answers until
+  it is.
+- **Production: decided per project** in `/kickoff` topic 3, as any OTLP
+  endpoint. The starting default is Grafana Cloud's free tier, with Cloudflare's
+  native export pointed at it and other services through their OTel exporters.
+  Its limits as read on 2026-10-16: 50 GB of logs a month and 14 days of
+  retention; check them at setup and write them in the project brief. A free
+  tier's retention is shorter than most audit needs, so anything that must
+  outlive it (accepted eval cases, decisions, audit events) lives in the
+  database or R2, never only in telemetry.
+- **Dashboards for operators** read the production backend through a token
+  scoped to reads, held server-side, inside the backoffice shell and its
+  authentication; never an anonymous dashboard or a browser-held backend
+  credential.
+- **What stays out of telemetry**: large documents, prompts and model outputs
+  go to R2, and the span carries an immutable reference. Debug-level noise is
+  off in production, and the backend's ingestion usage is on a dashboard so a
+  cap is seen before it is hit.
+
 ## What uses it
 
 - Handoffs link a trace for anything left broken.
