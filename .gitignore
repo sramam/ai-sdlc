@@ -25,4 +25,7 @@ docs/handoffs/*
 scripts/one-of/*
 !scripts/one-of/README.md
 
+# agent-review's reviewer files can quote private sources; the register stays local
+reviews/
+
 .DS_Store

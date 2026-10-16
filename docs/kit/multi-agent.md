@@ -131,6 +131,11 @@ Two rules keep this safe:
   finishes.
 - **A sub-agent that writes gets its own worktree** (`isolation: "worktree"`).
   Sub-agents that only run scripts and report may share the session's tree.
+- **A delegation is a Level 1 contract** (`agent-review`): the brief names
+  the artifact (the files, the report), a size floor, and the check the lead
+  will run itself; the sub-agent's last line is `ARTIFACT-VERIFIED <sha256>`
+  or `ARTIFACT-MISSING: <reason>`. "Done" on its own is never an answer, and
+  the lead runs the check before using the result.
 
 ## Named agents
 
@@ -157,9 +162,10 @@ ownership, not agent count: two agents on one file overwrite each other.
 - **Write the set-wide rules once**, verbatim in every prompt: what to cut,
   what to keep, which side wins where they differ. Consistency then does not
   depend on how many editors there are.
-- **Editors report; the lead verifies and commits.** Format, lint, the tests,
-  the tree-wide greps and the checks run once over the whole tree, and one
-  commit carries the sweep.
+- **Editors report; the lead verifies and commits.** Each editor's brief is a
+  Level 1 contract (`agent-review`): its files are the artifact, the
+  tree-wide command is the check. Format, lint, the tests, the greps and the
+  checks run once over the whole tree, and one commit carries the sweep.
 
 ## Before starting the second agent
 

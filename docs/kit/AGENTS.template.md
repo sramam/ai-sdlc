@@ -183,4 +183,7 @@ then.
 
 A check has three answers (yes, no, _could not ask_), so handle the third on
 purpose. Prefer checks that print on success. A CLI renders and does not report;
-use `gh api` for compared values. A confident statement is not a check.
+use `gh api` for compared values. A confident statement is not a check: before
+stating a claim as a conclusion, classify it as measured, verified against
+source, inferred or assumed; test the consequential gaps, or label them as
+hypotheses (`agent-review` has the full procedure when the stakes require it).

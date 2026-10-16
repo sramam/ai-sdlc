@@ -11,7 +11,7 @@ product code; a project decides its apps and packages during kickoff.
 You need Node 24+, pnpm 10, git, the `gh` CLI and, for Cloudflare, `wrangler`.
 
 ```bash
-pnpm dlx github:sramam/ai-sdlc#v0.2.0 init my-app   # base files, pnpm install, the first commit
+pnpm dlx github:sramam/ai-sdlc#v0.2.1 init my-app   # base files, pnpm install, the first commit
 cd my-app
 gh auth login && wrangler login
 gh repo create <owner>/my-app --private --source . --push

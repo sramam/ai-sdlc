@@ -1,6 +1,6 @@
 {
   "name": "ai-sdlc",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "The ai-sdlc registry: the kit, its tooling and recipes, and the CLI that copies them into a project. No product code.",
   "type": "module",
