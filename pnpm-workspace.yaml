@@ -1,0 +1,9 @@
+packages:
+  # The SDLC tooling: one package per module, upstream-owned (docs/kit/starter-repo.md).
+  - "tooling/*"
+  # The product, decided in /kickoff (topic 9).
+  - "apps/*"
+  - "packages/*"
+
+# Install scripts are denied unless listed here (docs/kit/security.md § Supply chain).
+onlyBuiltDependencies: []

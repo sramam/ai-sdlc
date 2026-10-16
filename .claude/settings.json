@@ -1,0 +1,98 @@
+{
+  "attribution": { "commit": "Co-Authored-By: Claude <noreply@anthropic.com>" },
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(gh:*)",
+      "Bash(pnpm *)",
+      "Read(**/.env.example)",
+      "Edit(**/.env.example)",
+      "Read(**/.dev.vars.example)",
+      "Edit(**/.dev.vars.example)"
+    ],
+    "ask": ["Bash(git rm:*)"],
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.local)",
+      "Read(**/.env.*.local)",
+      "Edit(**/.env)",
+      "Edit(**/.env.local)",
+      "Read(**/.dev.vars)",
+      "Edit(**/.dev.vars)",
+      "Read(~/.wrangler/**)",
+      "Read(~/.config/gh/**)",
+      "Read(~/.ssh/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node tooling/guards/src/requirements-lock.mts",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|EnterWorktree",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node tooling/guards/src/worktree-base.mts",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "node tooling/guards/src/worktree-single.mts",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit|MultiEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node tooling/guards/src/worktree-required.mts",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "agent",
+            "if": "Bash(git commit *)",
+            "timeout": 120,
+            "statusMessage": "Reviewing commit...",
+            "prompt": "A `git commit` is about to run. Review ONLY the staged changes (`git diff --cached`, `git diff --cached --stat`) per .claude/skills/commit-reviewer/SKILL.md. FAIL OPEN: if nothing is staged, approve with '✓ Commit-reviewer: nothing staged'; if you cannot read the diff, approve with '✓ Commit-reviewer: could not ask (<reason>)'. Block ONLY by ending with the exact line `BLOCK: <defect in one sentence>`, and only for a committed secret, a message that misstates the diff, or a file swept in from another line of work. Never judge which model wrote the commit. When approving, output one verdict line and nothing else."
+          },
+          {
+            "type": "agent",
+            "if": "Bash(git commit *)",
+            "timeout": 120,
+            "statusMessage": "Reviewing code...",
+            "prompt": "A `git commit` is about to run. Review ONLY the staged diff (`git diff --cached`) per .claude/skills/code-reviewer/SKILL.md; a criterion that cannot apply is n/a. FAIL OPEN: nothing staged or an unreadable diff is an approval with a one-line reason. Block ONLY by ending with the exact line `BLOCK: <defect in one sentence>`, and only for a concrete correctness or security defect on a specific line. When approving, output one verdict line and nothing else."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|EnterWorktree|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node tooling/guards/src/worktree-trace.mts",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  },
+  "worktree": { "baseRef": "head" }
+}

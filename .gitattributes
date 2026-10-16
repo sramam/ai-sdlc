@@ -1,0 +1,5 @@
+# Journey evidence is versioned with the code but kept out of git history
+# (docs/kit/testing.md § Storing it).
+docs/journeys/**/*.png filter=lfs diff=lfs merge=lfs -text
+docs/journeys/**/*.mask.json filter=lfs diff=lfs merge=lfs -text
+docs/journeys/**/*.pdf filter=lfs diff=lfs merge=lfs -text

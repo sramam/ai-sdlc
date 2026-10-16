@@ -1,0 +1,7 @@
+node_modules
+coverage
+.ci-local
+.claude/worktrees
+scripts/one-of
+pnpm-lock.yaml
+docs/requirements/sources

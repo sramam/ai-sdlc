@@ -1,0 +1,10 @@
+{
+  "name": "@ai-sdlc/plan",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The plan in the repo: parsing docs/requirements and docs/plan, plan:check (staged census), plan:status (derived from git), item-check.",
+  "dependencies": {
+    "@ai-sdlc/core": "workspace:*"
+  }
+}

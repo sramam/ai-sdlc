@@ -1,0 +1,11 @@
+{
+  "name": "@ai-sdlc/ci",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ci:local — the CI gate run on a snapshot of a commit, posting a local-ci commit status.",
+  "dependencies": {
+    "@ai-sdlc/core": "workspace:*",
+    "@ai-sdlc/plan": "workspace:*"
+  }
+}

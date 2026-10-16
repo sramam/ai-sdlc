@@ -1,0 +1,20 @@
+# Refuse a direct push to an integration branch. Work reaches dev by pull
+# request (/land); staging and main move only by the named promotions.
+# A reminder at the moment of the mistake, not a permission system.
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/dev | refs/heads/staging | refs/heads/main) ;;
+    *) continue ;;
+  esac
+  target=${remote_ref#refs/heads/}
+  source=${local_ref#refs/heads/}
+  case "$source:$target" in
+    dev:staging | staging:main)
+      echo "pre-push: promoting $source → $target"
+      continue
+      ;;
+  esac
+  echo "pre-push: refusing to push $target directly. Land work with /land (a PR into dev)."
+  echo "  Promotion is exempt: pnpm promote:staging, pnpm promote:prod."
+  exit 1
+done

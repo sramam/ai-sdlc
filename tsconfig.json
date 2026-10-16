@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": false,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": [
+    "tooling/**/*.mts",
+    "tooling/**/*.ts",
+    "scripts/**/*.mts",
+    "scripts/**/*.ts",
+    "sdlc.config.ts"
+  ],
+  "exclude": ["node_modules", "scripts/one-of/**", ".claude/worktrees/**"]
+}

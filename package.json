@@ -1,0 +1,50 @@
+{
+  "name": "ai-sdlc",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Starter for agent-driven projects: SDLC tooling, skills, hooks and docs. No product code.",
+  "type": "module",
+  "packageManager": "pnpm@10.28.2",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "ci:local": "node tooling/ci/src/ci-local.mts",
+    "plan:check": "node tooling/plan/src/plan-check.mts",
+    "plan:status": "node tooling/plan/src/plan-status.mts",
+    "item-check": "node tooling/plan/src/item-check.mts",
+    "worktrees": "node tooling/guards/src/worktrees.mts",
+    "accounts:check": "node tooling/setup/src/accounts-check.mts",
+    "bootstrap": "node tooling/setup/src/bootstrap.mts",
+    "sdlc:init": "node tooling/setup/src/sdlc-init.mts",
+    "sdlc:update": "node tooling/setup/src/sdlc-update.mts"
+  },
+  "lint-staged": {
+    "*.{ts,mts,tsx,js,mjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{md,json,yaml,yml}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@types/node": "^24.0.0",
+    "eslint": "^9.39.0",
+    "globals": "^16.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.0.0",
+    "prettier": "^3.6.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.46.0",
+    "vitest": "^3.2.0"
+  }
+}

@@ -1,0 +1,2 @@
+# Provenance: which worktree and session made this commit (docs/kit/multi-agent.md).
+node tooling/guards/src/provenance.mts "$1"

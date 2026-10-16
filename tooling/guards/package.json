@@ -1,0 +1,11 @@
+{
+  "name": "@ai-sdlc/guards",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Claude Code and git hooks: worktree guards, the requirements lock, provenance trailers, and the commit-message trailer checks.",
+  "dependencies": {
+    "@ai-sdlc/core": "workspace:*",
+    "@ai-sdlc/plan": "workspace:*"
+  }
+}
