@@ -1,6 +1,6 @@
 # Recipe: `authz-oso`
 
-`@scope/authz` over **Oso Cloud**: `authorize(caller, action, resource)` and
+`@scope/authz` over Oso Cloud: `authorize(caller, action, resource)` and
 `listFilter(caller, action, resourceType)`, a Polar policy with its own tests, a
 matrix test generated from the access model, and the Oso Dev Server for local
 runs. Choose it over `authz-spicedb` when the access model is roles within
@@ -19,7 +19,7 @@ tenants plus attribute rules ([security.md](../../security.md) § _Authorization
 
 ## Local authorization, so there are no dual writes
 
-Oso can evaluate facts that live in **our** Postgres: the app sends the policy
+Oso can evaluate facts that live in our Postgres: the app sends the policy
 query and `data-bindings.yaml`, Oso returns SQL, the app runs it. Nothing is
 written to Oso, so the "no dual writes" rule ([security.md](../../security.md))
 is met by construction: a role is a `membership` row, a creator is a `project`
@@ -32,13 +32,13 @@ the outbox that `authz-spicedb` shows.
 | `POST /api/list_query` (local)      | `{ sql }`: a `WHERE` fragment over the column we name         | `listFilter` |
 | `POST /api/authorize`, `/api/list`  | `{ allowed }`, `{ results }` (centralized facts)              | both         |
 
-The `sql` filter is applied **in the query** by the `api` recipe's
+The `sql` filter is applied in the query by the `api` recipe's
 `whereAllowed`; never fetch everything and filter in memory.
 
 **What `authorize` answers and what it does not.** The policy decides per the
 resource's own organization, so a person who is admin in `b` and member in `a`
-gets `b`'s rights on `b`'s rows. The **active** relationship's tenant is the
-scoped client's job (the `api` recipe). Both checks, always.
+gets `b`'s rights on `b`'s rows. The active relationship's tenant is the
+scoped client's job (the `api` recipe).
 
 ## Run the tests
 
@@ -47,15 +47,15 @@ docker run --rm -p 8080:8080 public.ecr.aws/osohq/dev-server:latest   # or podma
 OSO_URL=http://127.0.0.1:8080 pnpm test:ci   # 0 pass, 1 fail, 2 could not run
 ```
 
-Each suite creates its own **test environment** on the Dev Server
+Each suite creates its own test environment on the Dev Server
 (`POST /test_environment?copy=false`, which returns a token), loads
 `policy.polar` into it, and loads the example world into a PGlite database.
 
-**Could not run is never a pass.** Without a Dev Server the matrix **fails** with a
+**Could not run is never a pass.** Without a Dev Server the matrix fails with a
 test titled `AUTHZ-COULD-NOT-RUN: …` (so plain `pnpm test` exits 1), and the
 engine-free cases (catalogue, default deny, an unreachable engine is
 `UNAVAILABLE`) still run. `pnpm test:ci` (`test-ci.mts`) runs the same suite and
-exits **2** when those sentinels are the only failures, 1 on any other failure
+exits 2 when those sentinels are the only failures, 1 on any other failure
 (including a file that fails to load), 0 when everything passed. The project's
 ci step declares 2 as _could not run_:
 
@@ -76,7 +76,7 @@ Verified 2026-10-16: `public.ecr.aws/osohq/dev-server:latest` (created
 2026-08-05, digest `sha256:62885278…3ace`) under podman 5.5.2; 65 tests pass, in
 both fact modes. Re-run 2026-10-16 through `pnpm recipes:check` with the could-not-run
 gate: 65 pass with the Dev Server up; with it down, 1 sentinel fails, 3
-engine-free cases pass, and `test:ci` exits 2. **Proved by tripping**: letting `member` delete fails the three
+engine-free cases pass, and `test:ci` exits 2. Proved by tripping: letting `member` delete fails the three
 matrix cells for member × `project.delete` in each mode, and a Polar `test`
 asserting the wrong thing makes the policy load fail with `400 TestsFailed`.
 
@@ -111,11 +111,11 @@ resource_type, context_facts }, column, data_bindings }`
 ## Why not the SDK
 
 `oso-cloud` 2.6.0 (npm) is CommonJS and requires `fs`, `http`, `https` and
-`dns/promises`; it reads `dataBindings` from a **file path**, which a Worker
+`dns/promises`; it reads `dataBindings` from a file path, which a Worker
 does not have. So `oso.ts` speaks the documented HTTP API with `fetch`, sending
 the bindings as a string, which runs on workerd and in Node alike. The request
 shapes were taken from the SDK's own source (`dist/src/api.js`) and checked
-against the Dev Server. Calling Oso Cloud from a deployed Worker was **not**
+against the Dev Server. Calling Oso Cloud from a deployed Worker was not
 tested (no account).
 
 ## Rules

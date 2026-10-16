@@ -1,8 +1,8 @@
 # Recipe: `api-bindings`
 
 The port's three default bindings, rendered from the manifest
-([`api/`](../api/)): an **HTTP API** with its **OpenAPI** document, an **MCP
-server**, and a typed **SDK**. Plus caller resolution for each, and the pattern
+([`api/`](../api/)): an HTTP API with its OpenAPI document, an MCP
+server, and a typed SDK. Plus caller resolution for each, and the pattern
 check that keeps all three complete.
 
 **The rule:** every capability in the manifest is reachable through all three,
@@ -79,14 +79,14 @@ two `@better-auth/core`s and the plugin types stopped matching.
 Nothing accepts a tenant or a role from a request; a credential proves who is
 calling, and the relationship comes from the database.
 
-| binding           | credential                                     | how it becomes a `Caller`                                                                                          |
-| ----------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| HTTP from the app | session cookie, **only from the app's origin** | `getSession`, then the session's active relationship                                                               |
-| HTTP, SDK         | `Authorization: Bearer <API key>`              | `verifyApiKey`; the key's `metadata.relationshipId`, set server-side at creation, re-checked live                  |
-| MCP               | OAuth 2.1 access token, audience = `/mcp`      | `@better-auth/mcp` verifies signature, issuer, audience, expiry; `sub` + `relationship_id` claim → re-checked live |
+| binding           | credential                                 | how it becomes a `Caller`                                                                                          |
+| ----------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| HTTP from the app | session cookie, only from the app's origin | `getSession`, then the session's active relationship                                                               |
+| HTTP, SDK         | `Authorization: Bearer <API key>`          | `verifyApiKey`; the key's `metadata.relationshipId`, set server-side at creation, re-checked live                  |
+| MCP               | OAuth 2.1 access token, audience = `/mcp`  | `@better-auth/mcp` verifies signature, issuer, audience, expiry; `sub` + `relationship_id` claim → re-checked live |
 
 A bearer header is used alone: a bad key never falls back to a cookie. Each
-credential has a **ceiling** (`api:read`, `api:write`): a read-only key held
+credential has a ceiling (`api:read`, `api:write`): a read-only key held
 by an admin still cannot write, checked before the port is reached. An MCP
 token minted for `/mcp` is refused by the HTTP API and the reverse, because
 each verifies its own audience. A key store that cannot be asked is 503, never 401.
@@ -140,7 +140,7 @@ pnpm openapi:write                 # after a manifest change; the test fails unt
 ```
 
 Verified 2026-10-16 by `pnpm recipes:check --only api,api-bindings` (Node
-24.18.0): typecheck clean, all pass. **Proved by tripping**: dropping
+24.18.0): typecheck clean, all pass. Proved by tripping: dropping
 `project.rename` from the MCP tool list fails the pattern check with
 "missing from mcp, and no exclusion says why"; dropping `field` from MCP
 refusals fails the MCP contract run; the empty placeholder `openapi.json`

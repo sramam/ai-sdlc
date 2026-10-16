@@ -30,10 +30,10 @@ code review's access-safety criterion is the check.
 Anthropic's `claude-security` plugin scans a codebase or a diff and confirms
 each finding through independent verifiers before reporting it. Its license
 allows each user to install and run it, not to copy it into a repository, so
-the project **declares** it (`.claude/settings.json`) and `pnpm bootstrap`
+the project declares it (`.claude/settings.json`) and `pnpm bootstrap`
 says when it is not installed.
 
-- **During review** of a change in the scope above: run its _scan changes_
+- During review of a change in the scope above: run its _scan changes_
   job on the branch. A confirmed finding is a blocker, like a threat-model
   `fail`.
 - **Before `/ship`**: run its _scan codebase_ job. Its report goes beside the
@@ -41,6 +41,6 @@ says when it is not installed.
 - **Not installed** (or the harness lacks what it needs): say _could not run_
   in the report. It is never silently a pass.
 
-Whichever ran, the rule from the threat-model review stands: **never approve
-your own fixes**. A fix made in this session is re-checked by a fresh review
+Whichever ran, the rule from the threat-model review stands: never approve
+your own fixes. A fix made in this session is re-checked by a fresh review
 or scan.

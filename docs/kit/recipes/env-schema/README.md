@@ -1,6 +1,6 @@
 # Recipe: `env-schema`
 
-One Zod schema for a Worker's **variables and bindings**, parsed once per
+One Zod schema for a Worker's variables and bindings, parsed once per
 isolate, failing with `ENV-001` and the name of everything wrong.
 
 - `src/env.ts`: `envSchema`, `parseEnv(raw)`, `APP_ENVS`. Runtime-free: the app's

@@ -1,18 +1,18 @@
 # Skills
 
-A skill holds the **procedure and the remembering**, not the judgement. The
+A skill holds the procedure and the remembering, not the judgement. The
 workflow's skills are Addy Osmani's
 [agent-skills](https://github.com/addyosmani/agent-skills), which encode how a
 senior engineer specifies, plans, builds, tests, reviews and ships. This
 project's own knowledge (personas and journeys, the plan in the repository,
-worktrees, `pnpm land`, the threat model) is added to them as **amendments**,
+worktrees, `pnpm land`, the threat model) is added to them as amendments,
 each kept only because it changes what an agent does here.
 
 ## Where they live
 
 | path                             | what                                                                                                                          |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `.agents/3rdparty/<source>/`     | third-party skills, **verbatim**, at the commit in `SOURCE.json`. Never edited here; agents never load them directly          |
+| `.agents/3rdparty/<source>/`     | third-party skills, verbatim, at the commit in `SOURCE.json`. Never edited here; agents never load them directly              |
 | `.agents/skills/<name>/SKILL.md` | what agents load: a wrapper per upstream skill or command (its description, a link to it, the amendments), and our own skills |
 | `.agents/skills/<name>/*.md`     | procedures an amendment points to (`landing.md`, `handoff.md`, `requirements.md`, …)                                          |
 | `.claude/skills/<name>`          | symlinks to `.agents/skills/<name>`, so Claude Code sees them; created by the CLI and `pnpm bootstrap`                        |
@@ -25,15 +25,15 @@ The checks on the copies and the sync are in [registry.md](registry.md)
 
 People type two commands, `/kickoff` and `/spec`; the pipeline invokes the rest.
 
-| phase    | command                                            | skills it applies (amendments in their wrappers)                                                                                                                                                                                               |
-| -------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DEFINE   | **`/kickoff`** (ours), then `/spec` per change     | `kickoff` (people, product, personas and journeys, stack, architecture; restartable), `interview-me`, `idea-refine`, `spec-driven-development`, `source-driven-development`                                                                    |
-| PLAN     | `/plan`                                            | `planning-and-task-breakdown`: `docs/plan/items/`, platform `X-` items first, features by journey, status from git                                                                                                                             |
-| BUILD    | `/build`, `/build auto`                            | `incremental-implementation`, `test-driven-development`, `api-and-interface-design`, `frontend-ui-engineering`, `doubt-driven-development`, `context-engineering`                                                                              |
-| VERIFY   | `/test`                                            | `test-driven-development` (a real database, never a fake), `browser-testing-with-devtools`, `debugging-and-error-recovery`, `journeys` (module)                                                                                                |
-| REVIEW   | `/review`, `/code-simplify`; hooks on every commit | `code-review-and-quality` (+ seven project criteria), `code-simplification`, `security-and-hardening` (+ threat-model review, claude-security), `performance-optimization`                                                                     |
-| SHIP     | `pnpm land` per item; `/ship` per release          | `git-workflow-and-versioning` (claim, worktree, trailers, `pnpm land`, `pnpm release`), `ci-cd-and-automation` (`ci:local`), `shipping-and-launch`, `deprecation-and-migration`, `observability-and-instrumentation`, `documentation-and-adrs` |
-| CONTINUE | `pnpm bootstrap` (**ours**, at session start)      | `context-engineering` (handoff, pickup, the context checklist), `progress-report` (ours, with AI cost from `pnpm usage`)                                                                                                                       |
+| phase    | command                                            | skills it applies (amendments in their wrappers)                                                                                                                                                                                                                              |
+| -------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DEFINE   | **`/kickoff`** (ours), then `/spec` per change     | `kickoff` (people, product, personas and journeys, stack, architecture; restartable), `interview-me`, `idea-refine`, `spec-driven-development`, `source-driven-development`                                                                                                   |
+| PLAN     | `/plan`                                            | `planning-and-task-breakdown`: `docs/plan/items/`, platform `X-` items first, features by journey, status from git                                                                                                                                                            |
+| BUILD    | `/build`, `/build auto`                            | `incremental-implementation`, `test-driven-development`, `api-and-interface-design`, `frontend-ui-engineering`, `doubt-driven-development`, `context-engineering`                                                                                                             |
+| VERIFY   | `/test`                                            | `test-driven-development` (a real database, never a fake), `browser-testing-with-devtools`, `debugging-and-error-recovery`, `journeys` (module)                                                                                                                               |
+| REVIEW   | `/review`, `/code-simplify`; hooks on every commit | `code-review-and-quality` (+ seven project criteria), `code-simplification`, `security-and-hardening` (+ threat-model review, claude-security), `performance-optimization`, `humanizer` (prose; the mechanical tells are caught earlier by the prose pattern check, hooks.md) |
+| SHIP     | `pnpm land` per item; `/ship` per release          | `git-workflow-and-versioning` (claim, worktree, trailers, `pnpm land`, `pnpm release`), `ci-cd-and-automation` (`ci:local`), `shipping-and-launch`, `deprecation-and-migration`, `observability-and-instrumentation`, `documentation-and-adrs`                                |
+| CONTINUE | `pnpm bootstrap` (ours, at session start)          | `context-engineering` (handoff, pickup, the context checklist), `progress-report` (ours, with AI cost from `pnpm usage`)                                                                                                                                                      |
 
 `/constraints` and `/webperf` are upstream's too. The router is
 `using-agent-skills`; its wrapper maps each phase to this project. `/review`
@@ -43,7 +43,6 @@ replaces Claude Code's built-in command of that name inside a project.
 
 | item                    | source                  | add it when                                                                                                      |
 | ----------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `humanizer`             | blader/humanizer        | the project writes prose people read: README, docs, release notes, PR text, copy                                 |
 | `stripe-best-practices` | stripe/ai               | the project takes payments, subscriptions or tax through Stripe                                                  |
 | `scroll-craft`          | nateherkai/scroll-craft | a marketing or landing page has to stand out (needs Playwright and ffmpeg; paid image generation through kie.ai) |
 
@@ -77,10 +76,10 @@ actionability, fidelity, efficiency, security: [principles.md](principles.md)
 
 ## Tools not documented elsewhere
 
-- **`gh api`** for anything compared; `--json` is fine for reading. Prefer `gh`
+- `gh api` for anything compared; `--json` is fine for reading. Prefer `gh`
   and the REST/GraphQL API to an MCP connector for scripted work, because a
   connector's quota is shared by every agent.
-- **A capture outbox** for email in dev and e2e, written to disk with an index.
+- A capture outbox for email in dev and e2e, written to disk with an index.
 - **`pnpm dev:session`** (the `dev-session` recipe): completes a real
   passwordless sign-in for a seeded account and writes a cookie jar, so agents
   can `curl` authenticated pages. It refuses production and refuses when the

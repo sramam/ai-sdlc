@@ -13,4 +13,4 @@ Exit 0 pass (or reported, not judged), 1 fail (a suite failed or a floor was mis
 
 **`floor-prose.test-helper.mts`** exports `floorProsePatternCheck(root, { floors, declared })`: every markdown file under `docs/` except `docs/quality/coverage.md` is scanned, and a percentage, a figure pair (`92 / 88`) or a bare declared floor value within 80 characters of _floor_ or _coverage_ is an offence. A historical quote (past tense about a floor that no longer exists) may be declared with a reason; a declaration whose text has left its file fails. A project test calls it and asserts no offences, as `floor-prose.test.ts` does for this repository.
 
-The project's own: it arrives with `pnpm sdlc add coverage`, and is changed here when the project needs it. `pnpm sdlc diff coverage` shows what changed upstream; `pnpm sdlc update coverage` takes it without overwriting a local edit (docs/kit/registry.md).
+The project's own: it arrives with `pnpm sdlc add coverage`; `pnpm sdlc diff coverage` shows what changed upstream, and `pnpm sdlc update coverage` takes it without overwriting a local edit (docs/kit/registry.md).

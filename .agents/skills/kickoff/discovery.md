@@ -15,12 +15,12 @@ report, invoice, notification or export; whoever configures, onboards others or
 administers it; the product's own support and operations staff; and people with
 no account (a visitor, an invitee, someone signing up).
 
-External systems (a payment provider, a scheduler, a webhook) are **actors, not
-personas**. Name them `system:<name>` in requirements and keep them out of the
+External systems (a payment provider, a scheduler, a webhook) are actors, not
+personas. Name them `system:<name>` in requirements and keep them out of the
 registry.
 
-**When are two candidates one persona?** Split them when they differ in **goals,
-permissions, or the journeys they walk**. Merge them when they differ only in
+**When are two candidates one persona?** Split them when they differ in goals,
+permissions, or the journeys they walk. Merge them when they differ only in
 job title.
 
 **The registry grows by finding, not by assumption.** When `/kickoff` or

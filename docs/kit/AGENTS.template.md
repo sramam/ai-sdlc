@@ -38,7 +38,7 @@ Packages (each has its own `agents.md`):
   `@<scope>/db`: @packages/db/agents.md
 - …
 
-**Scope is <MVP>. Ask before building anything outside it.**
+Scope is <MVP>. Ask before building anything outside it.
 
 ## Working here
 
@@ -48,13 +48,13 @@ Packages (each has its own `agents.md`):
 - **Start every session by picking up the handoffs `pnpm bootstrap` lists**
   (it runs at session start), then `/build`, which claims the next ready item
   by pushing a branch named after its ID. `/build auto` works every ready item.
-- **`docs/requirements/` is read-only** unless `/kickoff` or `/spec` is running.
+- `docs/requirements/` is read-only unless `/kickoff` or `/spec` is running.
   _Enforced by a hook and a `Requirements:` commit trailer._
   `docs/requirements/sources/` is never edited.
 - **Every new request goes through `/spec` before work starts.** It triages,
   answers from the repository first, and stops for a person to approve the
   spec (`Approved:`, the one human gate); `plan:check` refuses items from an
-  unapproved feature. **A new technology is never added silently**: the
+  unapproved feature. A new technology is never added silently: the
   decision dialog runs, and the user decides.
 - **Everything written for an agent meets the five context tenets**: clarity,
   actionability, fidelity, efficiency, security (`docs/kit/principles.md` § 0;
@@ -70,7 +70,7 @@ Packages (each has its own `agents.md`):
 - **An item's status is never written down.** It is derived from git (the
   `Closes:` trailer on `origin/dev`, or a claim).
 - **Every session works in a worktree forked from `origin/dev`**, never in the
-  main checkout. When the user first asks for something, **propose a name** (from
+  main checkout. When the user first asks for something, propose a name (from
   the item, `req-<slug>`, or the request) and let them change it before creating
   it. One live worktree per session. _Enforced by hooks._
   ```bash
@@ -96,14 +96,14 @@ Packages (each has its own `agents.md`):
   every worktree.
 - **Commit bodies end with `Progress: <item> — covered; remains`**, plus
   `Closes: <item>` on the commit that finishes it.
-- **Attribution trailer:** whatever `.claude/settings.json` says, with no model
+- Attribution trailer: whatever `.claude/settings.json` says, with no model
   name. _Enforced by `commit-msg`._
 - **A branch advances a plan item** (a `Progress:` trailer) or carries a
   `No-Item: <reason>` trailer. The grammar is in `docs/kit/hooks.md`.
   _Enforced by `commit-msg` and `ci:local`._
 - **CI is local.** GitHub Actions is off, for cost. `pnpm ci:local` is the full
-  gate, and it posts a `local-ci` commit status. **Nothing merges without a green
-  status on the exact head SHA.** Do not add workflows without asking.
+  gate, and it posts a `local-ci` commit status. Nothing merges without a green
+  status on the exact head SHA. Do not add workflows without asking.
 - **Merge with a merge commit, never squash.** Squashing destroys trailers and
   `Progress:` granularity.
 - **Use `pnpm land`** (the only merge path agents have) to take a committed branch to `dev`. It runs `ci:local` and
@@ -152,14 +152,14 @@ then.
 - **If the domain has money**: integer cents (`BigInt` columns) through
   `domain/money`. Never a float.
 - **Fail loudly, with a unique error code** (`AREA-NNN`).
-- **Environment gates are allow-lists.**
+- Environment gates are allow-lists.
 - **Never hand-edit or rename an applied migration.** Let the ORM name migrations.
 
 ## Testing
 
 - The unit suite never touches the network or a model, and runs with credentials cleared.
-- Anything reading or writing rows uses `createTestDb()` (PGlite). **Never write a
-  database fake.** _Checked by the commit-time code review (project criteria 1)
+- Anything reading or writing rows uses `createTestDb()` (PGlite). Never write a
+  database fake. _Checked by the commit-time code review (project criteria 1)
   until the test-harness foundation item adds a pattern check._
 - Data-access rules (whatever `access-model.md` says: tenant, team, user or
   none) are asserted against a real database, with each refusal paired with

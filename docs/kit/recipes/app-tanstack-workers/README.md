@@ -1,13 +1,13 @@
 # Recipe: `app-tanstack-workers`
 
 A minimal TanStack Start app on Cloudflare Workers: an SSR route whose loader
-calls a server function, a server function as the **binding** over a port
+calls a server function, a server function as the binding over a port
 function, a database read through Hyperdrive, Better Auth (email OTP) mounted
 as a server route, and `wrangler.jsonc` with local, dev, staging and production.
 Proven in the October 2026 platform spike ([../../spike-2026-10.md](../../spike-2026-10.md)),
 by assembling it from these directories and running it.
 
-It depends on four sibling recipes, instantiated **into** it:
+It depends on four sibling recipes, instantiated into it:
 
 | copy                                     | to                      |
 | ---------------------------------------- | ----------------------- |
@@ -24,7 +24,7 @@ In a project the port (`src/port/`) moves to `packages/api`, and `db`,
 
 | file                                          | is                                                                                                      |
 | --------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `vite.config.ts`                              | `cloudflare({ viteEnvironment: { name: "ssr" } })` **first**, then `tanstackStart()`, then React        |
+| `vite.config.ts`                              | `cloudflare({ viteEnvironment: { name: "ssr" } })` first, then `tanstackStart()`, then React            |
 | `wrangler.jsonc`                              | `main: "@tanstack/react-start/server-entry"`, `nodejs_compat`, traces on, Hyperdrive, four environments |
 | `src/routes/index.tsx`                        | SSR route; loader calls `greetFn`                                                                       |
 | `src/server/greet.ts`                         | the binding: validate, resolve the Caller, open a span, call the port                                   |
@@ -39,11 +39,11 @@ In a project the port (`src/port/`) moves to `packages/api`, and `db`,
 
 ## Run it
 
-Every command runs from the **repository root**; the app's own commands go
+Every command runs from the repository root; the app's own commands go
 through `pnpm --filter @app/web`, which runs them in `apps/web`.
 
 First, allow the install scripts this app needs. pnpm reads
-`onlyBuiltDependencies` **only from the workspace root**, so it goes in the
+`onlyBuiltDependencies` only from the workspace root, so it goes in the
 root `pnpm-workspace.yaml` (whose starter default is `[]`), reviewed like any
 change to that list ([security.md](../../security.md) § _Supply chain_):
 
@@ -78,7 +78,7 @@ CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE="$(pnpm -s db:local url
 build first.
 
 `vite dev` also runs SSR in workerd (with the same variable set), but smoke-test
-the **built** Worker: it is what deploys.
+the built Worker: it is what deploys.
 
 **Verified** 2026-10-16 by `pnpm recipes:check`, which assembles this recipe with
 `env-schema`, `db-drizzle` and `telemetry` in a scratch workspace whose
@@ -91,7 +91,7 @@ not re-run there (they need localdb and workerd ports); the spike ran them.
 - **`createServerFn().validator(...)`, not `.inputValidator(...)`.** The current
   docs show `inputValidator`; `@tanstack/react-start` 1.169.2 has only
   `validator`. `vite build` succeeds either way and the Worker then answers
-  every route with 500 — `tsc --noEmit` is what catches it. Run it before
+  every route with 500; `tsc --noEmit` is what catches it. Run it before
   trusting a build; when upgrading, re-check which method exists.
 - **Hyperdrive's local connection string must contain a password**
   (`You must provide a password`). localdb prints a URL without one; PGlite

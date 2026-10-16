@@ -2,8 +2,8 @@
 
 There is no GitHub Issues and no GitHub Project. The requirements, the plan,
 open questions and progress all live in `docs/`, are versioned with the code,
-and are reported against from `git`. This works for one reason: **git is the
-only channel that merges** across agents, so making it the system of record
+and are reported against from `git`. Git is the only channel that merges
+across agents, so making it the system of record
 removes a second source of truth and the sync between the two.
 
 These documents get long. What keeps them usable by people and by agents is that
@@ -40,7 +40,7 @@ docs/plan/
 docs/progress/YYYY-MM-DD.md   dated reports, never rewritten
 ```
 
-A requirements skill imports a document by creating a **new** file under
+A requirements skill imports a document by creating a new file under
 `sources/` with Write, then `pnpm sources:add <path>` records its hash in
 `sources/MANIFEST`, which the `sources` CI step checks.
 
@@ -65,7 +65,7 @@ A requirements skill imports a document by creating a **new** file under
 ## Personas are discovered, not assumed
 
 No persona carries over from one project to the next; what carries over is the
-**method** (`.agents/skills/kickoff/discovery.md`). `/kickoff` runs it in stage
+method (`.agents/skills/kickoff/discovery.md`). `/kickoff` runs it in stage
 2, BRD theme 2 (`.agents/skills/kickoff/product.md`), and
 `/kickoff revisit product` repeats it when a request names an actor that is not
 in the registry.
@@ -86,7 +86,7 @@ stays provisional silently.
 ## Tenancy and access are discovered, not assumed
 
 Tenancy decides the data model, the scoping layer, the tests and the auth flow,
-so it is **discovered from the product definition** in `/kickoff` stage 2, BRD
+so it is discovered from the product definition in `/kickoff` stage 2, BRD
 theme 5 (`.agents/skills/kickoff/discovery.md`), and recorded before any schema
 is written.
 
@@ -95,9 +95,9 @@ model chosen:
 
 - **tenancy**: a `Tenancy: <model>` line (never `open` once decided), with the
   reason
-- **the concrete "must never see" pairs**
+- the concrete "must never see" pairs
 - **membership**: how a user relates to a tenant. The role belongs to the
-  **relationship**, not the person; one person can be an admin in one tenant and
+  relationship, not the person; one person can be an admin in one tenant and
   a member in another
 - **two axes, always both**: _may this role do this action_ (a persona ×
   capability table) and _which rows may it touch_ (the scope rule per entity)
@@ -109,7 +109,7 @@ model chosen:
   Whether the backoffice is a separate shell or a separate app is settled in
   `/kickoff` stage 3
 - **switching**: a person may hold several relationships (different roles in
-  different tenants, a customer and staff). Exactly **one is active at a time**,
+  different tenants, a customer and staff). Exactly one is active at a time,
   chosen explicitly through a switcher, and the active relationship decides
   both the shell and the row scope. It is never inferred, and never a merge of
   several
@@ -125,7 +125,7 @@ as blocking.
 
 **`personas.md`**: for each persona, its ID, who they are, their goals, what
 they may and may not do (the RBAC row), and the journeys they own. Write it
-**first**. Everything else references it.
+first. Everything else references it.
 
 **`features/F<nn>-<slug>.md`**:
 
@@ -186,16 +186,16 @@ estimate: 3            # or "unknown". Never a guess
 **There is no `status:` field.** Status is derived from git, because a stored
 status drifts (principles.md §14):
 
-| status          | derived from                                                                                                         |
-| --------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **done**        | a commit on `origin/dev` with the trailer `Closes: F03-012`                                                          |
-| **in progress** | a **claim**: a remote branch named exactly the item ID (`f03-012`), or a recent `Progress:` on dev without `Closes:` |
-| **blocked**     | a `depends:` item not done, or an open question listing this item                                                    |
-| **ready**       | none of the above                                                                                                    |
-| **dropped**     | `dropped: <date> <reason>` in the frontmatter, the one stored state, because it is a decision                        |
+| status          | derived from                                                                                                     |
+| --------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **done**        | a commit on `origin/dev` with the trailer `Closes: F03-012`                                                      |
+| **in progress** | a claim: a remote branch named exactly the item ID (`f03-012`), or a recent `Progress:` on dev without `Closes:` |
+| **blocked**     | a `depends:` item not done, or an open question listing this item                                                |
+| **ready**       | none of the above                                                                                                |
+| **dropped**     | `dropped: <date> <reason>` in the frontmatter, the one stored state, because it is a decision                    |
 
 **A claim is atomic.** `pnpm claim <ID>` creates, through the GitHub API, a
-branch named **exactly** the lowercased item ID on top of `origin/dev`, whose
+branch named exactly the lowercased item ID on top of `origin/dev`, whose
 first commit records who and when:
 
 ```
@@ -210,13 +210,13 @@ held by …"); there is no race to resolve. The work happens on that branch, in 
 worktree created from `origin/<id>`; the worktree's directory name may carry a
 slug the user chooses, but the branch is the ID.
 
-- **IDs are matched case-insensitively** everywhere. Branches are lowercase;
+- IDs are matched case-insensitively everywhere. Branches are lowercase;
   files and trailers use the uppercase form.
 - **A branch is deleted when its item closes** (`pnpm land` deletes it on the PR
   carrying `Closes:`). An item is also _in progress_ while `origin/dev` carries a
   recent `Progress: <ID>` and no `Closes: <ID>`, so a partial PR never makes it
   look free.
-- **A claim goes stale** when its `Claimed-At` is older than `claimStaleDays`
+- A claim goes stale when its `Claimed-At` is older than `claimStaleDays`
   (in `sdlc.config.json`) and no commit, including a `Progress:` on dev, is newer. `plan:status` flags it, and `/plan sync` asks its owner, or the
   author, before it is released.
 - Requirements work uses `req-<slug>` branches (not claims). The bootstrap items
@@ -240,9 +240,9 @@ answered: # date, once answered
 
 A question with no `answered` date is open. Answering it may produce an ADR.
 
-## The pattern check — what keeps this honest
+## The pattern check
 
-`pnpm plan:check` prints its table on success. It runs in **stages**, because
+`pnpm plan:check` prints its table on success. It runs in stages, because
 what must hold grows as the project does. Each stage includes the ones before
 it, and the highest stage the repository has reached is used (`--stage`
 overrides it):
@@ -254,7 +254,7 @@ overrides it):
 | **plan**          | `docs/plan/README.md` holds a written plan                                                                      |                                              |
 | **build**         | a workspace package with a `package.json` exists outside `tooling/`, or the plan README declares `Stage: build` |                                              |
 
-**requirements** also requires the full set: `brd.md`, `prd.md`, `glossary.md`,
+requirements also requires the full set: `brd.md`, `prd.md`, `glossary.md`,
 `ux.md`, `domain-model.md`, `technology.md`, `review.md`, `personas.md` with at
 least one persona, `features/` with at least one requirement, `journeys.md` with
 at least one journey, and `access-model.md` declaring its tenancy (`Tenancy:
@@ -304,16 +304,16 @@ This is the same shape as every other pattern check here (principles.md §6).
 
 ## Reporting against the plan
 
-- **`pnpm plan:status`** derives every item's status from git and prints it, by
+- `pnpm plan:status` derives every item's status from git and prints it, by
   milestone, feature and persona, with open questions and what each one blocks.
-  It is generated on demand and **not committed**, so there is no shared file
+  It is generated on demand and not committed, so there is no shared file
   for agents to conflict on.
 - **Progress reports** (`docs/progress/YYYY-MM-DD.md`) include a `plan:status`
   snapshot. That snapshot is history, which is why it may be committed.
 - **For stakeholders without repo access**, `plan:status --html` renders the
-  same thing as one page to publish or send. It is a view, not a source.
+  same thing as one page to publish or send. It is only a view.
 
-## What giving up GitHub Issues costs, said rather than discovered
+## What giving up GitHub Issues costs
 
 | lost                                   | replacement or accepted gap                                                                                                                                                   |
 | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

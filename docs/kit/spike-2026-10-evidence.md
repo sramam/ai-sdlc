@@ -4,8 +4,8 @@ The per-item evidence of [spike-2026-10.md](spike-2026-10.md), where the verdict
 
 ### 1. TanStack Start on workerd
 
-Doc: [Workers framework guide: TanStack Start](https://developers.cloudflare.com/workers/framework-guides/web-apps/tanstack-start/)
-— `cloudflare({ viteEnvironment: { name: "ssr" } })` before `tanstackStart()`;
+Doc: [Workers framework guide: TanStack Start](https://developers.cloudflare.com/workers/framework-guides/web-apps/tanstack-start/).
+`cloudflare({ viteEnvironment: { name: "ssr" } })` before `tanstackStart()`;
 `wrangler.jsonc` `main: "@tanstack/react-start/server-entry"`,
 `compatibility_flags: ["nodejs_compat"]`; bindings via
 `import { env } from "cloudflare:workers"`.
@@ -67,8 +67,8 @@ app-prisma     first: 200 0.0755  0.0606  0.0670 s
 
 Local first-request time is not production cold start. The production limits
 ([Workers limits](https://developers.cloudflare.com/workers/platform/limits/)):
-**64 MiB uncompressed, "no compressed size limit"**, and global scope must
-execute within **1 second**. Prisma's v7 Cloudflare page still cites a 3 MB
+64 MiB uncompressed, "no compressed size limit", and global scope must
+execute within 1 second. Prisma's v7 Cloudflare page still cites a 3 MB
 free-plan limit, which the limits page no longer states. Either ORM fits; the
 difference is cold start and headroom.
 
@@ -78,8 +78,8 @@ scripts until approved, and `prisma generate` worked regardless.
 
 ### 4. Hyperdrive's local connection string
 
-Doc: [Hyperdrive local development](https://developers.cloudflare.com/hyperdrive/configuration/local-development/)
-— `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_<BINDING_NAME>`, or
+Doc: [Hyperdrive local development](https://developers.cloudflare.com/hyperdrive/configuration/local-development/).
+`CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_<BINDING_NAME>`, or
 `localConnectionString` in the Wrangler config; _"the environment variable takes
 precedence"_; not used by `wrangler dev --remote`.
 
@@ -162,7 +162,7 @@ Docs: [Exporting OpenTelemetry data](https://developers.cloudflare.com/workers/o
 
 What Cloudflare offers:
 
-- Traces and logs exported over **OTLP (JSON, not protobuf)** to a destination
+- Traces and logs exported over OTLP (JSON, not protobuf) to a destination
   created in the dashboard and named in `observability.traces.destinations` /
   `observability.logs.destinations`; `head_sampling_rate`; `persist: false` to
   export without storing. Metrics cannot be exported. Listed destinations include
@@ -171,7 +171,7 @@ What Cloudflare offers:
   "early beta" and off unless `observability.traces.enabled`.
 - **Custom spans** via `tracing` from `cloudflare:workers`: `enterSpan`,
   `startActiveSpan`, `startSpan`, `getActiveSpan`, `setAttribute(s)`,
-  `recordException`. **Not yet:** `setStatus`, `spanContext()` (trace/span IDs).
+  `recordException`. Not yet: `setStatus`, `spanContext()` (trace/span IDs).
   `@opentelemetry/api` is not mentioned.
 
 Under local workerd, `wrangler dev` stores spans and answers SQL:
@@ -186,7 +186,7 @@ $ curl -s -X POST http://127.0.0.1:8795/cdn-cgi/local/explorer/api/local/observa
 
 The recipe's span helper (`inSpan` + `workersTracer`) produced the child spans;
 `hyperdrive_connect` is automatic, individual queries are not. Delivery to an
-OTLP backend was **not tested** (no account).
+OTLP backend was not tested (no account).
 
 ### 8–13. Workers constraints
 
@@ -196,15 +196,15 @@ OTLP backend was **not tested** (no account).
 - **9. Filesystem and Node API.** Under `nodejs_compat` (date 2026-10-01) a probe
   route returned:
   `{"writeTmp":"x","readRepoFile":"THROWS: Error: no such file or directory, …","processEnvHasSecret":"string"}`.
-  So: the host's disk is unreachable, **`/tmp` is writable, in memory and per
-  request** ([node:fs](https://developers.cloudflare.com/workers/runtime-apis/nodejs/fs/)),
+  So: the host's disk is unreachable, `/tmp` is writable, in memory and per
+  request ([node:fs](https://developers.cloudflare.com/workers/runtime-apis/nodejs/fs/)),
   and vars and secrets appear in `process.env` (date ≥ 2025-04-01,
   [environment variables](https://developers.cloudflare.com/workers/configuration/environment-variables/)).
   `pg` ran under `nodejs_compat`. Consequence: a Worker cannot write the journeys
   outbox, so the capture transport prints a line and the adapter writes it.
 - **10. Smoke-test the built Worker.** The current TanStack docs (via search;
   the docs pages returned 404 to the fetcher) name `createServerFn().inputValidator()`.
-  The installed 1.169.2 has only `.validator()`. **`vite build` succeeded**, and
+  The installed 1.169.2 has only `.validator()`. `vite build` succeeded, and
   the Worker answered every route with
   `{"status":500,…,"message":"HTTPError"}` / `TypeError: createServerFn(...).inputValidator is not a function`.
   `tsc --noEmit` caught it (`Property 'inputValidator' does not exist`). The rule
@@ -212,9 +212,9 @@ OTLP backend was **not tested** (no account).
 - **11. Bundle size and cold start.** § 2–3.
 - **12. Database connections through Hyperdrive.** Every query went through
   the binding. Locally Hyperdrive connects straight to the database, so its
-  pooling and caching were **not** exercised.
-- **13. Bindings per environment.** Doc: [Vite plugin, Cloudflare environments](https://developers.cloudflare.com/workers/vite-plugin/reference/cloudflare-environments/)
-  — `CLOUDFLARE_ENV` at dev or build time; it _"will have no effect"_ on `wrangler deploy`.
+  pooling and caching were not exercised.
+- **13. Bindings per environment.** Doc: [Vite plugin, Cloudflare environments](https://developers.cloudflare.com/workers/vite-plugin/reference/cloudflare-environments/).
+  `CLOUDFLARE_ENV` at dev or build time; it _"will have no effect"_ on `wrangler deploy`.
 
   ```
   $ CLOUDFLARE_ENV=staging npx vite build
@@ -230,13 +230,13 @@ OTLP backend was **not tested** (no account).
 
 ### 14. Preview URLs
 
-Doc: [Previews](https://developers.cloudflare.com/workers/configuration/previews/)
-— `wrangler versions upload [--preview-alias <alias>]` returns a version URL
+Doc: [Previews](https://developers.cloudflare.com/workers/configuration/previews/).
+`wrangler versions upload [--preview-alias <alias>]` returns a version URL
 (`<prefix>-<worker>.<subdomain>.workers.dev`) without deploying; not generated
 for Workers with Durable Objects; logs not visible through Workers Logs or tail.
 A version URL _"uses that Worker version's existing configuration and resources
-instead of creating a separate environment"_. **So a preview uploaded to the
-`dev` Worker uses dev's Hyperdrive and database**, which environments.md
+instead of creating a separate environment"_. So a preview uploaded to the
+`dev` Worker uses dev's Hyperdrive and database, which environments.md
 forbids. A preview with its own database needs its own Hyperdrive config in the
 uploaded version (and a branch or a seeded throwaway behind it); not tested.
 
@@ -251,9 +251,9 @@ Real Postgres (and so a deployed Hyperdrive) is unaffected.
 
 It matters to journeys: a page whose loaders, or a browser's parallel requests,
 hit the database at once will fail intermittently. Suggested fix in
-`tooling/localdb` (not made in this spike): serialize **whole extended-protocol
-exchanges** per connection — hold the session from the first `Parse`/`Bind`
-until `Sync`'s `ReadyForQuery` (and across an open transaction) — rather than
+`tooling/localdb` (not made in this spike): serialize whole extended-protocol
+exchanges per connection, holding the session from the first `Parse`/`Bind`
+until `Sync`'s `ReadyForQuery` (and across an open transaction), rather than
 interleaving messages. Made since: `SessionLock` in
 `tooling/localdb/src/socket.mts`, covered by
 `tooling/localdb/src/concurrency.test.ts`; what still remains shared is stated

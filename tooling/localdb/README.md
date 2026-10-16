@@ -1,6 +1,6 @@
 # @ai-sdlc/localdb
 
-`pnpm db:local` — a PGlite database per checkout, so a schema or data change in
+`pnpm db:local`: a PGlite database per checkout, so a schema or data change in
 one worktree never reaches another agent, and every change can be undone.
 
 Each declared database is one Postgres (PGlite, WebAssembly) served over the
@@ -15,7 +15,7 @@ wire protocol by a background process, with its data in the checkout:
 
 ## Configure
 
-A `localdb` block in the project's `sdlc.config.json` — added to the existing
+A `localdb` block in the project's `sdlc.config.json`, added to the existing
 file, not a file of its own: the loader validates the whole config, so a file
 holding only `localdb` is refused (`branches: required`, `dirs: required` …).
 
@@ -46,7 +46,7 @@ name; most need none.
 | `start [db]`                     | start (every declared database when none is named); prints the `DATABASE_URL`                       |
 | `stop [db]`                      | stop; SIGTERM, then SIGKILL after 15s, and says which                                               |
 | `status [db]`                    | one line each: running/stopped, port, data size, last snapshot                                      |
-| `url [db]`                       | print the URL; exit 1 when it is not running — `export DATABASE_URL=$(pnpm -s db:local url)`        |
+| `url [db]`                       | print the URL; exit 1 when it is not running; `export DATABASE_URL=$(pnpm -s db:local url)`         |
 | `migrate [db]`                   | snapshot `pre-migrate-<time>`, then run the `migrate` command. Refuses when stopped                 |
 | `reset [db] [--force]`           | snapshot `pre-reset-<time>`, delete the data, start, migrate. Refuses while running without --force |
 | `snapshot <label> [db]`          | dump the data directory, running or not. Refuses an existing label without --force                  |
@@ -59,8 +59,8 @@ be asked (a busy or unreadable lock, a pid alive on a port that does not answer)
 
 ## Ports
 
-A port is derived per checkout **and** database — a hash of the checkout path and
-the name into 55000–55499 — so it is stable across restarts and different in
+A port is derived per checkout and database (a hash of the checkout path and
+the name into 55000–55499), so it is stable across restarts and different in
 every worktree. It is probed by actually binding it (on 127.0.0.1, ::1 and the
 wildcard), and a held port steps to the next, up to 16, saying which it skipped.
 The port in use is the one in the lock, so `url` is always right even after a step.
@@ -69,14 +69,14 @@ The port in use is the one in the lock, so `url` is always right even after a st
 
 PGlite is a single Postgres session, and the extended query protocol keeps
 per-session state (the unnamed statement and portal) as does a transaction. So
-`src/socket.mts` gives the backend to **one connection at a time, for a whole
-exchange**: from its first message until the ReadyForQuery that answers its
+`src/socket.mts` gives the backend to one connection at a time, for a whole
+exchange: from its first message until the ReadyForQuery that answers its
 `Sync` (or its simple `Query`), and for as long as that ReadyForQuery says it is
 inside a transaction. Others queue, first come first served. A pool of any size
 works; nothing has to be told to open one connection.
 
-The cost: work is serial — which PGlite already was — and **a transaction held
-open blocks every other connection** until it commits or rolls back. Fine on a
+The cost: work is serial (which PGlite already was), and a transaction held
+open blocks every other connection until it commits or rolls back. Fine on a
 laptop; a client that sits idle in a transaction stalls the rest. A connection
 that drops mid-exchange or mid-transaction is synced and rolled back for it.
 
@@ -94,10 +94,10 @@ or not:
   accepting only a label). No stop, so an app connected to it keeps its connection.
 - **stopped**: the CLI opens the data directory in-process and dumps it.
 - **restore** moves the data aside, creates a PGlite with `loadDataDir`, checks it
-  answers, then deletes what it moved aside — or puts it back on failure.
+  answers, then deletes what it moved aside, or puts it back on failure.
 
 Automatic snapshots (`pre-migrate-…`, `pre-reset-…`) are pruned to the newest
-**5**; manual ones are never pruned. An empty database's snapshot is about 4 MB.
+5; manual ones are never pruned. An empty database's snapshot is about 4 MB.
 
 ## Library
 
@@ -106,4 +106,4 @@ Automatic snapshots (`pre-migrate-…`, `pre-reset-…`) are pruned to the newes
 client, also runnable: `DATABASE_URL=… node tooling/localdb/src/wire.mts "select 1"`),
 `src/localdb.mts` (the operations; `runningUrl(root, db)` is what `pnpm seed` uses).
 
-The project's own: it arrives with `pnpm sdlc add localdb`, and is changed here when the project needs it. `pnpm sdlc diff localdb` shows what changed upstream; `pnpm sdlc update localdb` takes it without overwriting a local edit (docs/kit/registry.md).
+The project's own: it arrives with `pnpm sdlc add localdb`; `pnpm sdlc diff localdb` shows what changed upstream, and `pnpm sdlc update localdb` takes it without overwriting a local edit (docs/kit/registry.md).

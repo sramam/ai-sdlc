@@ -1,6 +1,6 @@
-# The registry — `ai-sdlc`
+# The registry: `ai-sdlc`
 
-`github.com/sramam/ai-sdlc` is a **registry**, in the way shadcn/ui is one: a
+`github.com/sramam/ai-sdlc` is a registry, in the way shadcn/ui is one: a
 project takes what it needs, as source files it then owns. It is not a template
 and nothing is inherited from it. These docs live in it at `docs/kit/`, and its
 tooling is what they describe.
@@ -15,8 +15,8 @@ pnpm sdlc update base                               # take upstream fixes; never
 
 ## Why copies, not a dependency
 
-Agents do most of the work in a project, so they should **own as much of the
-code as possible**: read it, change it to fit, and fix it where it breaks. Code
+Agents do most of the work in a project, so they should own as much of the
+code as possible: read it, change it to fit, and fix it where it breaks. Code
 in `node_modules`, or behind a "do not edit" rule, is code an agent works
 around instead.
 
@@ -26,7 +26,7 @@ around instead.
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | **base**   | the kit (`docs/kit/`, with the recipes' index only), the workflow's skills (Addy Osmani's agent-skills and our wrappers), `.claude/settings.json`, `.husky/`, root configuration, the plan scaffold, and the `core`, `guards`, `plan`, `ci` and `setup` modules | `init`                                                                                 |
 | **module** | `journeys`, `localdb`, `seed`, `coverage`, `promote`, `security`, each with its skills                                                                                                                                                                          | `pnpm sdlc add <module>`, into `tooling/<module>/`                                     |
-| **skill**  | a third-party skill a project pulls in when its work calls for it: `humanizer`, `stripe-best-practices`, `scroll-craft` ([skills.md](skills.md))                                                                                                                | `pnpm sdlc add <skill>`, into `.agents/3rdparty/` and `.agents/skills/`                |
+| **skill**  | a third-party skill a project pulls in when its work calls for it: `stripe-best-practices`, `scroll-craft` ([skills.md](skills.md))                                                                                                                             | `pnpm sdlc add <skill>`, into `.agents/3rdparty/` and `.agents/skills/`                |
 | **recipe** | reference code for the packages most projects need ([recipes/README.md](recipes/README.md))                                                                                                                                                                     | `pnpm sdlc add <recipe>`, at the place its README names: `packages/api`, `apps/web`, … |
 
 `pnpm sdlc list` prints every item, what it requires and which are installed.
@@ -66,7 +66,7 @@ the tree:
 
 - every file belongs to exactly one item, or is in `exclude` with a reason, and
   no exclusion is stale
-- an item's relative imports resolve, **in the project's layout**, to its own
+- an item's relative imports resolve, in the project's layout, to its own
   files, base's, or an item it requires; a requirement no import shows says why
   (`requiresBecause`); there is no cycle; two items install one path only if
   each names the other in `conflicts`
@@ -115,7 +115,7 @@ pre-push hook allows `main` into a repository with no branch at all, and
 nothing after that) and runs `pnpm sdlc:init`, which creates `dev`, applies the
 settings and the ruleset, and runs `bootstrap` and `ci:local`.
 
-**`add <item…>`** copies the items and what they require, then applies their
+`add <item…>` copies the items and what they require, then applies their
 merges. It refuses, writing nothing, when a target exists with other content (an
 identical one is fine), when an item conflicts with one installed or being
 added, or when a `package` fragment's `package.json` is not there. Adding an
@@ -153,14 +153,14 @@ and cached by commit under `$XDG_CACHE_HOME/ai-sdlc` (default `~/.cache/ai-sdlc`
 A source that cannot be reached is _could not ask_ (exit 2), never "nothing to
 update".
 
-**A config format change** raises `configVersion` in `sdlc.config.json`; the
+A config format change raises `configVersion` in `sdlc.config.json`; the
 item's `notes`, which `add` and `update` print, say how to convert.
 
 ## Third-party skills
 
 Some items carry skills other people maintain: Addy Osmani's agent-skills in
-base, and the `skill` items. They follow one rule: **copied verbatim, amended
-beside.** The copy lives in `.agents/3rdparty/<name>/`, laid out as upstream
+base, and the `skill` items. They follow one rule: copied verbatim, amended
+beside. The copy lives in `.agents/3rdparty/<name>/`, laid out as upstream
 lays it out so its relative links resolve, with a `SOURCE.json` naming the
 repository, ref, commit, license, the paths taken and each file's SHA-256.
 What agents load is our wrapper in `.agents/skills/<name>/SKILL.md`: upstream's

@@ -26,7 +26,7 @@ code review checks it (criterion 7) wherever such text changes.
 - [ ] It says what to run or write next, by name: a command, a file, a skill.
 - [ ] Every acceptance criterion or "done when" is testable (Given / When /
       Then, an exit code, a check that prints).
-- [ ] It names what the reader may **not** decide, and where to stop and ask.
+- [ ] It names what the reader may not decide, and where to stop and ask.
 - [ ] It ends with the next step, so the instruction travels with the output.
 
 ## Fidelity: true to its source, and checked

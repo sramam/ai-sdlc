@@ -1,6 +1,6 @@
-# ai-sdlc — the registry
+# ai-sdlc: the registry
 
-This repository is the **registry** `ai-sdlc init` and `ai-sdlc add` copy from.
+This repository is the registry `ai-sdlc init` and `ai-sdlc add` copy from.
 It is not a project and not a template. `README.md` says what it is;
 `docs/kit/registry.md` says how it works.
 

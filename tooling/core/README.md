@@ -2,20 +2,20 @@
 
 Shared by every other module: the `sdlc.config.json` loader, the command runner (`exec`), and the one git-command parser every guard uses.
 
-The project's own: it arrives with `ai-sdlc init`, and is changed here when the project needs it. `pnpm sdlc diff base` shows what changed upstream; `pnpm sdlc update base` takes it without overwriting a local edit (docs/kit/registry.md).
+The project's own: it arrives with `ai-sdlc init`; `pnpm sdlc diff base` shows what changed upstream, and `pnpm sdlc update base` takes it without overwriting a local edit (docs/kit/registry.md).
 
 ## `sdlc.config.json`
 
-**Declarative, and never executed.** It was `sdlc.config.ts`, imported as a module — and `ci:local` imported it from the commit under test, so a branch could run code in the CI process by editing its config. It is strict JSON now, read and validated by `src/config.mts` with no dependency (hooks run before `pnpm install`), and `ci:local` reads the CI definition from `origin/<integration>`, so a branch's change to it takes effect only once it lands.
+**Declarative, and never executed.** A config imported as a module from the commit under test let a branch run code in the CI process. It is strict JSON, read and validated by `src/config.mts` with no dependency (hooks run before `pnpm install`), and `ci:local` reads the CI definition from `origin/<integration>`, so a branch's change to it takes effect only once it lands.
 
 - **An unknown key is an error** naming the key and where it is (`ci.steps[2]: unknown key "histroy"`); a wrong type names the path (`claimStaleDays: expected a number, got string`). A typo is refused rather than ignored.
 - **`src/config.schema.json`** is generated from the validator's shape for editors: `node tooling/core/src/config-schema.mts --write` after changing `SHAPE`; `--check` and `config.test.ts` fail when it is stale or disagrees with the validator.
-- **`loadConfig(root)`** reads the working tree's file; **`loadConfigAt(root, ref)`** reads it as committed at a ref (`null` when that commit has none).
+- **`loadConfig(root)`** reads the working tree's file; `loadConfigAt(root, ref)` reads it as committed at a ref (`null` when that commit has none).
 - **`configVersion`** (default 1) is the file's format. A release that changes the format raises it, and the item's notes (printed by `pnpm sdlc update`) say how to convert.
 
 JSON has no comments, so the documented examples live here.
 
-**An account with no CLI** — a manual step and its owner:
+**An account with no CLI**, a manual step and its owner:
 
 ```json
 {

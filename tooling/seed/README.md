@@ -1,6 +1,6 @@
 # @ai-sdlc/seed
 
-`pnpm seed` — deterministic mock data, opt-in per application — and the small
+`pnpm seed`: deterministic mock data, opt-in per application, and the small
 helper library a seeder imports (docs/kit/data-model.md § _Seed and demo data_).
 
 ## Configure
@@ -39,13 +39,13 @@ Each seeder gets, whatever the environment says:
 | `SEED_TODAY`                                                                     | `--today`, else `$SEED_TODAY`, else this machine's calendar date (YYYY-MM-DD)         |
 | `SEED_TARGET`                                                                    | `local`, `dev` or `staging`                                                           |
 | `DATABASE_URL`                                                                   | target local: the app's running localdb (and its `env` names); else the environment's |
-| `EMAIL_TRANSPORT=capture`, `STORAGE_TRANSPORT=local`, `MODEL_TRANSPORT=recorded` | forced — a seed never sends                                                           |
+| `EMAIL_TRANSPORT=capture`, `STORAGE_TRANSPORT=local`, `MODEL_TRANSPORT=recorded` | forced; a seed never sends                                                            |
 
 It prints one line per app with its duration, and exits 1 if any seeder failed.
 
 ## Refusals (decided before any seeder runs)
 
-- a target other than `local`, `dev`, `staging` — **production is never seeded**,
+- a target other than `local`, `dev`, `staging`: production is never seeded,
   and an undeclared target gets the restrictive answer
 - target `local` with a `DATABASE_URL` that is not one of this checkout's
   running localdb databases; target `dev`/`staging` with one that is
@@ -55,7 +55,7 @@ It prints one line per app with its duration, and exits 1 if any seeder failed.
 
 No `seeds` at all prints `no application declares seed data` and exits 0.
 
-## Helpers — `@ai-sdlc/seed/helpers`
+## Helpers: `@ai-sdlc/seed/helpers`
 
 Dependency-free, with no `node:` imports, so a seeder in any runtime can use it.
 
@@ -79,4 +79,4 @@ const address = fromCaptured(ADDRESSES, 7); // captured real values, index wraps
 isSeedId(id); // true — find and delete seed-owned rows
 ```
 
-The project's own: it arrives with `pnpm sdlc add seed`, and is changed here when the project needs it. `pnpm sdlc diff seed` shows what changed upstream; `pnpm sdlc update seed` takes it without overwriting a local edit (docs/kit/registry.md).
+The project's own: it arrives with `pnpm sdlc add seed`; `pnpm sdlc diff seed` shows what changed upstream, and `pnpm sdlc update seed` takes it without overwriting a local edit (docs/kit/registry.md).

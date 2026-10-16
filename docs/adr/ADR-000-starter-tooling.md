@@ -26,7 +26,7 @@ dev-only `@types/pngjs`): decoding journey screenshots and diffing two of them
 pixel by pixel, which is how a mask is learned and a step is compared. It
 peer-depends on `@playwright/test` (also a pinned dev dependency, so its own
 tests drive a real browser): the recorder, the fixtures and the Playwright
-config are written against it. `pdfjs-dist` is an **optional** peer, resolved
+config are written against it. `pdfjs-dist` is an optional peer, resolved
 from the project, for journeys that capture a PDF: rendered in the browser page
 by page so a document is gated like a screenshot, and never installed by a
 project that captures none.

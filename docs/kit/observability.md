@@ -1,15 +1,15 @@
-# Observability — OpenTelemetry from the first commit
+# Observability: OpenTelemetry from the first commit
 
 **OTel is a first principle** ([principles.md](principles.md) §16). A
 capability with no span is not done.
 
 ## What is emitted
 
-| signal      | what                                                                                                                                                                         | from where                                                                  |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| **traces**  | one root span per request, job or queue message; **one child span per capability call**; spans around every external call (DB, model, email, payments, authorization engine) | `@<scope>/telemetry` helpers in the binding and the port                    |
-| **logs**    | structured and **correlated** (each record carries `trace_id` / `span_id`), only at decisions and failures, never narration                                                  | the same package; `no-console` in `eslint.config.mjs` refuses `console.log` |
-| **metrics** | request rate, errors and duration per capability; queue depth and age; job outcomes; model tokens and cost; authorization denials                                            | derived from spans where the backend supports it, explicit otherwise        |
+| signal      | what                                                                                                                                                                     | from where                                                                  |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| **traces**  | one root span per request, job or queue message; one child span per capability call; spans around every external call (DB, model, email, payments, authorization engine) | `@<scope>/telemetry` helpers in the binding and the port                    |
+| **logs**    | structured and correlated (each record carries `trace_id` / `span_id`), only at decisions and failures, never narration                                                  | the same package; `no-console` in `eslint.config.mjs` refuses `console.log` |
+| **metrics** | request rate, errors and duration per capability; queue depth and age; job outcomes; model tokens and cost; authorization denials                                        | derived from spans where the backend supports it, explicit otherwise        |
 
 ## Span conventions
 
@@ -33,7 +33,7 @@ error.code          AREA-NNN                              (when error)
 - **Refusals are not errors.** A `refused` outcome is the product working. Count
   refusals, but do not alert on them, unless a spike suggests probing.
 - **Model calls** record the model, the provider route, input and output tokens,
-  cost, and latency. Prompts and completions are recorded **only** in
+  cost, and latency. Prompts and completions are recorded only in
   environments allowed to hold that data, and redacted.
 
 ## Privacy: telemetry is a data store too
@@ -66,14 +66,14 @@ whatever you send it:
 - **`wrangler dev` stores spans locally** and answers SQL at
   `/cdn-cgi/local/explorer/api/local/observability/query`, so an end-to-end test
   can assert real spans, not only a test exporter's.
-- Local and tests: a console or in-memory exporter. **Tests assert spans**: the
+- Local and tests: a console or in-memory exporter. Tests assert spans: the
   capability name, the outcome, and that no unregistered attribute appears.
 
 ## What uses it
 
 - Handoffs link a trace for anything left broken.
-- `/kickoff` and `/spec` ask, for any feature: **what would we need to see to
-  know it works in production?** That answer becomes a span attribute or a
+- `/kickoff` and `/spec` ask, for any feature: what would we need to see to
+  know it works in production? That answer becomes a span attribute or a
   metric, written as part of the requirement.
 - Alerting: error rate per capability, queue age, model spend per day, and
   authorization-denial spikes. Few alerts, each with a written response.

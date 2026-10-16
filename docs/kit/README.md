@@ -1,13 +1,11 @@
-# ai-sdlc — the kit
+# ai-sdlc: the kit
 
-An agent-driven SDLC, distilled.
-
-These notes are written to be **handed to an agent setting up a new
-repository**, and to the people who will work alongside it.
+These notes distil an agent-driven SDLC, to be handed to an agent setting up a
+new repository and to the people who will work alongside it.
 
 ## How to use this
 
-A new project **is created with `ai-sdlc init`** from the registry
+A new project is created with `ai-sdlc init` from the registry
 ([registry.md](registry.md)), which copies base: this kit, its tooling, skills
 and hooks, and no product code. Modules and recipes arrive later with
 `pnpm sdlc add`, and the project owns every file it was given. Then give the
@@ -45,17 +43,16 @@ through `/kickoff revisit product`; nothing else changes requirements.
 ## The one-paragraph version
 
 Several agents working in one repository will drift from every convention that
-nothing enforces. So every convention is **enforced mechanically**: a hook that
+nothing enforces. So every convention is enforced mechanically: a hook that
 catches it in seconds, plus a merge gate that is the authority. Here the merge
-gate is **local CI**, with its verdict posted as a commit status, because hosted
-CI gets expensive fast. A blocked agent **asks, records the question and keeps
-working**; it never idles. Every list that
-matters is **counted by a test** (a "pattern check") instead of maintained by hand. Every
-check has **three answers** (yes, no, _could not ask_), and the third is
-handled on purpose. Each agent works in its **own git worktree**, forked from
+gate is local CI, with its verdict posted as a commit status, because hosted
+CI gets expensive fast. A blocked agent asks, records the question and keeps
+working; it never idles. A test (a "pattern check") counts every list that
+matters. Every
+check has three answers (yes, no, _could not ask_), and the third is
+handled on purpose. Each agent works in its own git worktree, forked from
 the integration branch. Commits carry a `Progress:` block, so `git log` alone can
 reconstruct what happened. Every change advances a plan item that traces to a
 requirement, a persona and a journey. Pull requests are
-merged with **merge commits**, never squashed. The root agent file stays
-**short and static**; a rule file that grows into a history book is the most
-expensive habit a project can have.
+merged with merge commits, never squashed. The root agent file stays
+short and static ([memory.md](memory.md) § _How a lesson becomes memory_).

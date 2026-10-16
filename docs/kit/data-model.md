@@ -1,8 +1,8 @@
-# The domain model — discovered early, designed for simplicity
+# The domain model: discovered early, designed for simplicity
 
 **`/kickoff` discovers the high-level domain objects** as part of the PRD (stage
 2): what they are, how they relate, which have a lifecycle, and who owns each
-one (from the access model). **Stage 3 reads the result** when it settles the
+one (from the access model). Stage 3 reads the result when it settles the
 stack. Fields
 and details are worked out as the project develops, one plan item at a time.
 
@@ -17,7 +17,7 @@ and details are worked out as the project develops, one plan item at a time.
    - who owns it: its tenant or scope, from `access-model.md`
    - its relationships, with cardinality
    - **does it have a lifecycle?** If so, list its states and the events
-     between them, and **who or what sends each event**
+     between them, and who or what sends each event
    - how it is created and how it ends (archived, deleted, kept forever)
    - the hot access paths: the journeys that read or write it most, and how
      they find it
@@ -30,7 +30,7 @@ Unsure objects are marked `provisional`, with a `Q-` file.
 
 ## Design rules
 
-**Simplicity**
+### Simplicity
 
 - **One concept, one table, one name.** Use the glossary word, the same in
   code, schema, UI and docs.
@@ -45,7 +45,7 @@ Unsure objects are marked `provisional`, with a `Q-` file.
 - **Relationships carry roles.** A person's role belongs to their membership in
   a tenant, not to the person.
 
-**Correctness that is cheap now and expensive later**
+### Correctness that is cheap now and expensive later
 
 - **Money**: integer minor units (`BigInt` cents), never floats. One currency
   column if there could ever be two.
@@ -58,7 +58,7 @@ Unsure objects are marked `provisional`, with a `Q-` file.
 - **Nullable means "unknown or not applicable", stated in a comment.** Never
   fake NOT NULL with a sentinel value.
 
-**Operational and execution efficiency**
+### Operational and execution efficiency
 
 - **Design from the access paths.** Each hot journey step names the query it
   needs, and the index exists for that query, not for the column list.
@@ -75,7 +75,7 @@ Unsure objects are marked `provisional`, with a `Q-` file.
 - **Migrations are additive first.** Add a column nullable, backfill it, then
   enforce it a release later. Deprecate before dropping.
 
-## Seed and demo data — deterministic
+## Seed and demo data: deterministic
 
 **Mock data is opt-in, per application.** Kickoff topic 9 decides which. Each one is declared in `sdlc.config.json`
 (`seeds`), with the command that seeds it and the local database it targets,
@@ -118,7 +118,7 @@ Seeds exist at three sizes, and they are the same code at every size:
 - **Demo data is used "when appropriate"**: always in dev and staging, and in
   production only as an explicit, isolated demo tenant created through the
   product's own provisioning, never mixed with real tenants.
-- The seed prints **where its time went**, by step. The slow step usually points
+- The seed prints where its time went, by step. The slow step usually points
   at a bad query pattern in the product, not at the seed.
 
 ## Growing it

@@ -17,14 +17,14 @@ are what this project's hooks and gates enforce.
 
 Upstream's phases and commands, with what this project puts behind each:
 
-| phase  | entry                                                       | what this project adds                                                                                                                                                                |
-| ------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DEFINE | `/kickoff` once per project; `/spec` for every change after | requirements in `docs/requirements/`, written only under the requirements lock. Where the project has personas, **personas and journeys are the units of value** every feature serves |
-| PLAN   | `/plan`                                                     | one file per item in `docs/plan/items/`: platform (`X-`) items first, then features by journey. Status comes from git, never from the file                                            |
-| BUILD  | `/build`; `/build auto` builds every ready item             | one item per worktree, claimed first (`pnpm claim`)                                                                                                                                   |
-| VERIFY | `/test`                                                     | a real database, never a hand-written fake; recorded journeys as evidence (the `journeys` skill)                                                                                      |
-| REVIEW | `/review`; every commit is also reviewed by a hook          | the project's own criteria beside upstream's five axes                                                                                                                                |
-| SHIP   | `pnpm land` per item; `/ship` for a release                 | `pnpm ci:local` is the CI; promotion is a fast-forward                                                                                                                                |
+| phase  | entry                                                       | what this project adds                                                                                                                                                            |
+| ------ | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DEFINE | `/kickoff` once per project; `/spec` for every change after | requirements in `docs/requirements/`, written only under the requirements lock. Where the project has personas, personas and journeys are the units of value every feature serves |
+| PLAN   | `/plan`                                                     | one file per item in `docs/plan/items/`: platform (`X-`) items first, then features by journey. Status comes from git, never from the file                                        |
+| BUILD  | `/build`; `/build auto` builds every ready item             | one item per worktree, claimed first (`pnpm claim`)                                                                                                                               |
+| VERIFY | `/test`                                                     | a real database, never a hand-written fake; recorded journeys as evidence (the `journeys` skill)                                                                                  |
+| REVIEW | `/review`; every commit is also reviewed by a hook          | the project's own criteria beside upstream's five axes                                                                                                                            |
+| SHIP   | `pnpm land` per item; `/ship` for a release                 | `pnpm ci:local` is the CI; promotion is a fast-forward                                                                                                                            |
 
 Two entry points are this project's own, not upstream's:
 

@@ -17,8 +17,8 @@ in full, with the amendments below. Where they differ, the amendments win.
   commit, on this machine, and posts the verdict as a `local-ci` commit
   status. It costs no hosted minutes, and an agent can run it as often as it
   likes. Add a quality gate by adding a step there, not a workflow file.
-- **`pnpm land` runs it** before every merge to `dev`, and again on the merge
+- `pnpm land` runs it before every merge to `dev`, and again on the merge
   commit; promotion requires a green `local-ci` status on the exact SHA.
-- **Deployment** is `pnpm promote:staging` / `pnpm promote:prod` (module
+- Deployment is `pnpm promote:staging` / `pnpm promote:prod` (module
   `promote`): fast-forward only, migrate before deploy, smoke after. Preview
   environments are optional (`docs/kit/environments.md`).

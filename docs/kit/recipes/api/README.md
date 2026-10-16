@@ -2,7 +2,7 @@
 
 The port skeleton (`packages/api`): a `Caller` a binding resolves, refusals
 returned rather than thrown, a capability helper that validates, scopes,
-authorizes and then runs against the **scoped** client, and a manifest entry
+authorizes and then runs against the scoped client, and a manifest entry
 shape every binding renders from. One example entity (`project`) with a
 contract suite against Postgres in process (PGlite).
 
@@ -10,23 +10,23 @@ Framework- and runtime-free: no TanStack, React or `cloudflare:` import, so it
 runs in Node under Vitest and on workerd unchanged ([tech-stack.md](../../tech-stack.md)
 § _The architecture shape_).
 
-| file                                  | is                                                                                                                                                                         |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/caller.ts`                       | `Caller` (user, tenant, role, party), **branded** so only `resolveCaller(session, activeRelationship)` can make one; a party-scoped role with no party throws `CALLER-001` |
-| `src/refusal.ts`                      | `Refusal = { ok: false, code, detail, field? }`; codes `INVALID`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `UNAVAILABLE`                                                      |
-| `src/scoped-db.ts`                    | `scopedDb(db, tenantId)`: every read and write on a tenant table conjoined with `tenant_id`; `whereAllowed(idColumn, filter)` puts the policy's list filter in the query   |
-| `src/capability.ts`                   | `capability({ name, summary, effect, input, output, access, run })` and `invoke(cap, deps, caller, raw)`                                                                   |
-| `src/manifest.ts`, `manifest.test.ts` | the list every binding renders (`as const`, so the SDK is typed from it), and `exclusions`; unique names, JSON-Schema-describable schemas, no authority key in any input   |
-| `src/authz.ts`                        | the `@scope/authz` interface (identical in `authz-oso` and `authz-spicedb`)                                                                                                |
-| `src/scripted-authz.ts`               | for the port's own suite: an `Authz` whose answers the test states (the policy matrix lives in the authz recipes)                                                          |
-| `src/example/*`                       | `project.create`, `project.list`, `project.rename`, and the contract suite                                                                                                 |
+| file                                  | is                                                                                                                                                                       |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/caller.ts`                       | `Caller` (user, tenant, role, party), branded so only `resolveCaller(session, activeRelationship)` can make one; a party-scoped role with no party throws `CALLER-001`   |
+| `src/refusal.ts`                      | `Refusal = { ok: false, code, detail, field? }`; codes `INVALID`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `UNAVAILABLE`                                                    |
+| `src/scoped-db.ts`                    | `scopedDb(db, tenantId)`: every read and write on a tenant table conjoined with `tenant_id`; `whereAllowed(idColumn, filter)` puts the policy's list filter in the query |
+| `src/capability.ts`                   | `capability({ name, summary, effect, input, output, access, run })` and `invoke(cap, deps, caller, raw)`                                                                 |
+| `src/manifest.ts`, `manifest.test.ts` | the list every binding renders (`as const`, so the SDK is typed from it), and `exclusions`; unique names, JSON-Schema-describable schemas, no authority key in any input |
+| `src/authz.ts`                        | the `@scope/authz` interface (identical in `authz-oso` and `authz-spicedb`)                                                                                              |
+| `src/scripted-authz.ts`               | for the port's own suite: an `Authz` whose answers the test states (the policy matrix lives in the authz recipes)                                                        |
+| `src/example/*`                       | `project.create`, `project.list`, `project.rename`, and the contract suite                                                                                               |
 
 ## What `invoke` does, always, in this order
 
 1. **Validate** with the capability's own Zod schema. A failure is `INVALID`
    with `field` set to the path, so a form puts it on the input (the `ui`
    recipe's form does). Inputs are `strictObject`, so `{ tenantId: … }` in a
-   body is refused **by name**, never ignored.
+   body is refused by name, never ignored.
 2. **Scope**, for a capability on one row (`access.exists`): is it in the
    caller's tenant? If not, `NOT_FOUND`, and the engine is never asked, so a
    cross-tenant id cannot even learn what the policy would say.
@@ -75,7 +75,7 @@ pnpm install && pnpm test        # 22 tests; PGlite in process, no network
 
 Verified 2026-10-16 in a scratch project (Node 24.18.0, drizzle-orm 0.45.4,
 @electric-sql/pglite 0.5.10, zod 4.6.7, vitest 3.2.4): all pass, `tsc --noEmit`
-clean. **Proved by tripping**: removing the tenant conjunction from
+clean. Proved by tripping: removing the tenant conjunction from
 `scopedDb` fails the cross-tenant rename and the list test.
 
 ## Rules

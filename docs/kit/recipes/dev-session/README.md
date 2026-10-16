@@ -1,9 +1,9 @@
 # Recipe: `dev-session`
 
-`pnpm dev:session [email]` signs a **seeded** account in to a running app,
+`pnpm dev:session [email]` signs a seeded account in to a running app,
 locally or on `dev`, and writes a cookie jar for curl and a `storageState` for
 Playwright, so a script or an agent can reach an authenticated page
-([skills.md](../../skills.md) § _Tools not documented elsewhere_). It completes the **real**
+([skills.md](../../skills.md) § _Tools not documented elsewhere_). It completes the real
 passwordless sign-in of the `app-tanstack-workers` recipe: request a code over
 HTTP, read it back through Better Auth's server-only API, sign in over HTTP.
 
@@ -38,14 +38,14 @@ its installed path, so it runs in a project, not in this directory.
 ## Why this is not a back door
 
 The code is read with `auth.api.getVerificationOTP`, which Better Auth marks
-**server-only**: over HTTP it is a 404 (the suite checks). Reaching it needs
+server-only: over HTTP it is a 404 (the suite checks). Reaching it needs
 `BETTER_AUTH_SECRET` (the codes are stored encrypted) and the database, which is
 what the developer's `.dev.vars` already holds; it grants nothing those do not.
 Every gate still applies: the account must exist, the code expires, and the
 session is an ordinary, revocable one.
 
 The script builds its own Better Auth instance only to read the code back. It
-**must match the app's `createAuth` on `secret` and `storeOTP`**, or it decrypts
+must match the app's `createAuth` on `secret` and `storeOTP`, or it decrypts
 nothing.
 
 ## Verified
@@ -77,7 +77,7 @@ Re-run on the pinned better-auth 1.7.9 (2026-10-16, `pnpm recipes:check`):
   `advanced: { disableOriginCheck: false }`. The suite sets it.
 - **Observed with the check on** (1.7.10): a foreign `Origin` is
   `403 INVALID_ORIGIN`; a missing one is `403 MISSING_OR_NULL_ORIGIN` when the
-  request carries cookies, and **allowed** when it carries none. The client
+  request carries cookies, and allowed when it carries none. The client
   always sends the app's own origin, which is honest: the check stops a page on
   another site, and this runs beside the secret. (An earlier version answered
   `MISSING_OR_NULL_ORIGIN` to a cookie-less Node `fetch`; do not rely on either

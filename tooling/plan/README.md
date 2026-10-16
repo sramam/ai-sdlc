@@ -2,7 +2,7 @@
 
 The plan in the repo: parsing `docs/requirements/` and `docs/plan/` (the markdown conventions are in the header of `plan-lib.mts`), `plan:check` (the staged pattern check), `plan:status` (derived from git), `claim` (an atomic claim on a work item) and `item-check`.
 
-The project's own: it arrives with `ai-sdlc init`, and is changed here when the project needs it. `pnpm sdlc diff base` shows what changed upstream; `pnpm sdlc update base` takes it without overwriting a local edit (docs/kit/registry.md).
+The project's own: it arrives with `ai-sdlc init`; `pnpm sdlc diff base` shows what changed upstream, and `pnpm sdlc update base` takes it without overwriting a local edit (docs/kit/registry.md).
 
 ## Stages (`plan:check`)
 
@@ -15,7 +15,7 @@ Each stage includes the ones before it; the default is the highest reached.
 | `plan`          | `docs/plan/README.md` holds a written plan                                                         | the verdict is ready to plan; the plan pattern check                                          |
 | `build`         | a workspace package outside `tooling/` exists (`apps/*`, `packages/*`), or the plan README says so | trailers name items; every dependency is accounted for                                        |
 
-**Required discovery outputs** (in `docs/requirements/`): `brd.md`, `prd.md`, `personas.md` (≥1 persona), `features/` (≥1 feature with ≥1 requirement), `journeys.md` (≥1 journey), `glossary.md`, `access-model.md` (a `Tenancy:` that is not `open`), `domain-model.md`, `ux.md`, `technology.md`, `review.md`. A missing one **fails**; `vacuous` is only for genuinely optional checks. `project-brief.md`, `README.md` and `sources/` do not count as discovery having started.
+**Required discovery outputs** (in `docs/requirements/`): `brd.md`, `prd.md`, `personas.md` (≥1 persona), `features/` (≥1 feature with ≥1 requirement), `journeys.md` (≥1 journey), `glossary.md`, `access-model.md` (a `Tenancy:` that is not `open`), `domain-model.md`, `ux.md`, `technology.md`, `review.md`. A missing one fails; `vacuous` is only for genuinely optional checks. `project-brief.md`, `README.md` and `sources/` do not count as discovery having started.
 
 ## Formats this package reads
 
@@ -46,6 +46,6 @@ Claimed-By: <session id, else git config user.email>
 Claimed-At: <ISO 8601 time>
 ```
 
-A second claim is the same ref and exits 3, naming the holder. It prints the commands to fetch the branch and create the worktree, and runs neither. `plan:status` takes the claim time from `Claimed-At:` (else the branch's oldest commit not on the integration branch); a claim is stale when it is older than `claimStaleDays` **and** nothing on it, nor a `Progress:` on the integration branch, is newer.
+A second claim is the same ref and exits 3, naming the holder. It prints the commands to fetch the branch and create the worktree, and runs neither. `plan:status` takes the claim time from `Claimed-At:` (else the branch's oldest commit not on the integration branch); a claim is stale when it is older than `claimStaleDays` and nothing on it, nor a `Progress:` on the integration branch, is newer.
 
 **`item-check`** reports what touched an item's paths in `<commit that added the item>..HEAD`: topology, not dates.

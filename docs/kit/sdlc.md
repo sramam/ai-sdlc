@@ -62,7 +62,7 @@ the pattern check.
   journey.** `pnpm plan:check` fails on anything orphaned, unknown or
   duplicated. An unknown ID is refused, not created, because a typo would
   otherwise grow a phantom feature.
-- **Questions only a person can answer** are `Q-` files listing what they
+- Questions only a person can answer are `Q-` files listing what they
   `blocks:`. The author reviews them on the reporting cadence, and
   `plan:status` lists them by how much work each holds up.
 - **Before starting an item, check it is still true.** Has the code it names
@@ -79,10 +79,10 @@ the pattern check.
 - **Promotion is fast-forward only, never a PR into `main`.** A PR merge writes a
   commit `dev` never receives. `main` then stops being an ancestor of `dev`, and
   every later fast-forward is rejected.
-- **If branch protection is ever bought, make it asymmetric:** require a PR on
+- If branch protection is ever bought, make it asymmetric: require a PR on
   `dev` only. On `staging` and `main`, restrict who may push and require linear
   history.
-- Run migrations **before** the promoting push, on a direct, unpooled
+- Run migrations before the promoting push, on a direct, unpooled
   connection. Rollback moves code back while the schema stays forward. So:
   - deprecate a column, then drop it a release or more later
   - add a `NOT NULL` column as nullable first
@@ -90,14 +90,14 @@ the pattern check.
 ## 3. Building
 
 See [AGENTS.template.md](AGENTS.template.md) § Building for the rules, and
-[tech-stack.md](tech-stack.md) for the shape. The core of it: **one port, many
-bindings**: every capability is implemented once, in a framework-free package,
+[tech-stack.md](tech-stack.md) for the shape. The core of it: one port, many
+bindings: every capability is implemented once, in a framework-free package,
 and every transport (server functions, HTTP, SDK, MCP, agent tools) is rendered
 from its manifest ([`recipes/api-bindings`](recipes/api-bindings/)).
 
 ## 4. Committing
 
-- `pre-commit` → `lint-staged`: lint, format, regenerate generated artifacts,
+- `pre-commit` runs `lint-staged`: lint, format, regenerate generated artifacts,
   re-stage.
 - The commit body ends with trailers:
   ```
@@ -107,7 +107,7 @@ from its manifest ([`recipes/api-bindings`](recipes/api-bindings/)).
   Co-Authored-By: …           (exactly what settings say; no model name)
   Worktree: … / Session: …    (added by prepare-commit-msg in a worktree)
   ```
-  `Closes:` goes **only** on the commit that finishes the item. That trailer is
+  `Closes:` goes only on the commit that finishes the item. That trailer is
   what makes the item _done_ once it reaches `origin/dev`.
 - A branch that changes source changes a test too, or a commit says why not
   (`No-Test: <reason>`); the trailer check in `ci:local` refuses it otherwise.
@@ -137,44 +137,42 @@ from its manifest ([`recipes/api-bindings`](recipes/api-bindings/)).
   - it refuses a dirty tree
   - the verdict is pinned to a SHA, and a moved head invalidates it
   - _could not run_ holds the merge
-- **Enabling Actions** is the author's call. When it happens, use one workflow
+- Enabling Actions is the author's call. When it happens, use one workflow
   that runs `pnpm ci:local` unchanged, so there is only one definition of CI.
 
 ## 6. After the merge
 
 - Nothing needs updating by hand. The item reads _done_ in `plan:status` as soon
   as its `Closes:` commit is on `origin/dev`.
-- Treat the **`local-ci` status on `dev`'s tip** as the "dev is green" signal for
-  anything that advances work toward QA. _Unknown_ holds it back. A promise to QA
-  must not rest on an absence.
+- Treat the `local-ci` status on `dev`'s tip as the "dev is green" signal for
+  anything that advances work toward QA. _Unknown_ holds it back.
 
 ## 7. QA tests journeys, not items
 
-An item is not something a person can _get done_. A journey (`J<nn>`) is. The
+A journey (`J<nn>`) is something a person can _get done_. The
 `journeys` module's skill has three commands, each run by a different hand:
 
-- **`/journeys add <id>`** registers a described journey: who, what sequence,
+- `/journeys add <id>` registers a described journey: who, what sequence,
   every refusal
-- **`/journeys test <id>`** records evidence per path
-- **`/journeys ready-for-qa <id>`** releases it to QA, once a person signs off.
-  A green run says the paths that exist pass. It cannot say the right paths
-  were written.
+- `/journeys test <id>` records evidence per path
+- `/journeys ready-for-qa <id>` releases it to QA, once a person signs off.
+  What a green run proves is in [testing.md](testing.md) § _Organising it_.
 
 A journey is ready to walk when every item serving its requirements is done.
 `plan:status --journeys` answers that.
 
 ## 8. Cadence
 
-| when                               | what                                                                                                 | written by                         |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| on `cadence` in `sdlc.config.json` | `docs/progress/YYYY-MM-DD.md`: Shipped, Decided, **Cost a day**, Open, plus a `plan:status` snapshot | `/progress-report`, from `git log` |
-| same cadence                       | `/plan sync`: discovered work placed, answered questions applied, critical path re-derived           | a skill                            |
-| weekly, if stakeholders want it    | `plan:status --html`: one page to send                                                               | generated                          |
-| on each commit                     | coverage figures                                                                                     | the gate's own run                 |
-| when an ADR lands                  | the decisions index                                                                                  | a skill                            |
+| when                               | what                                                                                             | written by                         |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| on `cadence` in `sdlc.config.json` | `docs/progress/YYYY-MM-DD.md`: Shipped, Decided, Cost a day, Open, plus a `plan:status` snapshot | `/progress-report`, from `git log` |
+| same cadence                       | `/plan sync`: discovered work placed, answered questions applied, critical path re-derived       | a skill                            |
+| weekly, if stakeholders want it    | `plan:status --html`: one page to send                                                           | generated                          |
+| on each commit                     | coverage figures                                                                                 | the gate's own run                 |
+| when an ADR lands                  | the decisions index                                                                              | a skill                            |
 
-A progress report is **never** rewritten: it records what was known then. The
-plan's forecast is **always** recomputed: a stale forecast is a lie.
+A progress report is never rewritten: it records what was known then. The
+plan's forecast is always recomputed: a stale forecast misleads.
 
 With Actions off there are no scheduled jobs, so the cadence is
-**session-driven**. `/pickup` says when a report or a plan sync is due.
+session-driven. `/pickup` says when a report or a plan sync is due.

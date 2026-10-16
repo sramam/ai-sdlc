@@ -64,7 +64,7 @@ origin/dev..origin/<branch> -- docs/requirements` over the remote
    lock: `echo "$CLAUDE_CODE_SESSION_ID spec" > .claude/requirements-session`.
 3. Write the spec. Commit with a `Requirements: spec` trailer.
 4. Release the lock (`rm .claude/requirements-session`) and land the branch
-   (`pnpm land`) **before any code that depends on it**. A requirements branch
+   (`pnpm land`) before any code that depends on it. A requirements branch
    contains nothing else; `pnpm land` refuses one that does.
 
 ### New technology: the user decides
@@ -77,7 +77,7 @@ specifying whatever does not depend on it.
 
 ### Approval is recorded
 
-Upstream's gate stands: present the spec and **stop the turn**. When a person
+Upstream's gate stands: present the spec and stop the turn. When a person
 (never another agent) answers with an unambiguous yes, add
 `Approved: YYYY-MM-DD by <name>` under the feature's title and commit it, still
 under the lock. `pnpm plan:check` refuses a plan item for a feature with no

@@ -12,5 +12,5 @@ in full, with the amendments below. Where they differ, the amendments win.
 
 ## Amendments
 
-- This is for exploring and debugging a running page. The **recorded
-  evidence** that a journey works end to end is the `journeys` skill.
+- This is for exploring and debugging a running page. The recorded
+  evidence that a journey works end to end is the `journeys` skill.

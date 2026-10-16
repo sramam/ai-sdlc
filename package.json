@@ -34,6 +34,7 @@
     "claim": "node tooling/plan/src/claim.mts",
     "sources:add": "node tooling/guards/src/sources-manifest.mts --add",
     "sources:check": "node tooling/guards/src/sources-manifest.mts --check",
+    "prose-check": "node tooling/guards/src/prose-check.mts",
     "journeys:learn": "node tooling/journeys/src/cli/learn.mts",
     "journeys:test": "node tooling/journeys/src/cli/run.mts",
     "journeys:delta": "node tooling/journeys/src/cli/delta.mts",
@@ -59,7 +60,11 @@
       "eslint --fix",
       "prettier --write"
     ],
-    "*.{md,json,yaml,yml}": [
+    "*.md": [
+      "prettier --write",
+      "pnpm -w prose-check"
+    ],
+    "*.{json,yaml,yml}": [
       "prettier --write"
     ]
   },
