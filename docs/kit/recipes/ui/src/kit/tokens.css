@@ -1,0 +1,33 @@
+/*
+ * The brand, on shadcn's token contract. Import AFTER the CSS `shadcn init` wrote
+ * (index.css / styles.css): `@import "./kit/tokens.css";` at its end.
+ *
+ * One accent (the design brief's), neutrals for everything else, destructive
+ * only for destruction (ux.md). Components use the contract (`bg-primary`,
+ * `text-muted-foreground`); brand names are aliases ONTO it, never the reverse:
+ * door_nexa defined the contract in terms of its brand names once, and fourteen
+ * contract utilities silently emitted no CSS.
+ */
+:root {
+  --brand-accent: oklch(0.48 0.15 255); /* the brief's Accent; check contrast in both themes */
+  --primary: var(--brand-accent);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: var(--brand-accent);
+  --sidebar-primary: var(--brand-accent);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --chart-1: var(--brand-accent);
+}
+
+.dark {
+  --brand-accent: oklch(0.72 0.13 255);
+  --primary: var(--brand-accent);
+  --primary-foreground: oklch(0.2 0.02 255);
+  --ring: var(--brand-accent);
+  --sidebar-primary: var(--brand-accent);
+  --chart-1: var(--brand-accent);
+}
+
+/* A brand-named utility, when a design calls for one, is an alias of the contract. */
+@theme inline {
+  --color-brand: var(--primary);
+}

@@ -1,0 +1,18 @@
+{
+  "name": "@app/llm",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "llm:allowlist": "node src/check-allowlist.mts",
+    "llm:record": "LLM_RECORD=1 vitest run src/record.manual.test.ts"
+  },
+  "dependencies": {
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "3.2.4"
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "_source": "NOT a live recording: written 2026-10-16 from OpenRouter's documented response shape (no API key in the recipe's build). The second answer is deliberately off-schema. Replace with `pnpm llm:record` output.",
+  "925a16efae0460ee": {
+    "request": {
+      "model": "google/gemini-3.5-flash-lite",
+      "messages": [
+        {
+          "role": "system",
+          "content": "Classify the support message. Answer with the schema."
+        },
+        {
+          "role": "user",
+          "content": "The kitchen tap in unit 4B has been dripping since Monday."
+        }
+      ],
+      "max_tokens": 512,
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "category",
+          "strict": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "category": {
+                "type": "string",
+                "enum": ["billing", "maintenance", "other"]
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": ["category", "confidence"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "provider": {
+        "data_collection": "deny",
+        "require_parameters": true,
+        "max_price": {
+          "prompt": 0.54,
+          "completion": 4.5
+        }
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "id": "gen-documented-shape",
+        "object": "chat.completion",
+        "model": "google/gemini-3.5-flash-lite",
+        "choices": [
+          {
+            "index": 0,
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "{\"category\":\"maintenance\",\"confidence\":0.93}"
+            }
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 38,
+          "completion_tokens": 14,
+          "total_tokens": 52,
+          "cost": 0.0000841
+        }
+      }
+    }
+  },
+  "4c2411269c1030db": {
+    "request": {
+      "model": "google/gemini-3.5-flash-lite",
+      "messages": [
+        {
+          "role": "system",
+          "content": "Classify the support message. Answer with the schema."
+        },
+        {
+          "role": "user",
+          "content": "The kitchen tap in unit 4B has been dripping since Monday."
+        }
+      ],
+      "max_tokens": 512,
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "category",
+          "strict": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "category": {
+                "type": "string",
+                "enum": ["billing", "maintenance", "other"]
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": ["category", "confidence"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "provider": {
+        "data_collection": "deny",
+        "require_parameters": true,
+        "max_price": {
+          "prompt": 0.54,
+          "completion": 4.5
+        },
+        "zdr": true
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "id": "gen-documented-shape",
+        "object": "chat.completion",
+        "model": "google/gemini-3.5-flash-lite",
+        "choices": [
+          {
+            "index": 0,
+            "finish_reason": "stop",
+            "message": {
+              "role": "assistant",
+              "content": "{\"category\":\"plumbing\",\"confidence\":0.9}"
+            }
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 38,
+          "completion_tokens": 14,
+          "total_tokens": 52,
+          "cost": 0.0000841
+        }
+      }
+    }
+  }
+}

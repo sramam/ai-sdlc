@@ -1,0 +1,22 @@
+{
+  "name": "dev-session-recipe",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@better-auth/drizzle-adapter": "1.7.10",
+    "better-auth": "1.7.10",
+    "drizzle-orm": "0.45.4",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.10",
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.15.0",
+    "drizzle-kit": "0.31.11",
+    "typescript": "^5.9.0",
+    "vitest": "3.2.4"
+  }
+}

@@ -16,6 +16,9 @@ export function createAuth(db: Db, opts: AuthOptions) {
   return betterAuth({
     secret: opts.secret,
     baseURL: opts.baseURL,
+    // Better Auth turns its Origin check off under a test runner unless this is
+    // explicit, which would make tests weaker than production.
+    advanced: { disableOriginCheck: false },
     database: drizzleAdapter(db, { provider: "pg", schema: authSchema }),
     plugins: [
       emailOTP({

@@ -72,8 +72,8 @@ docs/
   kit/                     the kit's docs (this directory), upstream-owned
     recipes/               reference packages (index: recipes/README.md): app-tanstack-workers,
                            db-drizzle (default), db-prisma, env-schema, telemetry,
-                           journeys-adapter; in progress: api (port skeleton), ui (shadcn on
-                           Base UI), authz-oso, authz-spicedb, llm-openrouter, dev-session
+                           journeys-adapter, api (port skeleton), ui (shadcn on Base UI),
+                           authz-oso, authz-spicedb, llm-openrouter, dev-session
   requirements/            LOCKED: written only by /kickoff, /idea, /add-requirement
     sources/               imported documents, never edited
   guardrails.md            the non-negotiables: the starter's, then the project's own

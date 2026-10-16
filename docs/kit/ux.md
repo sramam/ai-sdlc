@@ -136,8 +136,10 @@ an accessible name. Use form labels, never placeholders as labels.
 - **Base UI, not Radix.** Choose Base UI when initialising shadcn, and add
   components only from its Base UI variants. A Radix component mixed in brings
   a second primitive library with different focus, portal and composition
-  rules. _Verify the coverage of each component you need in the first spike_;
-  where a component has no Base UI variant, write an ADR before reaching for
+  rules. Base UI components compose with a `render` prop, not `asChild`. Known
+  gap (recipes, 2026-10): **⌘K (`command`) is built on cmdk, which pulls in
+  Radix's dialog**; take it with an ADR, or build ⌘K on Base UI's Combobox.
+  Where a component has no Base UI variant, write an ADR before reaching for
   Radix. door_nexa's Radix-specific traps (a `SelectItem`'s children projected
   into the trigger) may differ; check the equivalent behaviour rather than
   assuming it.

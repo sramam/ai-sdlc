@@ -114,6 +114,10 @@ marked as estimated, not silently under-counted.
   authority regardless of what the model was told, and consequential actions
   need approval.
 - **Cost caps are enforced in-process**, per run and per tenant per day.
+  OpenRouter reports `usage.cost` in credits; the `llm-openrouter` recipe treats
+  a credit as one US dollar, so check that against the account before relying
+  on a cap.
+- **Recordings hold synthetic data only**, never a real user's prompt.
 - **Tests never call a model.** Recorded responses replay in tests. Re-record
   when a prompt changes.
 - **Evals are separate**, each with a pass threshold, a set of cases (including

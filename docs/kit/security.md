@@ -63,14 +63,20 @@ Whichever is chosen, these rules hold:
 ### Testing the policy engine without a network
 
 The unit suite has no network, and contract tests run on PGlite, so the
-authorization engine must run locally too (_verify the current tooling in the
-platform spike_):
+authorization engine must run locally too (verified in the recipes,
+docs/kit/spike-2026-10.md addendum):
 
-- **SpiceDB** runs as a local, in-memory server for tests (its `serve-testing`
-  mode, or a container started by `ci:local`). Each suite loads the schema and
-  relationships it needs.
-- **Oso** uses its local development server, or local authorization evaluated
-  against the test database, with the policy file from the repo.
+- **SpiceDB** runs as `spicedb serve-testing --http-enabled`: each bearer token
+  gets its own empty in-memory datastore, so suites are isolated. Each suite
+  loads the schema and relationships it needs.
+- **Oso** runs the Oso Dev Server container, with isolated per-test
+  environments, and the policy file from the repo. A policy whose own Polar
+  tests fail is refused on load.
+- **Neither engine's official Node client runs on Workers** (Oso's SDK uses
+  `fs`/`http`; SpiceDB's uses gRPC). The `authz-oso` and `authz-spicedb` recipes
+  call each engine's HTTP API with plain `fetch`.
+- **Oso local authorization avoids the outbox**: it reads facts from our own
+  Postgres and returns SQL to run, so nothing is written to Oso twice.
 - **The matrix test** runs against that local engine. It is generated from
   `access-model.md`, and its cells arrive with the features that need them.
 - If the engine cannot start, `ci:local` reports _could not run_, never a pass.

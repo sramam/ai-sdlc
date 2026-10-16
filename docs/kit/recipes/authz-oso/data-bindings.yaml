@@ -1,0 +1,17 @@
+# Local authorization: how each fact in policy.polar is read from Postgres.
+# Oso never sees the rows; it returns SQL that the app runs against its own
+# database (https://www.osohq.com/docs/develop/facts/local-authorization).
+facts:
+  has_role(User:_, String:_, Organization:_):
+    query: SELECT user_id, role, org_id FROM membership
+
+  has_relation(Project:_, String:parent, Organization:_):
+    query: SELECT id, org_id FROM project
+
+  has_relation(Project:_, String:creator, User:_):
+    query: SELECT id, created_by FROM project
+
+sql_types:
+  User: TEXT
+  Organization: TEXT
+  Project: TEXT

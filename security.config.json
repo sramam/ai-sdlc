@@ -1,0 +1,12 @@
+{
+  "secrets": {
+    "allow": [
+      {
+        "path": "docs/kit/recipes/authz-oso/src/oso.matrix.test.ts",
+        "pattern": "DEV_TOKEN = \"e_0123456789_12345_osotesttoken01xiIn\"",
+        "rule": "generic-secret-assignment",
+        "reason": "Oso Dev Server's publicly documented fixed test token, valid only against a local test container"
+      }
+    ]
+  }
+}

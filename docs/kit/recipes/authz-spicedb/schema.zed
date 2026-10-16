@@ -1,0 +1,22 @@
+// The example access model (access-model.example.md), as a SpiceDB schema.
+// Relationships are written from Postgres through the outbox (src/outbox.ts).
+
+definition user {}
+
+definition organization {
+    relation admin: user
+    relation member: user
+
+    permission is_member = member + admin
+    permission project_create = is_member
+}
+
+definition project {
+    relation parent: organization
+    relation creator: user
+
+    permission project_read = parent->is_member
+    permission project_delete = parent->admin
+    // "own": a member may update a project they created, while still a member.
+    permission project_update = parent->admin + (creator & parent->is_member)
+}
