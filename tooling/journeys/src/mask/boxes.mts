@@ -714,15 +714,37 @@ export function classifyMotion(
  * taken. Passing `[]` is legitimate and means every box comes back
  * unattributed — the pixel-only behaviour, which is what a caller with no live
  * page can honestly produce.
+ *
+ * **`declared` is not learned again.** A difference wholly inside a declared
+ * volatile element is already masked — by a box re-measured on every
+ * comparison — so learning it as well adds nothing true and two things wrong:
+ *
+ * - **the learned box is a measure of elapsed time, not of the page.** Its
+ *   horizontal extent comes from what differed, and a clock differs in more
+ *   digits the longer apart the two shots were: `55px` when a relearn ran
+ *   seconds after the recording, `78px` when it ran minutes after. So every
+ *   relearn of an unchanged page reported the mask as having grown — and a
+ *   loaded machine, which stretches the gap, made that the common case
+ * - **a learned box that swallows the declared one deletes it.** `mergeBoxes`
+ *   drops a box held by another, so the declared box — the one that follows
+ *   the element when it moves — vanished from the mask in favour of a frozen
+ *   rectangle `refreshDeclared` cannot re-measure
+ *
+ * Held within `CONTAIN_SLACK`, the same allowance `snapToDom` gives a glyph
+ * spilling past its element. A cluster that merely *touches* a declared box is
+ * still learned: something outside it varied too.
  */
 export function volatileBoxes(
   before: string,
   after: string,
   dom: readonly DomBox[] = [],
+  declared: readonly Box[] = [],
 ): MaskBox[] | null {
   const found = differing(read(before), read(after));
   if (!found) return null;
-  const clusters = boxesOf(found.diff, found.width, found.height);
+  const clusters = boxesOf(found.diff, found.width, found.height).filter(
+    (cluster) => !declared.some((d) => holds(d, cluster, CONTAIN_SLACK)),
+  );
   return snapToDom(clusters, dom, found.width, found.height);
 }
 

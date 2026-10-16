@@ -1,10 +1,17 @@
-import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync,
+} from "node:fs";
 import { createServer } from "node:net";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { childPids, startHost } from "./host.mts";
 import type { Host, SeedAdapter, StackAdapter, StackEnv } from "./host.mts";
 import { portIsFree, portSlot, portsForSlot } from "./ports.mts";
@@ -23,15 +30,20 @@ import { resolveStackUrls } from "./urls.mts";
 
 const work = realpathSync(mkdtempSync(join(tmpdir(), "journeys-host-")));
 
+/** Every pid the fake app and its grandchild ever had, one per line — see `afterAll`. */
+const PIDS = join(work, "pids");
+
 /** The fake app: serve `readyPath`, spawn a grandchild, optionally ignore SIGTERM. */
 const APP = join(work, "fake-app.mjs");
 writeFileSync(
   APP,
   `
+import { appendFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
 const [port, readyPath, stubborn] = process.argv.slice(2);
-spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
+const grandchild = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
+appendFileSync(${JSON.stringify(PIDS)}, process.pid + "\\n" + grandchild.pid + "\\n");
 if (stubborn === "1") process.on("SIGTERM", () => {});
 createServer((req, res) => {
   res.writeHead(req.url === readyPath ? 200 : 404).end("fake app");
@@ -130,6 +142,36 @@ let running: Host | undefined;
 afterEach(async () => {
   await running?.stop();
   running = undefined;
+});
+
+/*
+ * **Whatever the host did not tear down, the suite does.** `afterEach` can only
+ * stop a host that finished starting: a test that times out inside `startHost`
+ * — which a loaded machine makes routine — leaves `running` unset, and the fake
+ * app and its grandchild outlive the worker as orphans holding ports. Two dozen
+ * were found on one machine. The pids come from the app itself, so a
+ * grandchild whose parent already died is still found.
+ *
+ * Not a substitute for the assertions above: they prove the host kills the
+ * tree; this only stops a failed or timed-out test from leaking one.
+ */
+afterAll(() => {
+  if (!existsSync(PIDS)) return;
+  for (const line of readFileSync(PIDS, "utf8").split("\n")) {
+    const pid = Number(line);
+    if (!Number.isInteger(pid) || pid <= 0) continue;
+    // Identified before it is killed: a pid the host did reap may since have
+    // been reused by something that is not ours.
+    const command = spawnSync("ps", ["-o", "command=", "-p", String(pid)], {
+      encoding: "utf8",
+    }).stdout.trim();
+    if (!command.includes(APP) && !command.endsWith("-e setInterval(() => {}, 1000)")) continue;
+    try {
+      process.kill(pid, "SIGKILL");
+    } catch {
+      // Gone between the two calls.
+    }
+  }
 });
 
 describe("the stack host", { timeout: 30_000 }, () => {

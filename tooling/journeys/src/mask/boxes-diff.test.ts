@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PNG } from "pngjs";
 import { describe, expect, it } from "vitest";
-import { drawDiff } from "./boxes.mts";
+import { drawDiff, volatileBoxes } from "./boxes.mts";
 
 /**
  * **The third image, proved by reading the pixels it paints.**
@@ -125,6 +125,48 @@ describe("drawDiff", () => {
 
     expect(drawDiff(before, after, [], join(dir, "diff.png"))).toBeNull();
     expect(existsSync(join(dir, "diff.png"))).toBe(false);
+    rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("volatileBoxes and a declared region", () => {
+  /**
+   * A white page; the *after* paints one block inside a declared box — a clock
+   * — and one outside it. The declared box is 40×16 at (90,20).
+   */
+  const setUp = () => {
+    const dir = mkdtempSync(join(tmpdir(), "mask-declared-"));
+    const before = join(dir, "before.png");
+    const after = join(dir, "after.png");
+    const inside = (x: number, y: number) => x >= 100 && x < 108 && y >= 24 && y < 32;
+    const outside = (x: number, y: number) => x >= 10 && x < 18 && y >= 24 && y < 32;
+    writeFileSync(
+      before,
+      png(200, 60, () => [255, 255, 255]),
+    );
+    writeFileSync(
+      after,
+      png(200, 60, (x, y) => (inside(x, y) || outside(x, y) ? [0, 0, 0] : [255, 255, 255])),
+    );
+    return { dir, before, after, declared: { x: 90, y: 20, width: 40, height: 16 } };
+  };
+
+  it("learns both regions when nothing is declared", () => {
+    const { dir, before, after } = setUp();
+    expect(volatileBoxes(before, after, [])).toHaveLength(2);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  /*
+   * A clock differs in more digits the longer apart two shots are, so a box
+   * learned over a declared one measured elapsed time — and, once it swallowed
+   * the declared box, `mergeBoxes` dropped the one that follows the element.
+   */
+  it("does not learn what a declared box already masks, and still learns the rest", () => {
+    const { dir, before, after, declared } = setUp();
+    const boxes = volatileBoxes(before, after, [], [declared]);
+    expect(boxes).toHaveLength(1);
+    expect(boxes![0]!.x).toBeLessThan(declared.x);
     rmSync(dir, { recursive: true, force: true });
   });
 });

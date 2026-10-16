@@ -380,13 +380,13 @@ export class Journey {
         }
 
         this.reportReflow(await reflowRisks(this.page, config.declaredVolatile));
-        const motion = await this.watchForMotion(dom);
+        const motion = await this.watchForMotion(dom, declared);
         settling = motion.settling;
 
         const found: MaskBox[] = [
           ...(this.recordOnly
             ? []
-            : (volatileBoxes(wasHere, here, dom) ?? []).map((b) => ({
+            : (volatileBoxes(wasHere, here, dom, declared) ?? []).map((b) => ({
                 ...b,
                 provenance: "learned" as const,
               }))),
@@ -529,8 +529,17 @@ export class Journey {
         await sheet.screenshot({ path: join(this.shots, file), fullPage: true });
         // Asked of the sheet, before it closes: the journey's page is not in this image.
         const dom = this.learning ? await domBoxes(sheet) : [];
+        // Declared regions too, in every mode: an email's code is
+        // `data-volatile-code`, and without its box it was only ever masked by
+        // what two passes happened to see differ — the partial mask
+        // `DECLARED_VOLATILE` names (#654).
+        const declared = await declaredVolatileBoxes(sheet, this.context.config.declaredVolatile);
         await sheet.close();
-        rendered.push({ label: capture.label, file, ...this.maskedOf(this.gateRender(file, dom)) });
+        rendered.push({
+          label: capture.label,
+          file,
+          ...this.maskedOf(this.gateRender(file, dom, declared)),
+        });
       } else if (capture.kind === "image") {
         const file = `${stepStem(this.n, capture.label)}.render.png`;
         writeFileSync(join(this.shots, file), capture.png);
@@ -607,7 +616,7 @@ export class Journey {
       const boxes = mergeBoxes([
         ...kept,
         ...asDeclared(declared),
-        ...(this.recordOnly ? [] : (volatileBoxes(wasHere, here, dom) ?? [])),
+        ...(this.recordOnly ? [] : (volatileBoxes(wasHere, here, dom, declared) ?? [])),
       ]);
       writeMask(maskFile, boxes);
       if (compareMasked(wasHere, here, boxes).kind === "same") copyFileSync(wasHere, here);
@@ -719,6 +728,7 @@ export class Journey {
    */
   private async watchForMotion(
     dom: readonly DomBox[],
+    declared: readonly DomBox[],
   ): Promise<{ ticking: MaskBox[]; settling: MaskBox[] }> {
     if (this.dwell <= 0) return { ticking: [], settling: [] };
     const scratch = mkdtempSync(join(tmpdir(), "journey-motion-"));
@@ -730,8 +740,8 @@ export class Journey {
     await shoot(at(1));
     await this.page.waitForTimeout(this.dwell);
     await shoot(at(2));
-    const first = volatileBoxes(at(0), at(1), dom) ?? [];
-    const second = volatileBoxes(at(1), at(2), dom) ?? [];
+    const first = volatileBoxes(at(0), at(1), dom, declared) ?? [];
+    const second = volatileBoxes(at(1), at(2), dom, declared) ?? [];
     rmSync(scratch, { recursive: true, force: true });
     const answer = classifyMotion(first, second);
     if (answer.settling.length > 0) {

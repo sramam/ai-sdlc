@@ -123,6 +123,9 @@ describe.skipIf(missing !== null)("journeys, end to end against the fixture app"
         (b) => b.provenance === "declared" && b.from.includes("data-volatile-clock"),
       ),
     ).toBe(true);
+    // Masked by declaration and never learned: a learned box over a clock is a
+    // measure of how far apart the passes ran, so it differs on every relearn.
+    expect(clock.boxes.filter((b) => b.provenance === "learned")).toEqual([]);
     commit(root, "record J1");
   });
 
