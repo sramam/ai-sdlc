@@ -14,7 +14,8 @@ fix.
 
 - **The workflow**: Addy Osmani's agent-skills (verbatim in
   `.agents/3rdparty/agent-skills/`) and their wrappers in `.agents/skills/`;
-  the map is `using-agent-skills`. Ours: `kickoff`, `progress-report`, this one.
+  the map is `using-agent-skills`. Ours: `kickoff`, `progress-report`, this
+  one, and `journeys` with its module.
 - **The kit**, `docs/kit/`: the specification and its reasons.
 - **The guards and gates**: `.husky/`, `.claude/settings.json`,
   `tooling/{core,guards,plan,ci,setup}`, `pnpm ci:local`, `pnpm land`.

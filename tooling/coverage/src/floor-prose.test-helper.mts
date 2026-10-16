@@ -2,11 +2,12 @@
  * A coverage floor is declared in one place (`sdlc.config.json`
  * `coverage.floors`) and quoted in none.
  *
- * In door_nexa two package guides quoted a floor, and both were a point below
- * the enforced value by the time anybody looked: the floors had been raised and
- * the prose beside them was not revisited. A branch then landed 0.17 points
- * from red against a gate its author believed had a point of headroom. Asking
- * again in prose is what had been tried; this counts it instead.
+ * In an earlier project two package guides quoted a floor, and both were a
+ * point below the enforced value by the time anybody looked: the floors had
+ * been raised and the prose beside them was not revisited. A branch then
+ * landed 0.17 points from red against a gate its author believed had a point
+ * of headroom. Asking again in prose is what had been tried; this counts it
+ * instead.
  *
  * **What it looks for, and why not "a stale floor".** Deciding which numbers
  * are *meant* as floors is proximity as evidence, which is how pattern checks here go

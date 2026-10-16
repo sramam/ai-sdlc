@@ -65,8 +65,7 @@ form**.
   shape as `/kickoff`, aimed at the product's own users.
 - **It writes a draft, never live settings.** The draft is applied in one
   explicit step, with a preview of what will change. An abandoned onboarding
-  leaves nothing half-configured. door_nexa learned this as _onboarding is a
-  draft_.
+  leaves nothing half-configured.
 - **It is resumable and non-destructive.** It asks only what is still open,
   and never overwrites something the user set by hand.
 - **It uses the same capabilities as the settings screens**, with the user's
@@ -80,8 +79,7 @@ form**.
 
 ## Architecture (settled in `/kickoff`, topic 12)
 
-The architecture door_nexa already had makes this cheap: **one port, many
-bindings.** Every capability is implemented once, so AI is just another binding.
+The architecture makes this cheap: **one port, many bindings.** Every capability is implemented once, so AI is just another binding.
 Every project gets three by default, rendered from the capability manifest: a
 typed **SDK**, an **HTTP API** with an OpenAPI document, and an **MCP server**
 ([`recipes/api-bindings`](recipes/api-bindings/)). A capability missing from
@@ -101,13 +99,16 @@ one needs a declared exclusion with a reason, and a pattern check enforces it.
 **Every AI run is recorded**: the agent, the caller and activator, the tools
 called, tokens, cost, the outcome, and the approvals. The record is append-only,
 and each run is a trace in OTel. A run whose pricing came from a guess is
-marked as estimated, not silently under-counted.
+marked as estimated, not silently under-counted. The run log is to build: it
+lives in `@<scope>/llm` and arrives with the first AI feature; the
+`llm-openrouter` recipe ships the cost ledger (`src/budget.ts`) it will write
+to, not the log.
 
 ## Building AI features
 
-- **Model access through `@<scope>/llm` (OpenRouter)**, which enforces the routing the
-  data class requires (zero-data-retention routes for real user data;
-  `security.md`).
+- **Model access through `@<scope>/llm` (OpenRouter)**, which enforces the
+  routing the data class requires, the cost caps, and the rule that model
+  output is untrusted input ([security.md](security.md) § _Model providers_).
 - **Model per role, configured**: a cheap model for classification, a strong one
   for reasoning. Never hard-coded. Automatic fallback to a different model is
   off, because a weaker model answering silently is a failure, not resilience.
@@ -118,16 +119,13 @@ marked as estimated, not silently under-counted.
   delimited and labelled; the task last; the output's shape specified. Each
   lives in one file beside its eval, and the code review checks it like any
   other change.
-- **Model output is untrusted input**: validate it, never render it as HTML,
-  never execute it. Tool calls go through the port.
 - **Prompt injection is assumed.** Content the model reads (uploads, emails,
   records written by other users) can carry instructions. Tools enforce
   authority regardless of what the model was told, and consequential actions
   need approval.
-- **Cost caps are enforced in-process**, per run and per tenant per day.
-  OpenRouter reports `usage.cost` in credits; the `llm-openrouter` recipe treats
-  a credit as one US dollar, so check that against the account before relying
-  on a cap.
+- **A cost cap counts in the unit OpenRouter reports.** What the
+  `llm-openrouter` recipe assumes about that unit, and what to check against
+  the account, is in [its README](recipes/llm-openrouter/README.md).
 - **Recordings hold synthetic data only**, never a real user's prompt.
 - **Tests never call a model.** Recorded responses replay in tests. Re-record
   when a prompt changes.

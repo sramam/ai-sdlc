@@ -18,7 +18,7 @@
  * opens shows a failure. Moving either string to `diff.md` would make every
  * gate read a file that no longer carries it, and **every path would report
  * green**. One constant, imported by every writer and every reader, is what
- * stops the spellings drifting; door_nexa pinned it with a source-text pattern check.
+ * stops the spellings drifting.
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

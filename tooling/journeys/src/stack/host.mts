@@ -1,23 +1,23 @@
 /**
  * **The stack host: one process that owns the app under test for a run.**
  *
- * The generic half of door_nexa's `journey-db.mts`. That script built the app,
+ * The generic half of an earlier project's stack script. That script built the app,
  * started PGlite behind a socket, seeded it, spawned `next start`, served a
  * control channel, and tore it all down — and every part that named Next, PGlite
- * or Prisma was a decision about door_nexa rather than about recording. Those
+ * or Prisma was a decision about that app rather than about recording. Those
  * moved behind a `StackAdapter`; what stayed here is what any app needs:
  *
  * | | |
  * | --- | --- |
- * | **build, with one retry** | a build cannot hide a regression the way a retried test can — it produces correct output or none — and door_nexa's `next build` failed intermittently on identical source (#1465) |
+ * | **build, with one retry** | a build cannot hide a regression the way a retried test can — it produces correct output or none — and a `next build` once failed intermittently on identical source (#1465) |
  * | **sweep scratch, once, here** | never in test setup: the learner starts one stack and runs the suite more than once, and a sweep between passes deletes the mail pass 2 is diffed against (#1068) |
  * | **a control channel** | `POST /reset` puts the state back between journey files without restarting anything, which is what stopped three passes fighting over ports |
  * | **teardown that finishes** | the app tree first, leaves first, SIGTERM then SIGKILL after a grace period; once, however many signals arrive |
  *
  * ## What an adapter must do that this cannot check
  *
- * **Spawn children in this process's group — never `detached: true`.** door_nexa
- * once detached the app "so the whole tree dies", and it was the cause of the
+ * **Spawn children in this process's group — never `detached: true`.** An earlier
+ * version detached the app "so the whole tree dies", and it was the cause of the
  * fault it meant to prevent: Playwright group-kills the host on teardown with no
  * chance to run a handler, a child in the same group dies with it, and a detached
  * child is reparented to PID 1 and keeps the port — and the inherited stdout, so
@@ -48,10 +48,10 @@ export type StackEnv = {
 
 /**
  * Which build of the app a recording runs against — a **declaration**, because
- * nothing can derive it (door_nexa #1484). The recorder reads
+ * nothing can derive it (#1484). The recorder reads
  * `devOverlayPossible` to decide whether a framework dev overlay could be in a
- * screenshot at all; door_nexa records against `next start` precisely so that
- * it cannot.
+ * screenshot at all; recording against a production build is precisely so
+ * that it cannot.
  */
 export type StackMode = { name: string; devOverlayPossible: boolean };
 
@@ -62,7 +62,7 @@ export type StackHandle = {
    * The root process of the app, if `start` spawned one. The host kills its
    * tree (`pgrep -P`, leaves first) before calling `stop`. An addition to the
    * minimal contract: without it the host cannot do the one part of teardown
-   * door_nexa found it could not leave to the child.
+   * an earlier version found it could not leave to the child.
    */
   pid?: number;
 };
@@ -92,7 +92,7 @@ export type HostOptions = {
   scratchKeep?: readonly string[];
   /** How long the app may take to answer `readyPath`. */
   readyTimeoutMs?: number;
-  /** How long the app tree gets between SIGTERM and SIGKILL. door_nexa: 2s. */
+  /** How long the app tree gets between SIGTERM and SIGKILL. Default: 2s. */
   killGraceMs?: number;
   /**
    * A random value this host answers `GET /whoami` with, beside its pid. The
@@ -330,8 +330,8 @@ export async function startHost({
 }
 
 /**
- * Stop the host on SIGINT/SIGTERM and exit — the shape door_nexa's script had,
- * for a host run as Playwright's `webServer` command.
+ * Stop the host on SIGINT/SIGTERM and exit — the shape a host run as
+ * Playwright's `webServer` command needs.
  */
 export function stopOnSignals(host: Host, exit: (code: number) => void = process.exit): void {
   const quit = () => void host.stop().then(() => exit(0));

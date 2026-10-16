@@ -1,7 +1,7 @@
 /**
  * Is a port free? Asked by **binding it**, not by reading `lsof`: a bind either
  * succeeds or fails with EADDRINUSE, which is the exact question the server is
- * about to ask, and it needs no tool a laptop may lack (door_nexa #1293).
+ * about to ask, and it needs no tool a laptop may lack (#1293).
  */
 import { portIsFree } from "../../core/src/ports.mts";
 import { candidatePorts } from "./lib.mts";

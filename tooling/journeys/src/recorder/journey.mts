@@ -20,8 +20,8 @@
  *   what two runs of unchanged software disagreed about. Soft, so a red step
  *   does not stop the recording a reviewer was asked to look at.
  * - **Nothing is deleted.** Each step overwrites its own files and nothing else,
- *   so a run that dies early cannot eat recordings it never reached (door_nexa
- *   lost 65 files once to a wipe-first recorder).
+ *   so a run that dies early cannot eat recordings it never reached (a
+ *   wipe-first recorder once lost 65 files).
  *
  * ## The modes, set by `journeys learn` through the environment
  *
@@ -32,7 +32,7 @@
  * | `JOURNEY_RELEARN=1` | start each step's mask from nothing |
  * | `JOURNEY_DWELL=<ms>` | the timed motion watch, for an audit run; 0 by default |
  *
- * **Pass 1 matches; it does not learn** (door_nexa #718). Its baseline is the
+ * **Pass 1 matches; it does not learn** (#718). Its baseline is the
  * *committed* recording, which after a UI change is a different build — learning
  * there teaches the mask the change just made. A step that matches keeps the
  * committed image; one that does not becomes the reference pass 2 learns
@@ -102,7 +102,7 @@ export type JourneyMeta = {
   /**
    * The persona key whose walk this is — a registry persona, or `common` for a
    * walk that does not depend on who performs it. **Every recording carries the
-   * level**: door_nexa made it opt-in, and two personas in one folder then
+   * level**: when it was opt-in, two personas in one folder
    * merged their screenshots clean while their READMEs conflicted.
    */
   persona: string;

@@ -28,6 +28,27 @@ describe("usageArgs", () => {
     });
   });
 
+  it("passes the report's window through, as the progress report runs it", () => {
+    expect(
+      usageArgs(["report", "--format", "json", "--from", "2026-10-01", "--to", "2026-10-16"], MAIN),
+    ).toEqual({
+      ok: true,
+      args: [
+        "dlx",
+        CODEBURN,
+        "report",
+        "--format",
+        "json",
+        "--from",
+        "2026-10-01",
+        "--to",
+        "2026-10-16",
+        "--project",
+        MAIN,
+      ],
+    });
+  });
+
   it("keeps a scope the caller chose", () => {
     for (const scope of [
       ["--project", "/elsewhere"],

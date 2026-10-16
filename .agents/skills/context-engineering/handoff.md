@@ -38,7 +38,7 @@ leave the other files alone.
 3. **Traps**: things that cost time this session and will cost it again
 4. **Open**: each item is _acted on, given an owner and a date, or dropped_.
    Never copy forward an inherited warning you cannot vouch for today. Link the
-   OTel trace of anything left broken.
+   OTel trace of anything left broken (telemetry recipe).
 
 ### 3. Verify, then say where it is
 

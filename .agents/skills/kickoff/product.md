@@ -30,7 +30,7 @@ and converse about the gaps.
 **Stage 2 recommends; stage 3 decides.** Technology triggers, the
 authorization engine and the backoffice split are **recorded** in
 `technology.md` (the need, its requirement IDs, the candidate options and a
-recommendation). That is why the verdict may read _ready, pending decisions_
+recommendation). That is why the verdict may read `ready-pending-decisions`
 until stage 3 has run.
 
 ## Conversation mode
@@ -132,8 +132,8 @@ until stage 3 has run.
 ## Restartable and non-destructive
 
 - Each section and file carries a marker
-  (`<!-- idea: section=scope state=decided updated=… -->`; the `idea` label is
-  what `plan:check` reads).
+  (`<!-- kickoff: section=scope state=decided updated=… -->`), which
+  `plan:check` reads.
 - A re-run asks **only** what is `open` or `partial`, plus overdue deferrals and
   answers that arrived in `Q-` files.
 - It writes in place, one answer at a time. A hand edit by the author wins.
@@ -149,7 +149,7 @@ Unanswered questions become `Q-` files, with options, a recommendation and
 
 - Every BRD theme and PRD file is decided, provisional with a `Q-`, or out of scope.
 - Tenancy is not `open`, and every technology trigger is recorded.
-- The verdict is **ready, pending decisions** or better.
+- The verdict is `ready-pending-decisions` or better.
 - `plan:check --stage requirements` passes, and a re-run of this stage asks
   nothing new.
 - Continue with stage 3.

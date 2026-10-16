@@ -38,7 +38,7 @@ describe("TanStack Router file routes", () => {
   }
 });
 
-describe("Next App Router routes (door_nexa's, ported)", () => {
+describe("Next App Router routes (ported)", () => {
   const n = nextAppRoutes("apps/web/src/app");
   const cases: Array<[string, string | null]> = [
     ["apps/web/src/app/(dashboard)/layout.tsx", "/"],

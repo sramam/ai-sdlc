@@ -73,14 +73,16 @@ Packages (each has its own `agents.md`):
   main checkout. When the user first asks for something, **propose a name** (from
   the item, `req-<slug>`, or the request) and let them change it before creating
   it. One live worktree per session. _Enforced by hooks._
+  ```bash
+  pnpm claim <ID>                     # an item: the branch is its lowercased ID
+  git fetch origin <id> && git worktree add .claude/worktrees/<id>-<slug> <id>
+  git worktree add .claude/worktrees/req-<slug> -b req-<slug> origin/dev   # a requirements branch
+  cd .claude/worktrees/<name> && pnpm install && pnpm bootstrap
+  ```
 - **Long-running scripts run in the background**, in a sub-agent or a background
   shell: `ci:local`, test suites, journeys, builds, provisioning. Keep working
   with the user, and report when the result arrives. `ci:local` tests a snapshot,
   so editing can continue meanwhile.
-  ```bash
-  git worktree add .claude/worktrees/<name> -b <branch> origin/dev
-  cd .claude/worktrees/<name> && pnpm install && pnpm bootstrap
-  ```
 - **"Push it" / "merge it" means: open a PR into `dev`.** Never push directly to an
   integration branch. _Enforced by `pre-push`._
 - **`scripts/` is durable; `scripts/one-of/` is throwaway and gitignored.** Put
@@ -112,6 +114,9 @@ Packages (each has its own `agents.md`):
 
 ## Building
 
+Filled from `docs/architecture.md` after kickoff; the defaults below hold until
+then.
+
 - **Every capability call is an OTel span; logs are structured and carry the
   trace ID.** Only registered attribute keys; no PII, secrets or bodies.
   `console.log` is refused. A capability without a span is not done.
@@ -139,8 +144,8 @@ Packages (each has its own `agents.md`):
   needs it, stop and ask.
 - **A lifecycle is a state machine, and the machine is the only writer of its
   column.** Creation is a transition too, so there is no `@default`. Every event
-  needs a sender. _Pattern check: `machine-pattern-check.test.ts`, added with the first
-  lifecycle._
+  needs a sender. _Checked by the commit-time code review (project criteria 4)
+  until the test-harness foundation item adds a pattern check._
 - **A third-party service gets its own package, named for the capability, not the
   vendor.** Build the client lazily at call time. Add a vendor-neutral port only
   for an _undecided_ vendor.
@@ -154,7 +159,8 @@ Packages (each has its own `agents.md`):
 
 - The unit suite never touches the network or a model, and runs with credentials cleared.
 - Anything reading or writing rows uses `createTestDb()` (PGlite). **Never write a
-  database fake.** _Pattern check: `db-fake-pattern-check.test.ts`._
+  database fake.** _Checked by the commit-time code review (project criteria 1)
+  until the test-harness foundation item adds a pattern check._
 - Data-access rules (whatever `access-model.md` says: tenant, team, user or
   none) are asserted against a real database, with each refusal paired with
   the same call succeeding for whoever is allowed it.

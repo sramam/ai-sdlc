@@ -67,15 +67,14 @@ Unsure objects are marked `provisional`, with a `Q-` file.
 - **Design from the access paths.** Each hot journey step names the query it
   needs, and the index exists for that query, not for the column list.
 - **Index every foreign key you look up by.** Postgres does not do this for
-  you. In door_nexa, a composite index starting with `organizationId` could
-  not serve a lookup by `chargeId` alone, and a query grew 176× in time over
-  12× more rows.
+  you, and a composite index starting with the tenant ID cannot serve a lookup
+  by the foreign key alone.
 - **Watch for costs that are superlinear in history.** A correlated nested
   `include` runs once per row. It looks fine on small data and on every young
   production database. Seed realistic volumes (a year of history) and time the
   hot queries.
-- **Bulk writes in one statement or transaction** (`createMany`, nested
-  `create`), never one round trip per row.
+- **Bulk writes in one statement or transaction**, never one round trip per
+  row.
 - **Soft delete (`archivedAt`) only where a person needs undo or history.**
   Otherwise delete, and let retention rules govern evidence.
 - **Migrations are additive first.** Add a column nullable, backfill it, then
@@ -114,10 +113,9 @@ Seeds exist at three sizes, and they are the same code at every size:
   true next month.
 - **Every state appears**, including the awkward ones, such as a record
   between sweeps or a lifecycle at every stage.
-- **Real-shaped values come from captured fixtures**, not random generators.
-  door_nexa's faker addresses put a Michigan ZIP code on a Californian property,
-  which the product's own validation rejects. Capture a small set of real
-  values once, commit them, and index into them.
+- **Real-shaped values come from captured fixtures**, not random generators,
+  whose addresses the product's own validation rejects. Capture a small set of
+  real values once, commit them, and index into them.
 - **Idempotent**: re-running produces the same database. Use upserts on fixed
   IDs, or delete-and-recreate of seed-owned rows (prefix their IDs).
 - **History is produced by running the real jobs** with an injectable clock

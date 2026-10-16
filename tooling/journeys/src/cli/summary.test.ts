@@ -10,9 +10,10 @@ import { SINGLE_RUN, closingLine } from "./summary.mts";
  * defect was that it then closed with the same reassuring line whether or not
  * the first two passes were red, with the warning 300 lines above it.
  *
- * Tested rather than trusted because in door_nexa `scripts/` was linted by nothing and
- * type-checked by nothing (#917), so a template-literal slip here would only
- * show up at the end of a browser run somebody had waited ten minutes for.
+ * Tested rather than trusted because in an earlier project `scripts/` was
+ * linted by nothing and type-checked by nothing (#917), so a template-literal
+ * slip here would only show up at the end of a browser run somebody had
+ * waited ten minutes for.
  */
 
 describe("the closing line of a journey:masks run", () => {
@@ -66,7 +67,7 @@ describe("the closing line of a journey:masks run", () => {
 });
 
 describe("the single-run advice", () => {
-  it("names door_nexa's command by default", () => {
+  it("names the default command", () => {
     expect(closingLine([1])).toContain(SINGLE_RUN);
   });
 

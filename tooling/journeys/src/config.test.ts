@@ -19,7 +19,7 @@ const repo = () => {
 };
 
 describe("the journeys config", () => {
-  it("defaults to door_nexa's values", () => {
+  it("defaults to the documented values", () => {
     const c = resolveJourneysConfig();
     expect(c.evidenceRoot).toBe("docs/journeys");
     expect(c.scratchRoot).toBe("test-results");

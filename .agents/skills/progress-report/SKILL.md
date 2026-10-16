@@ -45,10 +45,9 @@ It can be generated because every commit body ends with a `Progress:` block, so
    `agents.md`, an ADR) and guarded if it can be. Ask whether every project would
    want it; if so, fix it here (the project owns the code) and draft the same
    change for the `ai-sdlc` registry, which other projects take with `pnpm sdlc update`.
-5. Update the pointer to the latest report in `README.md`. The report lands like
-   any change: on its own branch, with a `No-Item: progress report` trailer, via
-   `pnpm land`.
-6. **Verify** that every PR, item ID and SHA cited exists before reporting done.
+5. **Verify** that every PR, item ID and SHA cited exists.
+6. **Land** it like any change: on its own branch, with a
+   `No-Item: progress report` trailer, via `pnpm land`.
 
 A report that only lists features is a changelog, and the changelog already
 exists: it is the commit log.

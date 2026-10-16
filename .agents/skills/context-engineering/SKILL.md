@@ -8,7 +8,7 @@ metadata:
 # Context Engineering
 
 Follow [the upstream skill](../../3rdparty/agent-skills/skills/context-engineering/SKILL.md)
-in full, with the amendments below.
+in full, with the amendments below. Where they differ, the amendments win.
 
 ## Amendments
 

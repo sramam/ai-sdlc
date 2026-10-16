@@ -5,7 +5,7 @@ import type { Box } from "./boxes.mts";
  *
  * Counted on a bitmap, not summed: `mergeBoxes` drops a box wholly inside
  * another and nothing else, so two that merely cross both survive and their
- * intersection would be added twice (door_nexa: 11,616px summed against
+ * intersection would be added twice (measured: 11,616px summed against
  * 10,208px actually covered). The learner's pattern check, the delta and the recorder
  * all judge a mask by this one number.
  */

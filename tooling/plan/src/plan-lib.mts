@@ -21,7 +21,7 @@
  * personas.md
  *   A persona is a heading (level 2–4) whose text begins with `@slug`
  *   (backticks allowed). It is provisional when its heading says `provisional`,
- *   a `Status: provisional` field sits in its section, or an `idea` marker in
+ *   a `Status: provisional` field sits in its section, or a `kickoff` marker in
  *   it says `state=provisional`. The `Q-<nnn>` IDs in its section are what
  *   settles it.
  *
@@ -65,8 +65,9 @@
  *
  * access-model.md
  *   Tenancy is declared by a `Tenancy: <model>` field (also `**Tenancy:** …`),
- *   or by an `idea` marker for its tenancy section
- *   (`<!-- idea: section=tenancy state=decided -->`). It is open when that
+ *   or by a `kickoff` marker for its tenancy section
+ *   (`<!-- kickoff: section=tenancy state=decided -->`; the older `idea:` label
+ *   is still read). It is open when that
  *   field reads `open` or the marker says `state=open`, and undeclared when
  *   neither exists — which the requirements stage treats as a failure too.
  *
@@ -879,7 +880,10 @@ export interface Tenancy extends Loc {
   value: string;
 }
 
-/** The declared tenancy: a `Tenancy:` field, else an `idea` tenancy marker's state. */
+/** The tenancy marker's state: `<!-- kickoff: section=tenancy state=… -->` (`idea:` in older files). */
+const TENANCY_MARKER = /<!--\s*(?:kickoff|idea):[^>]*section=tenancy[^>]*state=([\w-]+)/i;
+
+/** The declared tenancy: a `Tenancy:` field, else the tenancy marker's state. */
 export function parseTenancy(text: string, file: string): Tenancy | null {
   const lines = stripFences(text).split("\n");
   for (let i = 0; i < lines.length; i++) {
@@ -887,7 +891,7 @@ export function parseTenancy(text: string, file: string): Tenancy | null {
     if (f && f.value.trim()) return { value: f.value.trim(), file, line: i + 1 };
   }
   for (let i = 0; i < lines.length; i++) {
-    const m = /<!--\s*idea:[^>]*section=tenancy[^>]*state=([\w-]+)/i.exec(lines[i] ?? "");
+    const m = TENANCY_MARKER.exec(lines[i] ?? "");
     if (m && m[1]) return { value: m[1], file, line: i + 1 };
   }
   return null;
@@ -948,7 +952,7 @@ export function parseAccessModel(text: string, file: string): Loc | null {
     const l = lines[i] ?? "";
     if (fieldsOf(stripComments(l)).some((f) => f.label === "tenancy" && /^open\b/i.test(f.value)))
       return { file, line: i + 1 };
-    if (/<!--\s*idea:[^>]*section=tenancy[^>]*state=open/i.test(l)) return { file, line: i + 1 };
+    if (/^open$/i.test(TENANCY_MARKER.exec(l)?.[1] ?? "")) return { file, line: i + 1 };
   }
   return null;
 }

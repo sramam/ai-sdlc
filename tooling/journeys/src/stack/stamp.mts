@@ -8,7 +8,7 @@
  *
  * | | read by |
  * | --- | --- |
- * | `mode.name` | `run.json`'s `stack` — a timing whose stack is unknown supports no comparison (door_nexa #1484) |
+ * | `mode.name` | `run.json`'s `stack` — a timing whose stack is unknown supports no comparison (#1484) |
  * | `mode.devOverlayPossible` | the recorder, deciding whether a hide rule matching nothing is a finding |
  * | `pid`, `readyAt` | the learner, telling *this* stack's readiness from a stale file |
  * | `nonce`, `controlUrl`, `owned` | the next sweep, telling a live run from an abandoned one (`ownership.mts`) |

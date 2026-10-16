@@ -19,11 +19,11 @@ import type { MaskBox } from "./boxes.mts";
  *
  * Every other suite here builds its PNGs in memory: RGBA, tiny, and exactly the
  * shape the author expected. A real screenshot is none of those — this one is a
- * 1280×720 **RGB** PNG Playwright wrote, with the mask door_nexa's learner stored
+ * 1280×720 **RGB** PNG Playwright wrote, with the mask the learner stored
  * beside it (J40 `the-last-admin/01`, copied verbatim; `__fixtures__/` is not
  * evidence and is not under the LFS filter `docs/journeys/` carries).
  *
- * It replaces nothing door_nexa had: none of the ported suites read the
+ * It replaces no earlier test: none of the ported suites read the
  * recordings tree. It exists because the step-1 code paths that touch a file —
  * decode, compare, paint — were otherwise only ever exercised on synthetic input.
  */

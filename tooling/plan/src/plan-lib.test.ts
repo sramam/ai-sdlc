@@ -156,7 +156,14 @@ describe("document parsers", () => {
       file: "a.md",
       line: 1,
     });
+    expect(
+      parseAccessModel("<!-- kickoff: section=tenancy state=open -->\n", "a.md"),
+    ).not.toBeNull();
+    // Older files carry the `idea:` label.
     expect(parseAccessModel("<!-- idea: section=tenancy state=open -->\n", "a.md")).not.toBeNull();
+    expect(
+      parseAccessModel("<!-- kickoff: section=tenancy state=open-ended -->\n", "a.md"),
+    ).toBeNull();
     expect(parseAccessModel("Tenancy: multi-tenant, shared schema\n", "a.md")).toBeNull();
   });
 });
@@ -176,6 +183,9 @@ describe("verdict, tenancy and Dependencies: lines", () => {
   });
   it("reads the declared tenancy", () => {
     expect(parseTenancy("Tenancy: per-user\n", "a.md")?.value).toBe("per-user");
+    expect(parseTenancy("<!-- kickoff: section=tenancy state=decided -->\n", "a.md")?.value).toBe(
+      "decided",
+    );
     expect(parseTenancy("<!-- idea: section=tenancy state=decided -->\n", "a.md")?.value).toBe(
       "decided",
     );

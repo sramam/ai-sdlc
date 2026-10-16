@@ -1,5 +1,5 @@
 /**
- * The settle configuration, its default and door_nexa's example — apart from
+ * The settle configuration, its default and an example — apart from
  * `settle.mts` so that reading a config never loads Playwright. See `settle.mts`
  * for what each wait is for.
  */
@@ -21,7 +21,7 @@ export type SettleConfig = {
    * The element that scrolls instead of the document, if the app shell has one.
    *
    * `fullPage` screenshots the **document**, and an `h-screen` shell with an
-   * inner scroller keeps the document viewport-sized — door_nexa's `fullPage`
+   * inner scroller keeps the document viewport-sized — `fullPage` here
    * was inert for a year, every image 1280×720 (#679). Naming the scroller lets
    * the recorder grow the viewport to its content for the shot.
    */
@@ -33,7 +33,7 @@ export type SettleConfig = {
    * overlay is the example (`nextjs-portal`). Hidden rather than masked: it
    * appears intermittently, which is the case a learner cannot see. A hide rule
    * that stops matching is reported (see the recorder), because three of
-   * Next's badges reached door_nexa's committed evidence silently.
+   * Next's badges reached committed evidence silently.
    */
   hide: string[];
   /** The busy marker. `[aria-busy="true"]` unless the app spells loading differently. */
@@ -52,8 +52,8 @@ export const DEFAULT_SETTLE: SettleConfig = {
 };
 
 /**
- * door_nexa's settings, as an example to copy from — **not** a default. A
- * Next.js + Radix + Recharts app would write exactly this.
+ * An example to copy from — **not** a default. A Next.js + Radix + Recharts
+ * app would write exactly this.
  */
 export const EXAMPLE_SETTLE: Partial<SettleConfig> = {
   selectors: [

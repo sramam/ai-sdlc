@@ -170,7 +170,7 @@ export function parseArgs(argv: string[]): CiOptions | { error: string } {
 /**
  * Only what a step needs to find its tools, plus what it declares. A step that
  * passes because a credential happened to be in somebody's shell is not
- * proving what it claims (door_nexa ran a "hermetic" suite against a
+ * proving what it claims (an earlier project ran a "hermetic" suite against a
  * developer's .env for a year).
  */
 export function scrubbedEnv(source: NodeJS.ProcessEnv, declared: string[] = []): NodeJS.ProcessEnv {

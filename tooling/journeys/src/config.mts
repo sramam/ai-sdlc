@@ -10,8 +10,8 @@
  * below applies; present, it overrides field by field. Moving it under
  * `sdlc.config.json` later is a loader change here and a one-line move in a project.
  *
- * Every default is door_nexa's value, carried over because each was paid for
- * there — see the comments on the constants they come from.
+ * Every default was paid for — see the comments on the constants they come
+ * from.
  */
 import { existsSync } from "node:fs";
 import { join } from "node:path";
@@ -115,7 +115,7 @@ export function defineJourneysConfig(config: JourneysConfigInput): JourneysConfi
 
 /**
  * Defaults, overridden field by field. Lists **replace** rather than append: a
- * project that wants door_nexa's declared selectors plus one of its own spreads
+ * project that wants the default declared selectors plus one of its own spreads
  * `DECLARED_VOLATILE` itself, so the file says what is masked rather than
  * leaving half of it implied.
  */

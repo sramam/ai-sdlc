@@ -12,12 +12,9 @@ in full, with the amendments below. Where they differ, the amendments win.
 
 ## Amendments
 
-- Upstream names skills `agent-skills:<name>` (its plugin namespace); here
-  each is plain `<name>`, and its wrapper in `.agents/skills/` carries this
-  project's amendments.
-
-`/build` is the pipeline. A person approved the spec; from here nothing
-waits for one, except where the stop rules below say so.
+`/build` is the pipeline. The spec was the only human gate
+(`using-agent-skills`); from here nothing waits for one, except where the stop
+rules below say so.
 
 ### `/build`: the next ready item
 
@@ -33,8 +30,8 @@ waits for one, except where the stop rules below say so.
    too.
 4. **Land**: `pnpm land` in the background; act on its result when it arrives.
    Red is a stop, never "unrelated".
-5. **Journeys** _(module)_: if this item was the last one a persona journey
-   depended on, run `/journeys add` and `/journeys test` for it.
+5. **Journeys** _(module)_: `pnpm plan:status --journeys`; for a journey whose
+   items are now all done, run `/journeys add` and `/journeys test`.
 
 ### `/build auto`: every ready item
 
@@ -43,8 +40,7 @@ Upstream's autonomous mode, with these differences:
 - **The spec check is `pnpm plan:check`**, not a `SPEC.md` file: it refuses
   items whose feature has no `Approved:` line.
 - **No plan checkpoint.** If approved features have no items yet, plan them
-  (`planning-and-task-breakdown`) and land the plan, then continue. The spec
-  approval was the single human gate.
+  (`planning-and-task-breakdown`) and land the plan, then continue.
 - **The unit is the item, not the task**: claim → slices → review → land, one
   worktree at a time, then `pnpm plan:status --ready` again, until nothing is
   ready. Close each landed worktree before claiming the next.
@@ -53,5 +49,5 @@ Upstream's autonomous mode, with these differences:
   is red, the item needs a requirement changed (that is `/spec`, and a person
   approves it), or a technology decision is open.
 - **When it stops or finishes**, write the handoff
-  (`context-engineering` § handoff) and report what landed, what is ready next,
-  and what is blocked on whom.
+  ([context-engineering/handoff.md](../context-engineering/handoff.md)) and
+  report what landed, what is ready next, and what is blocked on whom.

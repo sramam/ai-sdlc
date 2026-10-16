@@ -5,15 +5,9 @@ staging, production)**, declared as wrangler environments in one
 `wrangler.jsonc`. Two clarifications make them work.
 
 1. **"dev" means the shared integration deployment, not your laptop.** Local
-   is not deployed. Each checkout runs against its **own** database
-   (PGlite in tests; for the dev server, a per-checkout local Postgres from
-   `pnpm db:local`, which Hyperdrive reaches under `wrangler dev` through
-   `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_<BINDING>`, verified in
-   docs/kit/spike-2026-10.md. It beats `localConnectionString`, and the URL
-   **must contain a password**; PGlite ignores it, so use a dummy one), never
-   the shared dev database. door_nexa's shared dev database,
-   written to by every agent, caused migration drift that nobody could create a
-   migration past.
+   is not deployed, and each checkout runs against its own PGlite database
+   (§ _Local_ below; how `wrangler dev` reaches it is in
+   [spike-2026-10.md](spike-2026-10.md) § 4), never the shared dev database.
 2. **Previews are optional, and their database is the trap.** A version
    uploaded with a preview URL uses **that version's own bindings**, so a preview
    uploaded to `dev` reaches dev's database unless it is uploaded with its own
@@ -36,7 +30,20 @@ Durable Object namespaces, secrets and OTel resource attributes
 
 Every worktree has **its own** Postgres (PGlite, served on a port derived from
 the checkout), under `.localdb/<db>/` in that worktree. Nothing local is
-shared, so an agent can change a schema or wipe data and nobody else notices:
+shared, so an agent can change a schema or wipe data and nobody else notices.
+Under `wrangler dev`, Hyperdrive reaches it through
+`CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_<BINDING>`, which beats
+`localConnectionString` and must contain a password (PGlite ignores it;
+[spike-2026-10.md](spike-2026-10.md) § 4).
+
+PGlite is one Postgres session, so the server holds it for one connection at a
+time for a whole protocol exchange (`SessionLock` in
+`tooling/localdb/src/socket.mts`; the spike's `portal "" does not exist`
+failures under concurrent requests are covered by
+`tooling/localdb/src/concurrency.test.ts`). The costs that remain: a long
+transaction blocks every other connection, and named prepared statements,
+`SET`, temp tables and `LISTEN` are shared across connections, so a driver
+that prepares statements by name is told not to.
 
 ```bash
 pnpm db:local start            # one server per configured database; prints DATABASE_URL
@@ -71,22 +78,20 @@ pnpm db:local reset            # empty, then migrate
   4. fast-forwards the git branch
   5. smoke-tests the deployed URL (sign in, reach a page) and fails loudly
 - **Only the promote scripts move `staging` and `main`.** `.husky/pre-push`
-  refuses every update of either unless the push was handed to it by promote:
-  a one-shot `<nonce> <sha> <ref>` file under the git common dir, matched
-  against `SDLC_PROMOTE_NONCE` and the exact SHA and ref, and deleted on use.
-  A branch name proves nothing and neither does a SHA being on `origin/dev`,
-  so a raw `git push origin <sha>:refs/heads/staging` is refused even for an
-  approved commit. `.claude/settings.json` denies the raw push commands too.
-  Both are guardrails against an ordinary mistake, not a boundary: anything
-  that can write `.git/` can forge a handoff. **A GitHub ruleset on `staging`
-  and `main` is the stronger layer** (restrict updates to the people who
-  promote; no force-push, no deletion), and is worth applying wherever the plan
-  offers rulesets.
+  refuses every other update of either, accepting only a push promote handed
+  to it with a one-shot nonce; the mechanism is in the hook's header comment.
+  `.claude/settings.json` denies the raw push commands too; both are
+  guardrails against a mistake, not a boundary
+  ([security.md](security.md) § _Our own agents and machines_). **A GitHub
+  ruleset on `staging` and `main` is the stronger layer** (restrict updates to
+  the people who promote; no force-push, no deletion), and is worth applying
+  wherever the plan offers rulesets.
 - **Deploy tokens are scoped** to one account and the Workers, R2 and Queues
   permissions needed. They are never on agents' machines, and they are used only
   by the promote scripts.
-- **Rollback** is `wrangler rollback` to the previous version. The schema stays
-  forward, so migrations are additive first (see [data-model.md](data-model.md)).
+- **Rollback** is `pnpm rollback <env>` (`tooling/promote/src/rollback.mts`):
+  the code moves back, the schema stays forward, so migrations are additive
+  first (see [data-model.md](data-model.md)).
 - Cloudflare's own git integration (Workers Builds) is an alternative to
   deploying from a laptop. If adopted, keep `local-ci` as the gate and let the
   integration deploy only branches that already passed.
@@ -94,9 +99,11 @@ pnpm db:local reset            # empty, then migrate
 ## Rules
 
 - **Each deployment checks it is on the database it claims.** The environment
-  declares its database branch, and `/api/health` compares that with what the
-  session reports (door_nexa's branch verdict). It reports the verdict, never
-  topology.
+  declares its database branch, and `/health` (the route
+  `recipes/app-tanstack-workers` ships) compares that with what the session
+  reports. It reports the verdict, never topology. The comparison is to build:
+  the recipe's `/health` answers readiness only (its README § _Not here_), and
+  the infrastructure foundation item adds the check.
 - **Environment gates are allow-lists.** Name where a privilege applies, never
   where it does not: seeding, staff self-sign-up, email capture, local storage.
   An undeclared environment gets the restrictive answer.
@@ -106,8 +113,10 @@ pnpm db:local reset            # empty, then migrate
   it afterwards.
 - **Secrets** are set with `wrangler secret put` per environment. Bindings and
   variables are validated by a schema at startup, failing loudly with the name
-  of anything missing. `.env.example` and `.dev.vars.example` list everything,
-  and a pattern check keeps them in step with the schema.
+  of anything missing. `.dev.vars.example` (secrets) and the `vars` in
+  `wrangler.jsonc` list everything; a pattern check over the three is to build
+  (the environments and promotion foundation item,
+  [recipes/env-schema/README.md](recipes/env-schema/README.md)).
 - **Capture transports** (email to disk, local storage) are refused on every
   deployed environment, at build time and at call time.
 - **Backups**: rely on the database host's point-in-time recovery, and R2
@@ -121,5 +130,5 @@ pnpm db:local reset            # empty, then migrate
 - `apps/<app>/src/env.ts`, from the `env-schema` recipe: the schema for
   variables **and bindings**, with deployment-only rules
 - `pnpm promote:staging` and `pnpm promote:prod`, as above
-- `/api/health` with the database-branch check
+- `/health` with the database-branch check (to build on the recipe's route)
 - seeding scripts that refuse production (see [data-model.md](data-model.md) § _Seed and demo data_)

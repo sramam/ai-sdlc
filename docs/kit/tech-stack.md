@@ -8,10 +8,11 @@ The SDLC engine (worktrees, the plan, the requirements lock, local CI,
 `pnpm land`, reports) does not depend on any of it.
 
 **Preferred** means kickoff proposes it and the user confirms or changes it.
-**Decide per project** means kickoff asks, using the criteria given here. Items marked
-_verify_ are expectations rather than door_nexa experience. Check them against
-current docs in the first spike, and record what you find in the relevant
-`agents.md`.
+**Decide per project** means kickoff asks, using the criteria given here. What
+the October 2026 spike verified is in [spike-2026-10.md](spike-2026-10.md);
+anything it did not reach is checked in the project's platform spike
+([BOOTSTRAP.md](BOOTSTRAP.md)), and the finding goes in the package's
+`agents.md` ([memory.md](memory.md) § _The layers_).
 
 ## Preferred (kickoff confirms or changes each)
 
@@ -54,8 +55,9 @@ of those.
   flow. Agents use the logged-in CLI but are **denied reading its token files**
   (`security.md`).
 - **Provisioning is a script**, idempotent and per environment
-  (`pnpm infra:provision --env staging`), never a sequence of console clicks.
-  Running it twice changes nothing.
+  (`pnpm infra:provision --env staging`, written by the infrastructure
+  foundation item, [BOOTSTRAP.md](BOOTSTRAP.md)), never a sequence of console
+  clicks. Running it twice changes nothing.
 - **`pnpm accounts:check`** prints a line per CLI: logged in as whom, not logged
   in, or **could not ask**. It uses non-interactive flags and a timeout, because
   a CLI waiting on an invisible prompt looks exactly like "not logged in".
@@ -65,15 +67,15 @@ of those.
 
 ## Decide per project (in `/kickoff`)
 
-|                          | options                                                                             | how to choose                                                                                                                                                                                                                                                                                                                                                                              |
-| ------------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **database**             | **Postgres** (Neon, reached from Workers through **Hyperdrive**) or **D1** (SQLite) | Default Postgres: PGlite tests, branches per environment, the richest constraints. D1 only for small single-tenant apps that want zero external services, and it is **outside the kit**: PGlite tests, database branches and the health check all assume Postgres, so D1 needs an ADR that replaces them. _Verify the Prisma driver adapter and Hyperdrive combination in the first spike_ |
-| **ORM**                  | **Drizzle** (default) or Prisma 7 with a driver adapter                             | Both verified through Hyperdrive (docs/kit/spike-2026-10.md). Drizzle is the default: about 5× smaller and about 2.5× faster on the first request. Prisma 7 when a project wants its client extensions; pin 7.x                                                                                                                                                                            |
-| **auth**                 | Better Auth (passwordless OTP, passkeys) or a hosted provider                       | It must run on Workers (_verify_), support MFA for privileged roles, and keep sessions in the DB or a Durable Object, never only in a JWT you cannot revoke                                                                                                                                                                                                                                |
-| **authorization engine** | Oso or SpiceDB                                                                      | decided from `access-model.md` (see security.md)                                                                                                                                                                                                                                                                                                                                           |
-| **email and SMS**        | Resend or Postmark; Twilio                                                          | one package each, named for the capability                                                                                                                                                                                                                                                                                                                                                 |
-| **OTel backend**         | any OTLP endpoint: Grafana, Honeycomb, Axiom, SigNoz                                | vendor-neutral by construction, so swapping one is configuration                                                                                                                                                                                                                                                                                                                           |
-| **payments**             | Stripe, if any                                                                      | idempotency keys derived from stored keys                                                                                                                                                                                                                                                                                                                                                  |
+|                          | options                                                                             | how to choose                                                                                                                                                                                                                                                                                            |
+| ------------------------ | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **database**             | **Postgres** (Neon, reached from Workers through **Hyperdrive**) or **D1** (SQLite) | Default Postgres: PGlite tests, branches per environment, the richest constraints. D1 only for small single-tenant apps that want zero external services, and it is **outside the kit**: PGlite tests, database branches and the health check all assume Postgres, so D1 needs an ADR that replaces them |
+| **ORM**                  | **Drizzle** (default) or Prisma 7 with a driver adapter                             | Both verified through Hyperdrive. Drizzle is the default: a smaller Worker and a faster first request ([spike-2026-10.md](spike-2026-10.md) § 2–3 has the measurements). Prisma 7 when a project wants its client extensions; pin 7.x                                                                    |
+| **auth**                 | Better Auth (passwordless OTP, passkeys) or a hosted provider                       | Better Auth's email OTP ran on Workers with sessions in Postgres ([spike-2026-10.md](spike-2026-10.md) § 6; MFA and passkeys not tested). Whatever is chosen must support MFA for privileged roles and keep sessions in the DB or a Durable Object, never only in a JWT you cannot revoke                |
+| **authorization engine** | Oso or SpiceDB                                                                      | decided from `access-model.md` (see security.md)                                                                                                                                                                                                                                                         |
+| **email and SMS**        | Resend or Postmark; Twilio                                                          | one package each, named for the capability                                                                                                                                                                                                                                                               |
+| **OTel backend**         | any OTLP endpoint: Grafana, Honeycomb, Axiom, SigNoz                                | vendor-neutral by construction, so swapping one is configuration                                                                                                                                                                                                                                         |
+| **payments**             | Stripe, if any                                                                      | idempotency keys derived from stored keys                                                                                                                                                                                                                                                                |
 
 ## The architecture shape
 
@@ -108,21 +110,23 @@ packages/api      capabilities: authorize (Oso/SpiceDB) + scoped data + state ma
   is declared in the manifest's `exclusions` with a reason that is a property of
   the mechanism, and a pattern check fails on a missing capability, a stale
   exclusion or a reason under four words. Reads and writes are both `POST` with
-  a JSON body. MCP is the official SDK v2 (`@modelcontextprotocol/server`), served
-  from a server route. See [`recipes/api-bindings`](recipes/api-bindings/), and
-  security.md § _API authentication_ for how each binding finds its caller.
+  a JSON body. MCP is the official SDK, served from a server route (which
+  package and version, and why, in [`recipes/api-bindings`](recipes/api-bindings/)).
+  See security.md § _API authentication_ for how each binding finds its caller.
 
-## Workers constraints to design for (_verify each in the first spike_)
+## Workers constraints to design for
+
+Each was checked in the October 2026 spike; its verdict is in
+[spike-2026-10.md](spike-2026-10.md) § _Verdicts_, items 8–13.
 
 - **No long requests.** CPU and wall-time limits apply, so anything heavy goes
   to a Queue or a Workflow, and it must be idempotent.
 - **No access to the host's disk, and a partial Node API** (`nodejs_compat`).
   `/tmp` is a writable, in-memory, per-request filesystem; vars and secrets also
   appear in `process.env`. Libraries that assume Node may fail at runtime, not
-  at build. **Run `tsc --noEmit` before trusting a build**: in the spike, an API
-  named in the current docs but missing from the installed version passed
-  `vite build` and failed every route at runtime. Smoke-test the **built
-  Worker** under `wrangler dev`, not only the Vite dev server.
+  at build. **Run `tsc --noEmit` before trusting a build** (the spike's item
+  10: a stale API passed `vite build` and failed every route). Smoke-test the
+  **built Worker** under `wrangler dev`, not only the Vite dev server.
 - **Bundle size and cold start.** Keep heavy dependencies out of the request path.
 - **Database connections** go through Hyperdrive, never a direct connection per
   request.
@@ -142,16 +146,3 @@ packages/api      capabilities: authorize (Oso/SpiceDB) + scoped data + state ma
 - Integer cents in `BigInt` columns. Guards throw on fractional cents.
 - A date boundary is resolved in the zone of the **thing it belongs to**, not
   the server's. Workers run in UTC.
-
-## From door_nexa, kept as lessons
-
-These were Next.js and Vercel specifics, and do not apply to TanStack Start or
-Cloudflare. The general lessons do:
-
-- **Restart the dev server after editing a workspace package.** Stale module
-  graphs produced a null session in one route type and a valid one in another.
-  That reads as an auth bug.
-- **A build and a dev server writing the same output directory** clobber each
-  other.
-- **A framework that writes into your repo** (Next wrote agent rules into
-  `AGENTS.md`) must be committed or ignored deliberately.

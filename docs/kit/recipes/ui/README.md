@@ -62,7 +62,7 @@ Tailwind 4, TypeScript 6.0, TanStack Table 9.3.1, react-hook-form 7.90.0,
   field test; sorting on the stringified value fails the sort test (`"125000"`
   sorts before `"90000"`); a hex colour in a kit file fails the pattern check.
 - The built CSS had **no** `prop:--x` declarations: the Base UI registry writes
-  v4's `w-(--x)` form, so door_nexa's v3 trap did not reproduce. Keep the check.
+  v4's `w-(--x)` form, so the v3-era `[--x]` trap did not reproduce. Keep the check.
 - **Not verified**: rendering in a browser (layout, focus rings, the sidebar's
   collapse animation, mobile sheet), `init` inside an existing TanStack Start
   app, and the theme toggle. jsdom applies no stylesheet.

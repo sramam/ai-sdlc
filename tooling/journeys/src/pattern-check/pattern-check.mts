@@ -31,7 +31,7 @@ export type PatternCheck = { checked: number; findings: string[] };
 
 /**
  * **Every screenshot in a recording is named by its narrative**, and every
- * name resolves (door_nexa #1403).
+ * name resolves (#1403).
  *
  * Renaming or inserting a step leaves the old image behind; the run stays
  * green, every link resolves, and `git status` shows additions with no
@@ -89,7 +89,7 @@ export function snapshotPatternCheck(
 
 /**
  * **Every evidence folder belongs to a registered journey at its current title**
- * (door_nexa #1240). A renamed journey writes a new folder and leaves the old
+ * (#1240). A renamed journey writes a new folder and leaves the old
  * one holding a complete, plausible, stale set of screenshots that every
  * disk-derived page reports as current.
  */

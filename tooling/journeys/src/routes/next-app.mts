@@ -1,6 +1,6 @@
 /**
- * The Next.js App Router, read back into a route pattern — door_nexa's
- * `routeOf`, ported unchanged but for the directory being a parameter.
+ * The Next.js App Router, read back into a route pattern — ported unchanged
+ * but for the directory being a parameter.
  *
  * Route groups — `(dashboard)` — are organisational and **not** part of the URL,
  * which is the one rule that makes this derivable at all. Private folders

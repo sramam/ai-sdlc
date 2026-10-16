@@ -1,7 +1,7 @@
 /**
  * The precondition for a learning pass, **in the command** (#1021).
  *
- * door_nexa's `agents.md` stated the rule and the form it must take:
+ * An earlier project's `agents.md` stated the rule and the form it must take:
  *
  * > ```
  * > 1-minute load under 12          nobody is compiling
@@ -9,7 +9,7 @@
  * > as a precondition in the command, not a check you then act on
  * > ```
  *
- * **Nothing implemented it.** `os.loadavg()` appeared nowhere in door_nexa's
+ * **Nothing implemented it.** `os.loadavg()` appeared nowhere in its
  * `scripts/` or `e2e/`, so every pass ever started was somebody reading `uptime`,
  * deciding, and then starting — which is the third line describing what must
  * *not* happen.
@@ -52,10 +52,9 @@ import { cpus, loadavg } from "node:os";
  *
  * This package's own CLIs: `cli/learn.mts` is the learning command and
  * `cli/stack.mts` is the stack host it (or Playwright's `webServer`) fathers —
- * either one alive in another checkout is a pass in flight. door_nexa's were
- * `journey-masks` and `journey-db`; the `journeys` bin spawns each
- * subcommand as its own `node …/cli/<name>.mts` process precisely so these
- * substrings appear on a command line. Matched with `pgrep -f`.
+ * either one alive in another checkout is a pass in flight. The `journeys` bin
+ * spawns each subcommand as its own `node …/cli/<name>.mts` process precisely
+ * so these substrings appear on a command line. Matched with `pgrep -f`.
  * `recordingProcessNames` in `journeys.config.mts` replaces the list; a name
  * short enough to match unrelated commands refuses runs for nothing, so name
  * the scripts rather than the interpreter.

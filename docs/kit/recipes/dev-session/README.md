@@ -79,9 +79,9 @@ Re-run on the pinned better-auth 1.7.9 (2026-10-16, `pnpm recipes:check`):
   `403 INVALID_ORIGIN`; a missing one is `403 MISSING_OR_NULL_ORIGIN` when the
   request carries cookies, and **allowed** when it carries none. The client
   always sends the app's own origin, which is honest: the check stops a page on
-  another site, and this runs beside the secret. (door_nexa met
-  `MISSING_OR_NULL_ORIGIN` on a cookie-less Node `fetch` with an earlier
-  version; do not rely on either behaviour.)
+  another site, and this runs beside the secret. (An earlier version answered
+  `MISSING_OR_NULL_ORIGIN` to a cookie-less Node `fetch`; do not rely on either
+  behaviour.)
 - **Take the cookie from the response**, never build it from the body's token:
   it is `<token>.<signature>`.
 

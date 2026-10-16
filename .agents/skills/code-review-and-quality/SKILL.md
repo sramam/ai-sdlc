@@ -8,7 +8,7 @@ metadata:
 # Code Review and Quality
 
 Follow [the upstream skill](../../3rdparty/agent-skills/skills/code-review-and-quality/SKILL.md)
-in full, with the amendments below.
+in full, with the amendments below. Where they differ, the amendments win.
 
 ## Amendments
 

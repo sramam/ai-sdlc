@@ -3,7 +3,7 @@
 Prisma 7 on Workers through Hyperdrive. It works (spike evidence in
 [../../spike-2026-10.md](../../spike-2026-10.md)); choose it over
 [`db-drizzle`](../db-drizzle/) when the project wants Prisma's client
-extensions (door_nexa's organization-scoped client) more than a small Worker.
+extensions (an organization-scoped client, say) more than a small Worker.
 Measured on the same app: 1,497 KiB gzip against Drizzle's 307 KiB, and a
 first request of about 60–75 ms against 25–37 ms under local `wrangler dev`.
 

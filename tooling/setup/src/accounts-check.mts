@@ -3,7 +3,7 @@
  *
  * Each check runs non-interactively: stdin closed, CI=1, a timeout. A CLI that
  * stops to ask a question must come back as "could not ask (timed out waiting
- * on a prompt)", never as "not logged in" — door_nexa once sent somebody to a
+ * on a prompt)", never as "not logged in" — this once sent somebody to a
  * console for a key the CLI would have made, because a probe that timed out on
  * an invisible prompt reported itself as unauthenticated.
  */

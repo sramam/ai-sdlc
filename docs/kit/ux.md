@@ -27,19 +27,35 @@ Ask these questions, in batches, with recommendations. The answers become `docs/
 4. Light, dark, or both? _Default: both, following the system setting, with a
    toggle._
 
-**Users at the screen** (per persona, from `personas.md`) 5. How often: daily power user, weekly, or once a month? This decides density,
-keyboard shortcuts, and how much the UI explains itself. 6. Which device and context: desktop at a desk, phone on the move, a tablet in
-the field? _Default: desktop-first, fully usable on mobile._ 7. **The top three tasks per persona that must be effortless.** These get the
-fewest clicks, the best defaults and the shortcuts. 8. How skilled are they? Are they comfortable with tables, filters and bulk actions?
+**Users at the screen** (per persona, from `personas.md`)
 
-**Content and data** 9. Are the main screens lists of records (tables), dashboards, documents,
-conversations or forms? This decides the screen patterns used. 10. How much data per list: tens, thousands, millions? This decides server-side
-paging and search. 11. What has to be scannable at a glance? What gets summarized as a number or a
-status?
+5. How often: daily power user, weekly, or once a month? This decides density,
+   keyboard shortcuts, and how much the UI explains itself.
+6. Which device and context: desktop at a desk, phone on the move, a tablet in
+   the field? _Default: desktop-first, fully usable on mobile._
+7. **The top three tasks per persona that must be effortless.** These get the
+   fewest clicks, the best defaults and the shortcuts.
+8. How skilled are they? Are they comfortable with tables, filters and bulk
+   actions?
 
-**Constraints** 12. Accessibility target. _Default: WCAG 2.2 AA._ Any users with specific needs? 13. Languages and locales: one, several, right-to-left? Date, number and
-currency formats? 14. Does each tenant need its own branding (white-label)? 15. Any mockups or Figma files? (They illustrate. The brief governs.) 16. Onboarding: how does a new user get from sign-up to their first success?
-With empty-state guidance, sample data, or a checklist?
+**Content and data**
+
+9. Are the main screens lists of records (tables), dashboards, documents,
+   conversations or forms? This decides the screen patterns used.
+10. How much data per list: tens, thousands, millions? This decides server-side
+    paging and search.
+11. What has to be scannable at a glance? What gets summarized as a number or a
+    status?
+
+**Constraints**
+
+12. Accessibility target. _Default: WCAG 2.2 AA._ Any users with specific needs?
+13. Languages and locales: one, several, right-to-left? Date, number and
+    currency formats?
+14. Does each tenant need its own branding (white-label)?
+15. Any mockups or Figma files? (They illustrate. The brief governs.)
+16. Onboarding: how does a new user get from sign-up to their first success?
+    With empty-state guidance, sample data, or a checklist?
 
 Unknown answers take the defaults and are marked `provisional`. Nothing here is
 blocking, because the defaults are good.
@@ -49,20 +65,35 @@ blocking, because the defaults are good.
 ```markdown
 # Design brief
 
-Feel: <3 adjectives> References: <liked products — what to borrow>
-Theme: light + dark (system) Accent: <hex> Font: Inter | <brand font>
-Density: comfortable | compact Primary device: desktop | mobile
-A11y: WCAG 2.2 AA Locales: en-US
+Feel: <3 adjectives>
+References: <liked products, and what to borrow from each>
+Theme: light + dark (system)
+Accent: <hex>
+Font: Inter | <brand font>
+Density: comfortable | compact
+Primary device: desktop | mobile
+A11y: WCAG 2.2 AA
+Locales: en-US
 
-## Effortless tasks @persona — task — target (≤ N clicks, keyboard path)
+## Effortless tasks
 
-## Screen patterns which screens are tables / dashboards / forms / detail
+@persona, task, target (≤ N clicks, keyboard path)
 
-## Navigation the shell, the sidebar sections, ⌘K
+## Screen patterns
 
-## Voice how copy sounds; terms come from glossary.md
+which screens are tables / dashboards / forms / detail
 
-## Divergences where we chose against a mockup, and why
+## Navigation
+
+the shell, the sidebar sections, ⌘K
+
+## Voice
+
+how copy sounds; terms come from glossary.md
+
+## Divergences
+
+where we chose against a mockup, and why
 ```
 
 ---
@@ -96,9 +127,8 @@ consistent **page header**: title, one-line description, primary action
 
 **Every data view has four states, designed rather than left to chance**:
 loading (skeletons shaped like the content, not spinners), empty, error (what
-happened, plus a retry), and the populated view. door_nexa's UI scan
-consistently scored lowest on states, and states are what a screenshot never
-shows.
+happened, plus a retry), and the populated view. States are what a screenshot
+never shows.
 
 **Effortless by default:**
 
@@ -131,7 +161,7 @@ an accessible name. Use form labels, never placeholders as labels.
 
 ---
 
-## Traps paid for in door_nexa
+## Traps
 
 - **Base UI, not Radix.** Choose Base UI when initialising shadcn, and add
   components only from its Base UI variants. A Radix component mixed in brings
@@ -140,18 +170,22 @@ an accessible name. Use form labels, never placeholders as labels.
   gap (recipes, 2026-10): **⌘K (`command`) is built on cmdk, which pulls in
   Radix's dialog**; take it with an ADR, or build ⌘K on Base UI's Combobox.
   Where a component has no Base UI variant, write an ADR before reaching for
-  Radix. door_nexa's Radix-specific traps (a `SelectItem`'s children projected
-  into the trigger) may differ; check the equivalent behaviour rather than
-  assuming it.
-- **shadcn was written for Tailwind v3.** `w-[--x]` is silently invalid in v4;
-  write `w-[var(--x)]`. `@source` paths resolve from the CSS file, not the
-  package root. **After any `shadcn add`, check the built CSS, not the diff.** A
-  primitive that looks _structurally_ wrong (no width, visible `sr-only` text)
-  is a missing stylesheet, not a broken component.
+  Radix.
+- **Tailwind v3 shorthand in generated components.** With an earlier shadcn,
+  `w-[--x]` was silently invalid under Tailwind v4 (`w-[var(--x)]` is the v4
+  form). It did not reproduce with shadcn 4.21.5 on Base UI
+  ([spike-2026-10.md](spike-2026-10.md) § _Addendum_); the `ui` recipe's
+  `src/kit/pattern-check.test.ts` still refuses the shorthand. `@source` paths
+  resolve from the CSS file, not the package root. **After any `shadcn add`,
+  check the built CSS, not the diff.** A primitive that looks _structurally_
+  wrong (no width, visible `sr-only` text) is a missing stylesheet, not a
+  broken component.
 - `shadcn add` rewrites imports to an alias other packages cannot resolve, and
   rewrites components it depends on. Review the diff for lost customization.
-- A `SelectItem`'s children are projected into the trigger, so an icon in an
-  item appears twice. Draw the trigger's adornment only for the placeholder.
+- A Radix `SelectItem`'s children are projected into the trigger, so an icon
+  in an item appears twice. Check whether Base UI's Select does the same before
+  drawing an adornment in an item; draw the trigger's adornment only for the
+  placeholder.
 - `formatMoney` everywhere a reader adds figures up; compact money
   (`$242.3K`) only on KPI tiles, with the exact figure in a tooltip.
 - A schema used by a client form must not import the database package. The
@@ -196,9 +230,8 @@ can do is also reachable by hand.
 
 ## Design partners — Lovable, and Figma when necessary
 
-**Lovable is the design partner.** It turns the brief into clickable screens in
-minutes, which is the fastest way to find out what the author actually wants.
-People react to screens far better than to descriptions.
+**Lovable is the design partner.** It turns the brief into clickable screens,
+and people react to screens better than to descriptions.
 
 - **When**: in `/kickoff` once the brief exists, for the effortless tasks and the
   main screen patterns. Later, in `/spec`, for any new screen that is
@@ -218,9 +251,11 @@ People react to screens far better than to descriptions.
 
 **Figma, when necessary**: an existing brand or design system to honour, a
 custom visual (illustrations, data visualisation, a marketing page), or a
-designer who works there. Read designs through Figma's Dev Mode MCP server
-(_verify the current setup_), take tokens from Figma variables into the CSS
-tokens, and record any divergence in the brief's **Divergences** section.
+designer who works there. Read designs through Figma's Dev Mode MCP server,
+take tokens from Figma variables into the CSS tokens, and record any divergence
+in the brief's **Divergences** section. Unverified as of 2026-10-16: that the
+Dev Mode MCP server is current and how it is configured; check Figma's Dev
+Mode MCP server page before relying on it.
 Figma is not a gate for ordinary screens; the brief and the patterns are
 enough.
 
@@ -229,8 +264,10 @@ direction goes back into the brief.
 
 ## Keeping it good
 
-- **A UI scan in `ci:local`** (for example shadscan) with a **ratcheting floor**:
-  the build fails on a regression, never on the backlog.
+- **A UI scan in `ci:local`**, added by the UI foundation item
+  ([BOOTSTRAP.md](BOOTSTRAP.md)), with a **ratcheting floor**: the build fails
+  on a regression, never on the backlog. Until it exists, the `ui` recipe's
+  `src/kit/pattern-check.test.ts` covers tokens and the v3 shorthand.
 - **A component viewer** (a single-file design-system page) built from the same
   tokens, so drift is visible.
 - **Journeys record screenshots** of every path, and a person reviews them. The

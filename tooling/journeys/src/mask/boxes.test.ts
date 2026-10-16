@@ -666,7 +666,7 @@ describe("verifyStored", () => {
    * here that can fail when somebody narrows the argument back.
    */
   /*
-   * door_nexa read `journey.ts` here and asserted `verifyStored(carried, …)` is
+   * An earlier version read `journey.ts` here and asserted `verifyStored(carried, …)` is
    * handed both `dom` and `declared`. The recorder arrives in step 3; until it
    * does there is no call site to read, and a test passing against nothing is
    * the failure this one exists to prevent.

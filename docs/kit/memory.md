@@ -7,17 +7,17 @@ lives elsewhere is, for practical purposes, forgotten.
 
 ## The layers
 
-| layer                            | holds                                                                | loaded                   | written by                                |
-| -------------------------------- | -------------------------------------------------------------------- | ------------------------ | ----------------------------------------- |
-| `AGENTS.md` (via `CLAUDE.md`)    | how to work here: short, imperative rules                            | every session            | Phase 2, then a line per process decision |
-| `docs/guardrails.md`             | the non-negotiables                                                  | every session (imported) | the starter, `/kickoff`, ADRs             |
-| `docs/architecture.md`, personas | the shape of the system and who it is for                            | every session (imported) | `/kickoff`, `/spec`                       |
-| `docs/requirements/`             | what is built, and why; the project brief; technology decisions      | when relevant            | the two requirement skills only           |
-| `docs/adr/`                      | each architecture decision with its argument, and when to revisit it | when relevant            | `/kickoff`, `/spec`, the dialog           |
-| `docs/plan/`                     | what is next, what is open (`Q-` files), what is blocked             | `/build`, the pickup     | `/plan`, agents                           |
-| `git log` trailers               | what moved and which line of work moved it (`Progress:`, `Session:`) | reports                  | every commit                              |
-| `docs/progress/`                 | what shipped, what was decided, **what cost a day**                  | when relevant            | `/progress-report`                        |
-| package `agents.md`              | the traps specific to one package                                    | when working in it       | whoever meets the trap                    |
+| layer                            | holds                                                                | loaded                   | written by                                                          |
+| -------------------------------- | -------------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------- |
+| `AGENTS.md` (via `CLAUDE.md`)    | how to work here: short, imperative rules                            | every session            | [BOOTSTRAP](BOOTSTRAP.md) Phase 2, then a line per process decision |
+| `docs/guardrails.md`             | the non-negotiables                                                  | every session (imported) | base, `/kickoff`, ADRs                                              |
+| `docs/architecture.md`, personas | the shape of the system and who it is for                            | every session (imported) | `/kickoff`, `/spec`                                                 |
+| `docs/requirements/`             | what is built, and why; the project brief; technology decisions      | when relevant            | the two requirement skills only                                     |
+| `docs/adr/`                      | each architecture decision with its argument, and when to revisit it | when relevant            | `/kickoff`, `/spec`, the dialog                                     |
+| `docs/plan/`                     | what is next, what is open (`Q-` files), what is blocked             | `/build`, the pickup     | `/plan`, agents                                                     |
+| `git log` trailers               | what moved and which line of work moved it (`Progress:`, `Session:`) | reports                  | every commit                                                        |
+| `docs/progress/`                 | what shipped, what was decided, **what cost a day**                  | when relevant            | `/progress-report`                                                  |
+| package `agents.md`              | the traps specific to one package                                    | when working in it       | whoever meets the trap                                              |
 
 **Not memory**, deliberately:
 

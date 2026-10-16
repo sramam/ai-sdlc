@@ -30,7 +30,7 @@
  *
  * **A capture transport must refuse to run on a deployment.** A transport that
  * swallows mail withholds a rent reminder with nothing on any screen saying so;
- * door_nexa refuses it at build time and again at send time.
+ * refuse it at build time and again at send time.
  */
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

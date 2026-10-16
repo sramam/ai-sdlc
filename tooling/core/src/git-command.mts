@@ -1,10 +1,10 @@
 /**
  * The one git-command parser every guard shares (docs/kit/hooks.md).
  *
- * door_nexa had three copies, each matching `git` immediately followed by the
- * subcommand. `git -C <path> worktree add …` walked past two of them: `-C`
- * takes a value, and a value is neither a flag nor the subcommand. Only one
- * copy was ever fixed, which is why this is written once.
+ * An earlier project had three copies, each matching `git` immediately
+ * followed by the subcommand. `git -C <path> worktree add …` walked past two
+ * of them: `-C` takes a value, and a value is neither a flag nor the
+ * subcommand. Only one copy was ever fixed, which is why this is written once.
  *
  * It answers two questions: *does this command run `git <sub…>`* (one right
  * answer, no unsure case) and *where would git act* (which can be unreadable,

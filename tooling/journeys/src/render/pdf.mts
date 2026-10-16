@@ -10,7 +10,7 @@
  * gated by exactly the machinery a step's screenshot is.
  *
  * **One image per page, deliberately.** A single tall strip renders the same
- * pixels and hides how many pages there are — the property door_nexa's #902 was
+ * pixels and hides how many pages there are — the property #902 was
  * about: a statement silently drew its totals off the document.
  *
  * ## `pdfjs-dist` is an optional peer, resolved from the project
@@ -169,7 +169,7 @@ export async function pdfPageImages(
  * volatile. **Declared first**, because a string the renderer said it drew
  * cannot be wrong the way a shape guess can — `September 2026` matches no
  * shape. Padded by half the glyph height, measured: rounded digits overshoot
- * the baseline and antialiasing spreads past that (door_nexa #963).
+ * the baseline and antialiasing spreads past that (#963).
  *
  * Paths are `pdf-date[i]`, an index and never the text: a value-keyed path
  * changes when the value does, and would write the value into a committed file.

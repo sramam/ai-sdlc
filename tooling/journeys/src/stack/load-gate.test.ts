@@ -129,7 +129,7 @@ describe("configured recording process names", () => {
     expect(asked).toEqual(["my-recorder"]);
   });
 
-  it("defaults to door_nexa's two", () => {
+  it("defaults to this package's two CLIs", () => {
     const asked: string[] = [];
     otherCheckoutsRecording(
       "/repo",

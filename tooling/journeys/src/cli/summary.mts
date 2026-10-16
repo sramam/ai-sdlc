@@ -30,7 +30,7 @@
 /**
  * The command that runs one journey once, named in the advice.
  *
- * door_nexa's spelling. Step 4 ships the learning CLI and the single-run command
+ * The default spelling. Step 4 ships the learning CLI and the single-run command
  * beside it; until then a project whose runner is spelled differently passes its
  * own, and the sentence stays true for it.
  */
