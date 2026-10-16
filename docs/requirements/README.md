@@ -1,4 +1,4 @@
-# Requirements — locked
+# Requirements: locked
 
 Only `/kickoff` and `/spec` write here. A hook refuses any
 other write, and `commit-msg` requires a `Requirements: <skill>` trailer on any
