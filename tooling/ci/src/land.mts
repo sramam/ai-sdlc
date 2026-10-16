@@ -41,6 +41,7 @@ import type { Exec, ExecResult } from "../../core/src/exec.mts";
 import { findRoot, loadConfig as realLoadConfig } from "../../core/src/config.mts";
 import type { SdlcConfig } from "../../core/src/config.mts";
 import { diagnoseGitFailure, fetchGithubStatus } from "../../core/src/github-status.mts";
+import { isRequirementsPath } from "../../guards/src/trailers.mts";
 import type { FetchStatus } from "../../core/src/github-status.mts";
 import { realCiDeps, runCiLocal } from "./ci-local.mts";
 import type { CiOptions, CiOutcome } from "./ci-local.mts";
@@ -268,9 +269,11 @@ export async function runLand(opts: LandOptions, deps: LandDeps): Promise<LandOu
   if (diff.code !== 0) return stop("requirements", "COULD NOT ASK", `git diff: ${why(diff)}`);
   const paths = diff.stdout.split("\0").filter(Boolean);
   const reqDir = `${config.dirs.requirements.replace(/\/+$/, "")}/`;
-  const req = paths.filter((p) => p.startsWith(reqDir));
+  // The same rule as the commit-msg check: the directory's README and
+  // placeholders are housekeeping, not requirements.
+  const req = paths.filter((p) => isRequirementsPath(p, reqDir));
   if (req.length && !isDiscoveryBranch(branch)) {
-    const other = paths.filter((p) => !p.startsWith(reqDir));
+    const other = paths.filter((p) => !isRequirementsPath(p, reqDir));
     if (other.length)
       return stop(
         "requirements",

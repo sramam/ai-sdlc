@@ -96,6 +96,18 @@ export const REQUIREMENTS_SKILLS = ["kickoff", "spec", "idea", "add-requirement"
  * `paths` are the change's own paths. For a merge (`merging`), the caller has
  * already reduced them to what the merge itself introduced; the line says so.
  */
+/**
+ * A path that changes requirements: under the requirements directory, minus
+ * the directory's own README and placeholders, which describe the folder and
+ * are not requirements. The commit-msg check and `pnpm land` share this rule,
+ * so a README touch is never held to the requirements skills or to a branch
+ * of its own by one layer and waved through by the other.
+ */
+export function isRequirementsPath(path: string, reqDir: string): boolean {
+  const prefix = `${reqDir.replace(/\/+$/, "")}/`;
+  return path.startsWith(prefix) && path !== `${prefix}README.md` && !path.endsWith("/.gitkeep");
+}
+
 export function checkRequirementsTrailer(
   staged: string[],
   trailers: Trailer[],
@@ -103,11 +115,7 @@ export function checkRequirementsTrailer(
   merging: boolean,
 ): CheckLine {
   const prefix = `${reqDir.replace(/\/$/, "")}/`;
-  // The directory's own README and placeholders describe the folder; they are
-  // not requirements, so they need no requirements skill.
-  const housekeeping = (p: string): boolean =>
-    p === `${prefix}README.md` || p.endsWith("/.gitkeep");
-  const touched = staged.filter((p) => p.startsWith(prefix) && !housekeeping(p));
+  const touched = staged.filter((p) => isRequirementsPath(p, prefix));
   const own = merging ? " this merge's own" : "";
   if (!touched.length)
     return { name: "requirements", state: "ok", text: `no${own} path under ${prefix}` };

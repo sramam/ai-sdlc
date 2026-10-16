@@ -251,6 +251,18 @@ describe("refusals — each precondition stops before anything is pushed or merg
     );
   });
 
+  it("treats the requirements README and .gitkeep as housekeeping, like the commit-msg check", async () => {
+    const { d } = landDeps(
+      happy([
+        [
+          /^git diff --name-only/,
+          result(0, "docs/requirements/README.md\0docs/requirements/sources/.gitkeep\0src/a.ts\0"),
+        ],
+      ]),
+    );
+    expect((await runLand({ allowUnknown: false }, d)).exit).toBe(0);
+  });
+
   it("lets a requirements-only branch through", async () => {
     const { d } = landDeps(
       happy([[/^git diff --name-only/, result(0, "docs/requirements/brd.md\0")]]),
