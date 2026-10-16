@@ -40,7 +40,7 @@ export type Registry = {
 
 export const EMPTY_REGISTRY: Registry = { journeys: [], personas: {} };
 
-/** The folder-name form of a title — the recorder's, the census's and the index's. */
+/** The folder-name form of a title — the recorder's, the pattern check's and the index's. */
 export const slug = (s: string): string =>
   s
     .toLowerCase()
@@ -82,7 +82,7 @@ export function assertTitle(registry: Registry, id: string, title: string): Regi
  *
  * A walk recorded under a persona the registry does not list is either a typo —
  * which writes a directory nothing reads — or a journey whose registration is
- * out of date. Both are cheaper to name here than in a census later.
+ * out of date. Both are cheaper to name here than in a pattern check later.
  */
 export function assertPersona(
   registry: Registry,
@@ -138,7 +138,7 @@ export function validateRegistry(registry: Registry): void {
  *
  * Either export shape: `export default { journeys, personas }` or a named
  * `registry`. A module that has neither is refused rather than read as empty —
- * an empty registry makes every recording an orphan, which reads as the census
+ * an empty registry makes every recording an orphan, which reads as the pattern check
  * being broken.
  */
 export async function loadRegistryFile(file: string, root: string): Promise<Registry> {

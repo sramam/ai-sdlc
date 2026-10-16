@@ -94,7 +94,7 @@ describe("licenses", () => {
   });
 });
 
-describe("install-scripts census", () => {
+describe("install-scripts pattern check", () => {
   const scripted = pnpmPackage({
     name: "native",
     version: "1.0.0",

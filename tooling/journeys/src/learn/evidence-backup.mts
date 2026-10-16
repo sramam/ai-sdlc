@@ -16,7 +16,7 @@
  *
  * Staging the whole run elsewhere and renaming it into place after pass 3 is
  * the stronger shape, and it would mean teaching the recorder, the index, the
- * census and every reader that the evidence lives somewhere else for the
+ * pattern check and every reader that the evidence lives somewhere else for the
  * duration of a run — each a place to get the path wrong. This is one module
  * and two calls in the learner, and it gives the same guarantee for every
  * abort the learner can see: **the committed evidence is as it was**. A

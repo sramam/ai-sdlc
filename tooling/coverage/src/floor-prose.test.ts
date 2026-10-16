@@ -4,7 +4,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadConfigSync } from "../../core/src/config.mts";
-import { describeOffences, floorProseCensus, quotesInLine } from "./floor-prose.test-helper.mts";
+import {
+  describeOffences,
+  floorProsePatternCheck,
+  quotesInLine,
+} from "./floor-prose.test-helper.mts";
 
 let root: string;
 beforeEach(() => (root = mkdtempSync(join(tmpdir(), "floor-prose-"))));
@@ -24,7 +28,7 @@ describe("quotesInLine", () => {
   });
 });
 
-describe("floorProseCensus on fixtures", () => {
+describe("floorProsePatternCheck on fixtures", () => {
   it("flags a quoted floor, a figure pair and a bare declared value; ignores the rest", () => {
     doc("docs/a.md", "# A\n\nThe branch floor is 88% for the api.\n");
     doc("docs/nested/b.md", "Coverage stands at 92 / 88 on the merged run.\n");
@@ -33,7 +37,9 @@ describe("floorProseCensus on fixtures", () => {
     doc("docs/quality/coverage.md", "coverage 91.2% (generated, exempt)\n");
     doc("README.md", "coverage 50% (outside docs/)\n");
 
-    const r = floorProseCensus(root, { floors: { "packages/db": { lines: 97, branches: 92 } } });
+    const r = floorProsePatternCheck(root, {
+      floors: { "packages/db": { lines: 97, branches: 92 } },
+    });
     expect(r.scanned).toEqual(["docs/a.md", "docs/c.md", "docs/d.md", "docs/nested/b.md"]);
     expect(r.offences.map((o) => `${o.file}:${o.line} ${o.quote}`)).toEqual([
       "docs/a.md:3 88%",
@@ -46,13 +52,13 @@ describe("floorProseCensus on fixtures", () => {
   it("a declared historical quote may stay, and the declaration list is a ratchet", () => {
     const why = "the removed backstop as it stood before it was dropped: past tense, cannot decay";
     doc("docs/history.md", "The old coverage floor of 90/79 was removed rather than lowered.\n");
-    const ok = floorProseCensus(root, {
+    const ok = floorProsePatternCheck(root, {
       declared: [{ file: "docs/history.md", text: "90/79", why }],
     });
     expect(ok.offences).toEqual([]);
     expect(ok.staleDeclarations).toEqual([]);
 
-    const stale = floorProseCensus(root, {
+    const stale = floorProsePatternCheck(root, {
       declared: [
         { file: "docs/history.md", text: "93/84", why },
         { file: "docs/history.md", text: "90/79", why: "short" },
@@ -68,7 +74,7 @@ describe("floorProseCensus on fixtures", () => {
 describe("this repository", () => {
   it("quotes no coverage floor in docs/", () => {
     const repo = fileURLToPath(new URL("../../../", import.meta.url));
-    const r = floorProseCensus(repo, { floors: loadConfigSync(repo).coverage.floors });
+    const r = floorProsePatternCheck(repo, { floors: loadConfigSync(repo).coverage.floors });
     // A sweep that returns nothing would read exactly like success.
     expect(r.scanned.length).toBeGreaterThan(5);
     expect(r.offences, describeOffences(r)).toEqual([]);

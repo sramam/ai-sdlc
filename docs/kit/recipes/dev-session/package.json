@@ -6,8 +6,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@better-auth/drizzle-adapter": "1.7.10",
-    "better-auth": "1.7.10",
+    "@better-auth/drizzle-adapter": "1.7.9",
+    "better-auth": "1.7.9",
     "drizzle-orm": "0.45.4",
     "pg": "8.23.1"
   },

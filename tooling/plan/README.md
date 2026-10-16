@@ -1,6 +1,6 @@
 # @ai-sdlc/plan
 
-The plan in the repo: parsing `docs/requirements/` and `docs/plan/` (the markdown conventions are in the header of `plan-lib.mts`), `plan:check` (the staged census), `plan:status` (derived from git), `claim` (an atomic claim on a work item) and `item-check`.
+The plan in the repo: parsing `docs/requirements/` and `docs/plan/` (the markdown conventions are in the header of `plan-lib.mts`), `plan:check` (the staged pattern check), `plan:status` (derived from git), `claim` (an atomic claim on a work item) and `item-check`.
 
 Upstream-owned: changed in the ai-sdlc starter, pulled with `pnpm sdlc:update`. A project that needs different behaviour replaces the module and lists it in `sdlc.config.json` `modules.replaced` (docs/kit/starter-repo.md).
 
@@ -11,8 +11,8 @@ Each stage includes the ones before it; the default is the highest reached.
 | stage           | reached when                                                                                       | adds                                                                                          |
 | --------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `pre-discovery` | no discovery output exists (the starter as shipped)                                                | ID checks over the plan, and a `NOT STARTED` row: passes, and never reads as "discovery done" |
-| `requirements`  | any discovery output exists, or `--stage requirements`                                             | every required output, the review verdict, the requirement census                             |
-| `plan`          | `docs/plan/README.md` holds a written plan                                                         | the verdict is ready to plan; the plan census                                                 |
+| `requirements`  | any discovery output exists, or `--stage requirements`                                             | every required output, the review verdict, the requirement pattern check                      |
+| `plan`          | `docs/plan/README.md` holds a written plan                                                         | the verdict is ready to plan; the plan pattern check                                          |
 | `build`         | a workspace package outside `tooling/` exists (`apps/*`, `packages/*`), or the plan README says so | trailers name items; every dependency is accounted for                                        |
 
 **Required discovery outputs** (in `docs/requirements/`): `brd.md`, `prd.md`, `personas.md` (≥1 persona), `features/` (≥1 feature with ≥1 requirement), `journeys.md` (≥1 journey), `glossary.md`, `access-model.md` (a `Tenancy:` that is not `open`), `domain-model.md`, `ux.md`, `technology.md`, `review.md`. A missing one **fails**; `vacuous` is only for genuinely optional checks. `project-brief.md`, `README.md` and `sources/` do not count as discovery having started.

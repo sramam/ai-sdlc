@@ -9,7 +9,7 @@
  * learning run widened that way grows mask unions on walks nobody is reviewing
  * — three passes of it — which is a change nobody looked at.
  *
- * ## The filename carries both, and the census enforces it
+ * ## The filename carries both, and the pattern check enforces it
  *
  * ```
  * e2e/j4-signing-in.organizer.spec.ts

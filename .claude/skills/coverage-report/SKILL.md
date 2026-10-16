@@ -63,7 +63,7 @@ what breaking there costs. Not the lowest percentages.>
 
 Rules:
 
-- **Never quote a floor value in prose** anywhere under `docs/` except the generated `coverage.md`. The census in `@ai-sdlc/coverage` fails the build on one; link to `sdlc.config.json` instead.
+- **Never quote a floor value in prose** anywhere under `docs/` except the generated `coverage.md`. The pattern check in `@ai-sdlc/coverage` fails the build on one; link to `sdlc.config.json` instead.
 - **Coverage is not correctness.** Say what a gap would let through, never only that it exists.
 - A serious gap with no plan item: say it needs one. Do not file it from here.
 

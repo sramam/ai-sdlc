@@ -15,7 +15,7 @@ description: Record a journey end to end as reviewable evidence — a screenshot
 5. Record in **one warm checkout, one journey at a time**: `pnpm journeys:learn --journey J<n> --persona <p>`.
 6. Fix a broken spec with a **single** run (`pnpm journeys:test …`), not three passes.
 7. Read the delta report; nothing spurious, every step held. Discard a contended run.
-8. Run the census; commit recordings and masks with the change that moved them.
+8. Run the pattern check; commit recordings and masks with the change that moved them.
 9. Report (below). Releasing to QA is `/journey-ready-for-qa`, and a person's call.
 
 The machinery is `tooling/journeys` (README there); the strategy is `docs/kit/testing.md § Journeys`.
@@ -48,7 +48,7 @@ test.describe("J12 Cancelling a session", () => {
 - **A step asserts.** `step(title, note, act)` — `act` performs the interaction _and_ asserts the
   outcome. A step with no assertion records a claim nobody checked.
 - **The title is the registry's**, exactly; the recorder throws on a second spelling.
-- **The persona is in the filename and in every `Journey.open`**, and they agree — the census
+- **The persona is in the filename and in every `Journey.open`**, and they agree — the pattern check
   checks. `common` is for a walk that depends on nobody (a wrong code, an expired link), and is a
   declaration: do not file an undecided walk there.
 - **Captures**: `Journey.capture(label, text)` for page text; `Journey.rendered(label, html)` for an
@@ -71,7 +71,7 @@ test.describe("J12 Cancelling a session", () => {
 | 2. discover | same build again                                          | what differs between two runs of identical code joins the mask                 |
 | 3. verify   | masks applied                                             | the only pass that proves anything; red exits 1                                |
 
-Then it runs the census (every step has a mask; learned boxes under `MAX_STEP_COVERAGE`, no
+Then it runs the pattern check (every step has a mask; learned boxes under `MAX_STEP_COVERAGE`, no
 declared box over `MAX_DECLARED_BOX`; no mask from an older rule) and writes the delta report to
 `test-results/journey-reports/delta.md`.
 
@@ -126,10 +126,10 @@ new mask, with pass 3's verdict.
 ## Before committing
 
 ```bash
-pnpm exec vitest run e2e/journeys.census.test.ts   # the project's census, over tooling/journeys/src/census
+pnpm exec vitest run e2e/journeys.pattern-check.test.ts   # the project's pattern check, over tooling/journeys/src/pattern-check
 ```
 
-The census names orphaned screenshots (a renamed step leaves its old image behind, and git shows
+The pattern check names orphaned screenshots (a renamed step leaves its old image behind, and git shows
 additions with no deletions — which is what correct work looks like too), folders from a renamed
 journey, paths with no persona level, and specs whose name disagrees with what they record. Stage
 by path. Recordings, masks and the walk's page go in the same commit as the change that moved them.

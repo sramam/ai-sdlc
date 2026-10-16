@@ -85,7 +85,7 @@ work. Then, in order:
 
 - work on a blocked item where every answer needs the same thing
 - proceed on a reversible assumption, recorded with `Assumes:`
-- quality work: coverage, censuses, docs
+- quality work: coverage, pattern checks, docs
 - print `/idea check` for the next milestone's features, as a suggestion
 
 ## `/plan sync` — reconcile, on the cadence in `sdlc.config.json`

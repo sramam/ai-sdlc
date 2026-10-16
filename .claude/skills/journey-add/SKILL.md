@@ -49,7 +49,7 @@ registry: {
 | `personas` | the `@slug`s from `journeys.md`, without the `@`. Who **may** walk it — not who has. `common` needs no entry: any journey may record a walk that depends on nobody                          |
 
 Renaming a journey later is a deliberate act: rename the folder under the evidence root in the same
-commit, or the directory census names the old one.
+commit, or the directory pattern check names the old one.
 
 ## What this skill must not do
 

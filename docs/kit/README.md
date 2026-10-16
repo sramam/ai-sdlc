@@ -51,7 +51,7 @@ Then keep the directory around. The other files are what the bootstrap points at
 | [technology-decisions.md](technology-decisions.md)                    | everyone                              | the triggers that need a technology decision, and the pros-and-cons dialog the user decides through                      |
 | [memory.md](memory.md)                                                | everyone                              | what the project remembers, where, and how lessons reach other projects                                                  |
 | [starter-repo.md](starter-repo.md)                                    | whoever builds or updates the starter | what the starter contains and leaves out, `scripts/` vs `scripts/one-of/`, upstream updates, the extraction inventory    |
-| [plan-and-requirements.md](plan-and-requirements.md)                  | everyone                              | where personas, features, requirements, the plan and questions live, their IDs, and the census over them                 |
+| [plan-and-requirements.md](plan-and-requirements.md)                  | everyone                              | where personas, features, requirements, the plan and questions live, their IDs, and the pattern check over them          |
 | [multi-agent.md](multi-agent.md)                                      | anyone running more than one session  | before the second agent starts                                                                                           |
 | [testing.md](testing.md)                                              | everyone                              | before the first test touches a database or a browser                                                                    |
 | [tech-stack.md](tech-stack.md)                                        | the setup agent                       | TanStack Start on Cloudflare: what is settled, what to decide, and the Workers constraints                               |
@@ -70,7 +70,7 @@ catches it in seconds, plus a merge gate that is the authority. Here the merge
 gate is **local CI**, with its verdict posted as a commit status, because hosted
 CI gets expensive fast. A blocked agent **asks, records the question and keeps
 working**; it never idles. Every list that
-matters is **counted by a test** (a "census") instead of maintained by hand. Every
+matters is **counted by a test** (a "pattern check") instead of maintained by hand. Every
 check has **three answers** (yes, no, _could not ask_), and the third is
 handled on purpose. Each agent works in its **own git worktree**, forked from
 the integration branch. Commits carry a `Progress:` block, so `git log` alone can

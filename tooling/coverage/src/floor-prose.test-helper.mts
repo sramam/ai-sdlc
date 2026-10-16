@@ -9,7 +9,7 @@
  * again in prose is what had been tried; this counts it instead.
  *
  * **What it looks for, and why not "a stale floor".** Deciding which numbers
- * are *meant* as floors is proximity as evidence, which is how censuses here go
+ * are *meant* as floors is proximity as evidence, which is how pattern checks here go
  * wrong. So the rule is blunt and has no unsure case: a markdown line under
  * `docs/` that names *floor* or *coverage* carries no percentage, no slashed
  * figure pair (`92 / 88`), and no bare number equal to a declared floor value,
@@ -24,7 +24,7 @@
  * directions: an entry whose text has left its file fails too.
  *
  * Used from a test (`*.test-helper.mts` is not collected as a test itself), so
- * a project's own suite runs `floorProseCensus(root, …)` and asserts no offences.
+ * a project's own suite runs `floorProsePatternCheck(root, …)` and asserts no offences.
  */
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -45,7 +45,7 @@ export interface Offence {
   text: string;
 }
 
-export interface CensusOptions {
+export interface PatternCheckOptions {
   /** Directory to scan, relative to root. Default `docs`. */
   dir?: string;
   /** Files exempt, relative to root. Default the generated report. */
@@ -55,7 +55,7 @@ export interface CensusOptions {
   declared?: DeclaredQuote[];
 }
 
-export interface CensusResult {
+export interface PatternCheckResult {
   scanned: string[];
   offences: Offence[];
   /** Declared quotes no longer in their file, or with no real reason. */
@@ -84,7 +84,7 @@ function markdownFiles(root: string, dir: string): string[] {
   return out.sort();
 }
 
-function numberPatterns(floors: CensusOptions["floors"]): RegExp[] {
+function numberPatterns(floors: PatternCheckOptions["floors"]): RegExp[] {
   const values = new Set<string>();
   for (const f of Object.values(floors ?? {})) {
     values.add(String(f.lines));
@@ -112,7 +112,10 @@ export function quotesInLine(line: string, patterns: RegExp[]): string[] {
   return [...found.entries()].sort(([a], [b]) => a - b).map(([, q]) => q);
 }
 
-export function floorProseCensus(root: string, opts: CensusOptions = {}): CensusResult {
+export function floorProsePatternCheck(
+  root: string,
+  opts: PatternCheckOptions = {},
+): PatternCheckResult {
   const exempt = new Set(opts.exempt ?? ["docs/quality/coverage.md"]);
   const declared = opts.declared ?? [];
   const patterns = numberPatterns(opts.floors);
@@ -142,7 +145,7 @@ export function floorProseCensus(root: string, opts: CensusOptions = {}): Census
 }
 
 /** One message naming every offence, for an assertion's failure text. */
-export function describeOffences(result: CensusResult): string {
+export function describeOffences(result: PatternCheckResult): string {
   return [
     "A coverage floor lives in sdlc.config.json and is quoted nowhere else.",
     "Reference it, or declare the quote with a reason it cannot decay:",

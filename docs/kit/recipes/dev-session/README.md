@@ -63,6 +63,9 @@ drizzle-orm 0.45.4, PGlite 0.5.10:
   calls are the same ones the spike ran against the Worker
   ([../../spike-2026-10.md](../../spike-2026-10.md) § 6).
 
+Re-run on the pinned better-auth 1.7.9 (2026-10-16, `pnpm recipes:check`):
+`pnpm test` 11 pass. The CLI run and the origin observations below were on 1.7.10.
+
 ## Traps
 
 - **Better Auth 1.7 disables its origin check under a test runner**

@@ -24,7 +24,7 @@ import type { MaskBox } from "../mask/boxes.mts";
 import { paintedShare } from "../mask/share.mts";
 import { recordedPaths } from "../evidence-tree.mts";
 
-export type CensusRow = {
+export type PatternCheckRow = {
   /** `J4-signing-in/common/happy`. */
   path: string;
   shot: string;
@@ -43,8 +43,8 @@ export const isStepImage = (file: string): boolean =>
   !file.endsWith("-mask.png") &&
   !/-(expected|actual|diff)\.png$/.test(file);
 
-export function maskCensus(evidenceRoot: string, since: number): CensusRow[] {
-  const rows: CensusRow[] = [];
+export function maskPatternCheck(evidenceRoot: string, since: number): PatternCheckRow[] {
+  const rows: PatternCheckRow[] = [];
   for (const rec of recordedPaths(evidenceRoot)) {
     const shots = join(rec.dir, "snapshots");
     if (!existsSync(shots)) continue;
@@ -82,22 +82,22 @@ export function maskCensus(evidenceRoot: string, since: number): CensusRow[] {
   return rows;
 }
 
-export type CensusVerdict = {
-  without: CensusRow[];
-  tooBig: CensusRow[];
-  fatDeclared: CensusRow[];
-  stale: CensusRow[];
+export type PatternCheckVerdict = {
+  without: PatternCheckRow[];
+  tooBig: PatternCheckRow[];
+  fatDeclared: PatternCheckRow[];
+  stale: PatternCheckRow[];
 };
 
-export const judge = (rows: readonly CensusRow[]): CensusVerdict => ({
+export const judge = (rows: readonly PatternCheckRow[]): PatternCheckVerdict => ({
   without: rows.filter((r) => r.boxes === null),
   tooBig: rows.filter((r) => r.learned > MAX_STEP_COVERAGE),
   fatDeclared: rows.filter((r) => r.widestDeclared > MAX_DECLARED_BOX),
   stale: rows.filter((r) => r.stale),
 });
 
-/** The table the learner prints on success too: a census whose normal output is silence cannot be told from one that never ran. */
-export function censusTable(rows: readonly CensusRow[]): string[] {
+/** The table the learner prints on success too: a pattern check whose normal output is silence cannot be told from one that never ran. */
+export function patternCheckTable(rows: readonly PatternCheckRow[]): string[] {
   const out = [
     `${rows.length - rows.filter((r) => r.boxes === null).length} of ${rows.length} steps have a mask.`,
     "",

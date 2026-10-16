@@ -8,15 +8,15 @@ Upstream-owned: changed in the ai-sdlc starter, pulled with `pnpm sdlc:update`. 
 
 `journeys <command>` (`src/cli/journeys.mts`, the package `bin`) runs each as its own `node …/cli/<name>.mts` process, so the load gate can see a recording by its command line.
 
-| command  | does                                                                                                                                                                                          |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `learn`  | three passes over one stack — match, discover, verify — and only the third gates; load gate first (exit 75 = held), stack probed after each learning pass, mask census, then `delta --report` |
-| `test`   | one comparison pass; never learns, never writes a mask or a reference                                                                                                                         |
-| `delta`  | what a re-record changed against a ref; **a mask may only grow where its screenshot changed** (spurious → exit 1); `--report` writes `<reportRoot>/delta.md` with old/new images              |
-| `drift`  | which journeys' recordings visited a route a changed file renders; exit 1 unless re-recorded or excused by a `No-Rerecord: J<n> <reason>` commit trailer                                      |
-| `index`  | regenerate `<evidence>/README.md`, each journey's pointer page and each walk's status line, from disk                                                                                         |
-| `timing` | re-record journeys one at a time when the machine is quiet, measuring each; one delta for the batch                                                                                           |
-| `stack`  | run the app (the configured `StackAdapter`) until signalled — Playwright's `webServer`, and the learner's child                                                                               |
+| command  | does                                                                                                                                                                                                 |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `learn`  | three passes over one stack — match, discover, verify — and only the third gates; load gate first (exit 75 = held), stack probed after each learning pass, mask pattern check, then `delta --report` |
+| `test`   | one comparison pass; never learns, never writes a mask or a reference                                                                                                                                |
+| `delta`  | what a re-record changed against a ref; **a mask may only grow where its screenshot changed** (spurious → exit 1); `--report` writes `<reportRoot>/delta.md` with old/new images                     |
+| `drift`  | which journeys' recordings visited a route a changed file renders; exit 1 unless re-recorded or excused by a `No-Rerecord: J<n> <reason>` commit trailer                                             |
+| `index`  | regenerate `<evidence>/README.md`, each journey's pointer page and each walk's status line, from disk                                                                                                |
+| `timing` | re-record journeys one at a time when the machine is quiet, measuring each; one delta for the batch                                                                                                  |
+| `stack`  | run the app (the configured `StackAdapter`) until signalled — Playwright's `webServer`, and the learner's child                                                                                      |
 
 `--journey J4 --persona organizer` selects spec **files** by name (`e2e/j4-<slug>.organizer.spec.ts`); prefer it to `--grep`, since `J2` is a prefix of `J23`.
 
@@ -33,11 +33,11 @@ Upstream-owned: changed in the ai-sdlc starter, pulled with `pnpm sdlc:update`. 
 | `src/playwright/`                                      | `defineJourneyPlaywrightConfig`; the `test` fixtures (client IP per test, page-error guard, `allowPageError`, `resetJourneyStack`); global setup/teardown |
 | `src/registry.mts`                                     | journeys and personas from the config; `assertTitle`, `assertPersona`, `journeyFolder`                                                                    |
 | `src/routes/`                                          | `RouteAdapter`: `tanstack` (default) and `next-app`; `under`                                                                                              |
-| `src/census/census.mts`                                | snapshot, directory, persona, spec and isolation censuses, as functions returning findings                                                                |
+| `src/pattern-check/pattern-check.mts`                  | snapshot, directory, persona, spec and isolation pattern checks, as functions returning findings                                                          |
 | `src/delta/`, `src/drift/`, `src/index/`, `src/learn/` | the libraries behind the CLIs                                                                                                                             |
 | `src/mask/`, `src/stack/`, `src/verdict.mts`           | the mask core, the stack host and the QA verdict (see `agents.md`)                                                                                        |
 
-Only `src/recorder`, `src/render` and `src/playwright` load Playwright, so the CLIs and the censuses run under plain `node` and vitest.
+Only `src/recorder`, `src/render` and `src/playwright` load Playwright, so the CLIs and the pattern checks run under plain `node` and vitest.
 
 ## Configuration
 

@@ -14,13 +14,13 @@ every session.
   that had read it.
 - **Instead:** keep the root file under about 200 lines of imperative rules. Put
   the story in the PR or ADR that made the rule. Enforce anything that matters
-  with a hook, gate or census, so reading is not the control.
+  with a hook, gate or pattern check, so reading is not the control.
 
 ## 2. Hand-written database fakes
 
 The fake grew to 779 lines and hid five product bugs.
 
-- **Instead:** PGlite from day one, plus a census that refuses fakes. See
+- **Instead:** PGlite from day one, plus a pattern check that refuses fakes. See
   [testing.md](testing.md).
 
 ## 3. Two trackers and a sync engine
@@ -93,7 +93,7 @@ A machine was fully declared, tested and diagrammed, and nothing sent it events.
 Delinquency cases never closed after payment. Payouts stayed `PROCESSING`
 forever.
 
-- **Instead:** census every event for a sender. Treat creation as a transition,
+- **Instead:** a pattern check over every event, requiring a sender. Treat creation as a transition,
   with no `@default` on the column.
 
 ## 8. Stored derived state
@@ -154,7 +154,7 @@ _approved_ while mentioning a dismissed concern were blocked by tone.
 
 Kept here so the list above does not read as "it all went wrong":
 
-- the census pattern
+- the pattern check
 - PGlite
 - worktree-per-agent with its guards
 - `Progress:` blocks feeding progress reports

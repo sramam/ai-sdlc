@@ -1,4 +1,4 @@
-@ai-sdlc/plan: The plan in the repo: parsing `docs/requirements/` and `docs/plan/` (the markdown conventions are in the header of `plan-lib.mts`), `plan:check` (the staged census), `plan:status` (derived from git), `claim`, `item-check`.
+@ai-sdlc/plan: The plan in the repo: parsing `docs/requirements/` and `docs/plan/` (the markdown conventions are in the header of `plan-lib.mts`), `plan:check` (the staged pattern check), `plan:status` (derived from git), `claim`, `item-check`.
 
 - The skills that write requirements must follow the conventions `plan-lib.mts` parses — including the exact `Verdict:` line in `review.md` and the `Dependencies:` line in ADRs (README.md § Formats).
 - Status is never stored; it is derived from `Closes:`/`Progress:` trailers and claim branches.

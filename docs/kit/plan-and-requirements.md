@@ -55,7 +55,7 @@ docs/progress/YYYY-MM-DD.md   dated reports, never rewritten
   marked `withdrawn`, with a date and reason. A renumbered ID silently re-points
   every reference to it.
 - **Two agents can allocate the same next number.** Allocate after `git fetch`,
-  checking `origin/dev` and remote branches. The census below catches a
+  checking `origin/dev` and remote branches. The pattern check below catches a
   duplicate, and the later branch renames before landing.
 
 ## Personas are discovered, not assumed
@@ -283,7 +283,7 @@ answered: # date, once answered
 
 A question with no `answered` date is open. Answering it may produce an ADR.
 
-## The census — what keeps this honest
+## The pattern check — what keeps this honest
 
 `pnpm plan:check` prints its table on success. It runs in **stages**, because
 what must hold grows as the project does. Each stage includes the ones before
@@ -342,7 +342,7 @@ stage requires `ready-to-plan` or `ready-with-assumptions`.
 @scope/pkg-b`. A name mentioned only in prose does not count. The starter's
   own tooling dependencies are listed by `ADR-000-starter-tooling`
 
-This is the same pattern as every other census here (principles.md §6): the
+This is the same shape as every other pattern check here (principles.md §6): the
 checks a project board would have offered as views, made into failures.
 
 ## Reporting against the plan

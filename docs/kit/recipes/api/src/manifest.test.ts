@@ -1,4 +1,4 @@
-// The manifest census: every capability is describable to OpenAPI and MCP, its
+// The manifest pattern check: every capability is describable to OpenAPI and MCP, its
 // name is unique, and no input can carry authority.
 import { describe, expect, it } from "vitest";
 import { z } from "zod";

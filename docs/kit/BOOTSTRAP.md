@@ -138,7 +138,7 @@ It runs **in parallel with Phase 1**, in another session and worktree
 | `plan:check`        | a duplicate ID; an item citing a missing requirement                                                                                  |
 
 Guards that need product code (seed refusal, capture transports, `promote`,
-the authorization census) are tripped in the foundation items that create them.
+the authorization pattern check) are tripped in the foundation items that create them.
 The commit that lands this phase carries `Closes: X-001`.
 
 ## Phase 3 — Plan
@@ -151,11 +151,11 @@ first, as `X-` items**, in this order, each with its own acceptance and trip tes
 | platform spike             | verifies everything marked _verify_ in the kit for the chosen stack: framework on Workers, ORM through Hyperdrive, auth library, OTel export, the authorization engine from a Worker and in tests, Base UI coverage. Findings become ADRs and package `agents.md` notes |
 | apps and packages          | instantiates each app and package from kickoff topic 9 from `docs/kit/recipes/`, one commit each, with its tests passing. Where no recipe exists yet, it writes the package directly and offers it upstream as a recipe. Fills in the packages section of `AGENTS.md`   |
 | infrastructure             | the agent writes `pnpm infra:provision`; **a person runs it** per environment; the agent writes `wrangler.jsonc` from its output; `/api/health` confirms                                                                                                                |
-| environments and promotion | env and binding schema, `.dev.vars.example` census, promote scripts, a seed framework that refuses production                                                                                                                                                           |
+| environments and promotion | env and binding schema, `.dev.vars.example` pattern check, promote scripts, a seed framework that refuses production                                                                                                                                                    |
 | security baseline          | `@<scope>/authz` with the policy and a matrix-test generator (cells arrive with features), headers, CSP, rate limits, sessions                                                                                                                                          |
 | telemetry                  | `@<scope>/telemetry`, span conventions, test exporter, lint against `console.log`                                                                                                                                                                                       |
 | UI foundation              | tokens from the design brief, the shells, the patterns, ⌘K, the component viewer, the UI scan floor                                                                                                                                                                     |
-| test harness               | `createTestDb()`, the database-fake census, the smoke test against the built Worker, journey ports, capture transports                                                                                                                                                  |
+| test harness               | `createTestDb()`, the database-fake pattern check, the smoke test against the built Worker, journey ports, capture transports                                                                                                                                           |
 
 Then **features, ordered by journey**. Show the plan to the author before code
 starts, and land it with `Closes: X-000`. `plan:check --stage plan` must pass.

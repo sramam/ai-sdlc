@@ -18,7 +18,7 @@ import {
   gatherBuildFacts,
   gatherTrailers,
   readManifests,
-  runCensus,
+  runPatternCheck,
   verdict,
 } from "./plan-check.mts";
 import type { CheckResult } from "./plan-check.mts";
@@ -44,7 +44,7 @@ function mutated(edits: Record<string, string | ((t: string) => string) | null>)
 }
 
 function check(root: string, name: string, stage: Stage = "plan"): CheckResult {
-  const r = runCensus(loadModel(root), stage).find((x) => x.name === name);
+  const r = runPatternCheck(loadModel(root), stage).find((x) => x.name === name);
   if (!r) throw new Error(`no check ${name}`);
   return r;
 }
@@ -55,7 +55,7 @@ const P = "docs/requirements/personas.md";
 
 describe("the good fixture", () => {
   it("passes every check up to the plan stage", () => {
-    const results = runCensus(loadModel(join(FIXTURES, "good")), "plan");
+    const results = runPatternCheck(loadModel(join(FIXTURES, "good")), "plan");
     expect(results.filter((r) => r.state !== "pass")).toEqual([]);
     expect(results).toHaveLength(22);
   });
@@ -68,7 +68,7 @@ describe("the empty starter", () => {
   it("is pre-discovery, and says discovery has not started rather than passing vacuously", () => {
     const root = join(FIXTURES, "empty");
     expect(detectStage(root)).toMatchObject({ stage: "pre-discovery" });
-    const results = runCensus(loadModel(root), "pre-discovery");
+    const results = runPatternCheck(loadModel(root), "pre-discovery");
     expect(results.map((r) => [r.name, r.state])).toEqual([
       ["unique-ids", "pass"],
       ["references", "pass"],
@@ -82,7 +82,7 @@ describe("the empty starter", () => {
     expect(table.filter((l) => l.includes("not run"))).toHaveLength(3);
   });
   it("fails the requirements stage, naming every missing discovery output", () => {
-    const results = runCensus(loadModel(join(FIXTURES, "empty")), "requirements");
+    const results = runPatternCheck(loadModel(join(FIXTURES, "empty")), "requirements");
     expect(verdict(results, false).ok).toBe(false);
     const outputs = results.find((r) => r.name === "discovery-outputs");
     expect(outputs?.state).toBe("fail");
@@ -92,7 +92,7 @@ describe("the empty starter", () => {
     expect(results.find((r) => r.state === "not started")).toBeUndefined();
   });
   it("fails the plan stage too", () => {
-    const results = runCensus(loadModel(join(FIXTURES, "empty")), "plan");
+    const results = runPatternCheck(loadModel(join(FIXTURES, "empty")), "plan");
     expect(verdict(results, false).ok).toBe(false);
   });
 });
@@ -176,7 +176,7 @@ describe("discovery outputs and the verdict", () => {
     expect(check(notReady, "review-verdict", "requirements").state).toBe("fail");
     const pending = mutated({ [R]: "- **Verdict:** ready-pending-decisions\n" });
     expect(check(pending, "review-verdict", "requirements").state).toBe("pass");
-    expect(verdict(runCensus(loadModel(pending), "requirements"), false).ok).toBe(true);
+    expect(verdict(runPatternCheck(loadModel(pending), "requirements"), false).ok).toBe(true);
     expect(check(pending, "plan-readiness").state).toBe("fail");
     const assumed = mutated({ [R]: "Verdict: ready-with-assumptions\n" });
     expect(check(assumed, "plan-readiness").state).toBe("pass");
@@ -311,7 +311,7 @@ describe("requirements stage, each check tripped", () => {
     expect(check(marker, "access-model").state).toBe("pass");
     const gone = mutated({ "docs/requirements/access-model.md": null });
     expect(check(gone, "discovery-outputs").details.join()).toContain("access-model.md is missing");
-    expect(verdict(runCensus(loadModel(gone), "requirements"), false).ok).toBe(false);
+    expect(verdict(runPatternCheck(loadModel(gone), "requirements"), false).ok).toBe(false);
   });
 });
 

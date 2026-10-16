@@ -58,23 +58,23 @@ Two ideas run through all of it:
 
 - **Every check has three answers:** yes, no, and _could not ask_. The third is
   never reported as a pass.
-- **A list that matters is counted by a test** (a census), not kept by hand.
+- **A list that matters is counted by a test** (a pattern check), not kept by hand.
 
 ### Tooling modules
 
-| module     | gives you                                                                                                     |
-| ---------- | ------------------------------------------------------------------------------------------------------------- |
-| `core`     | config loading and validation, the git command parser, port probing, shared exec                              |
-| `guards`   | the git and Claude Code hooks: trailers, worktree rules, provenance, the requirements lock                    |
-| `plan`     | `plan:check` (a staged census: requirements → plan → build), `plan:status`, `claim`, the sources manifest     |
-| `ci`       | `ci:local` and `land`                                                                                         |
-| `setup`    | `sdlc:init`, `bootstrap`, `accounts:check`, `sdlc:update`                                                     |
-| `localdb`  | a PGlite Postgres per worktree, snapshotted before every migrate or reset                                     |
-| `seed`     | deterministic demo data, opt-in per app                                                                       |
-| `journeys` | Playwright journeys with screenshots, diffs and learned masks. Recording runs three passes; testing runs one  |
-| `coverage` | merged coverage, per-package floors, the published report                                                     |
-| `promote`  | `promote:staging`, `promote:prod`, `rollback`, `release`: fast-forward only, green SHA required, smoke-tested |
-| `security` | secrets (built-in, plus trufflehog or gitleaks), dependency audit, licences, install scripts, release age     |
+| module     | gives you                                                                                                        |
+| ---------- | ---------------------------------------------------------------------------------------------------------------- |
+| `core`     | config loading and validation, the git command parser, port probing, shared exec                                 |
+| `guards`   | the git and Claude Code hooks: trailers, worktree rules, provenance, the requirements lock                       |
+| `plan`     | `plan:check` (a staged pattern check: requirements → plan → build), `plan:status`, `claim`, the sources manifest |
+| `ci`       | `ci:local` and `land`                                                                                            |
+| `setup`    | `sdlc:init`, `bootstrap`, `accounts:check`, `sdlc:update`                                                        |
+| `localdb`  | a PGlite Postgres per worktree, snapshotted before every migrate or reset                                        |
+| `seed`     | deterministic demo data, opt-in per app                                                                          |
+| `journeys` | Playwright journeys with screenshots, diffs and learned masks. Recording runs three passes; testing runs one     |
+| `coverage` | merged coverage, per-package floors, the published report                                                        |
+| `promote`  | `promote:staging`, `promote:prod`, `rollback`, `release`: fast-forward only, green SHA required, smoke-tested    |
+| `security` | secrets (built-in, plus trufflehog or gitleaks), dependency audit, licences, install scripts, release age        |
 
 ### Configuration and updates
 

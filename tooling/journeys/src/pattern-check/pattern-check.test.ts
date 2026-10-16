@@ -4,12 +4,12 @@ import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { PNG } from "pngjs";
 import {
-  directoryCensus,
-  isolationCensus,
-  personaCensus,
-  snapshotCensus,
-  specCensus,
-} from "./census.mts";
+  directoryPatternCheck,
+  isolationPatternCheck,
+  personaPatternCheck,
+  snapshotPatternCheck,
+  specPatternCheck,
+} from "./pattern-check.mts";
 import type { Registry } from "../registry.mts";
 
 const registry: Registry = {
@@ -19,9 +19,9 @@ const registry: Registry = {
 
 const tiny = PNG.sync.write(new PNG({ width: 2, height: 2 }));
 
-/** A tree with one of everything a census should and should not say. */
+/** A tree with one of everything a pattern check should and should not say. */
 function tree(files: Record<string, string | Buffer>): string {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), "journeys-census-")));
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "journeys-pattern-check-")));
   for (const [path, body] of Object.entries(files)) {
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), body);
@@ -39,9 +39,9 @@ const walk = (persona: string, extra: Record<string, string | Buffer> = {}) => (
   ...extra,
 });
 
-describe("the snapshot census", () => {
+describe("the snapshot pattern check", () => {
   it("finds nothing wrong with a clean recording, and says it checked something", () => {
-    expect(snapshotCensus(tree(walk("common")))).toEqual({ checked: 1, findings: [] });
+    expect(snapshotPatternCheck(tree(walk("common")))).toEqual({ checked: 1, findings: [] });
   });
 
   it("names an orphan with its siblings, a missing image and a dangling mask", () => {
@@ -54,7 +54,7 @@ describe("the snapshot census", () => {
           "![m](snapshots/01-open-mask.png) ![x](snapshots/09-missing.png)\n",
       }),
     );
-    const { findings } = snapshotCensus(root);
+    const { findings } = snapshotPatternCheck(root);
     expect(findings).toEqual([
       "orphan screenshot J4-signing-in/common/happy/02-old.png (also: 02-old.png.mask.json)",
       "J4-signing-in/common/happy: names 09-missing.png, which is not on disk",
@@ -65,20 +65,21 @@ describe("the snapshot census", () => {
   it("ratchets known orphans in both directions", () => {
     const root = tree(walk("common", { "J4-signing-in/common/happy/snapshots/02-old.png": tiny }));
     expect(
-      snapshotCensus(root, { knownOrphans: ["J4-signing-in/common/happy/02-old.png"] }).findings,
+      snapshotPatternCheck(root, { knownOrphans: ["J4-signing-in/common/happy/02-old.png"] })
+        .findings,
     ).toEqual([]);
     expect(
-      snapshotCensus(tree(walk("common")), {
+      snapshotPatternCheck(tree(walk("common")), {
         knownOrphans: ["J4-signing-in/common/happy/02-old.png"],
       }).findings[0],
     ).toMatch(/no longer an orphan/);
   });
 });
 
-describe("the directory and persona censuses", () => {
+describe("the directory and persona pattern checks", () => {
   it("names a folder left behind by a rename", () => {
     const root = tree({ ...walk("common"), "J4-sign-in/common/happy/README.md": "" });
-    expect(directoryCensus(root, registry).findings).toEqual([
+    expect(directoryPatternCheck(root, registry).findings).toEqual([
       "J4-sign-in — J4 is registered as `J4-signing-in`, so this is the old name",
     ]);
   });
@@ -90,7 +91,7 @@ describe("the directory and persona censuses", () => {
       "J4-signing-in/legacy/README.md": "## 1. x\n",
       "J4-signing-in/organizer/persona.json": JSON.stringify({ key: "attendee", label: "x" }),
     });
-    expect(personaCensus(root, registry).findings).toEqual([
+    expect(personaPatternCheck(root, registry).findings).toEqual([
       'J4-signing-in/attendee/happy — J4 does not list persona "attendee"',
       "J4-signing-in/legacy — a path with no persona level; record it under <journey>/<persona>/",
       'J4-signing-in/organizer/persona.json says key "attendee", not "organizer"',
@@ -98,7 +99,7 @@ describe("the directory and persona censuses", () => {
   });
 });
 
-describe("the spec and isolation censuses", () => {
+describe("the spec and isolation pattern checks", () => {
   const spec = (persona: string, reset = "test.beforeAll(resetJourneyStack);") =>
     `import x from "y";\n${reset}\ntest("t", async () => { await Journey.open(page, { persona: "${persona}" }); });\n`;
 
@@ -110,7 +111,7 @@ describe("the spec and isolation censuses", () => {
       "signing-in.spec.ts": spec("organizer"),
       "fixtures.spec.ts": "test('no journey', () => {});\n",
     });
-    expect(specCensus(root, registry).findings).toEqual([
+    expect(specPatternCheck(root, registry).findings).toEqual([
       'j4-signing-in.common.spec.ts — named for "common" and records persona "organizer"',
       'j4-signing-in.ghost.spec.ts — "ghost" is not a persona in the registry',
       "signing-in.spec.ts — records a journey, so it is named <id>-<slug>.<persona>.spec.ts",
@@ -130,7 +131,7 @@ describe("the spec and isolation censuses", () => {
       ),
       "d.spec.ts": spec("common", "/* test.beforeAll(resetJourneyStack); */"),
     });
-    expect(isolationCensus(root)).toEqual({
+    expect(isolationPatternCheck(root)).toEqual({
       checked: 4,
       findings: [
         "c.spec.ts — does not call test.beforeAll(resetJourneyStack); before its first test",

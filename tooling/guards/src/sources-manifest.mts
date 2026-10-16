@@ -4,7 +4,7 @@
  * was made — the requirements lock sees Edit and Write, not `sed -i` or `cp`.
  *
  *   node tooling/guards/src/sources-manifest.mts --add <path>   record a new import
- *   node tooling/guards/src/sources-manifest.mts --check        the census, for ci
+ *   node tooling/guards/src/sources-manifest.mts --check        the pattern check, for ci
  *
  * `docs/requirements/sources/MANIFEST`, one line per file, the format
  * `sha256sum` writes and `shasum -a 256 -c` reads:
@@ -12,7 +12,7 @@
  *     <64 hex sha256>  <path relative to sources/>
  *
  * so `cd docs/requirements/sources && shasum -a 256 -c MANIFEST` verifies it by
- * hand. The census fails on a file with no line, a changed hash, a line naming
+ * hand. The pattern check fails on a file with no line, a changed hash, a line naming
  * a file that is gone (a source is never deleted either), a malformed line and
  * a duplicate. Dotfiles (`.gitkeep`, `.DS_Store`) and MANIFEST itself are not
  * sources. `--add` refuses to re-record a path whose hash differs: a source is
@@ -76,7 +76,7 @@ export function parseManifest(text: string): { lines: Line[]; problems: string[]
   return { lines, problems };
 }
 
-/** The census: sources/ and its MANIFEST agree, file for file and hash for hash. */
+/** The pattern check: sources/ and its MANIFEST agree, file for file and hash for hash. */
 export function checkSourcesManifest(root: string, reqDir = "docs/requirements"): ManifestCheck {
   const dir = sourcesDir(root, reqDir);
   const files = listSources(dir);

@@ -206,11 +206,11 @@ describe.skipIf(missing !== null)("journeys, end to end against the fixture app"
     { timeout: 60_000 },
     async () => {
       const { loadJourneysConfig } = await import("./config.mts");
-      const { journeyCensus } = await import("./census/census.mts");
-      const report = journeyCensus(root, await loadJourneysConfig(root));
-      for (const [name, census] of Object.entries(report)) {
-        expect(census.findings, name).toEqual([]);
-        expect(census.checked, `${name} checked nothing`).toBeGreaterThan(0);
+      const { journeyPatternCheck } = await import("./pattern-check/pattern-check.mts");
+      const report = journeyPatternCheck(root, await loadJourneysConfig(root));
+      for (const [name, check] of Object.entries(report)) {
+        expect(check.findings, name).toEqual([]);
+        expect(check.checked, `${name} checked nothing`).toBeGreaterThan(0);
       }
     },
   );

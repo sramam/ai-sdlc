@@ -369,7 +369,7 @@ describe("mergeBoxes and the ratchet", () => {
 });
 
 /**
- * **The coverage rule behind the date census.**
+ * **The coverage rule behind the date pattern check.**
  *
  * `dateBoxes` needs a browser and `exercisedBy` needs two PNGs; what decides
  * whether a step is red tomorrow is neither. It is *does the mask cover this

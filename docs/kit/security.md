@@ -36,7 +36,7 @@ chosen from it in `/kickoff`, and recorded in an ADR:
 Whichever is chosen, these rules hold:
 
 - **One place asks "may".** `@<scope>/authz` wraps the engine. Capabilities call it,
-  and nothing else does. A census fails on any capability that does not
+  and nothing else does. A pattern check fails on any capability that does not
   authorize, and on any server function that reaches data without going
   through a capability.
 - **Default deny.** An unknown action, resource type or role is refused. If the
@@ -147,7 +147,7 @@ relationship in the database, never from a header, a query or a body.
   is 403; a key store or JWKS that cannot be asked is 503, never 401.
 - **Rate-limit per credential**, not per IP: per API key, per OAuth client and
   user, per session user. Better Auth's api-key plugin has its own limiter with
-  a low default (10 a day in 1.7.7); set it on purpose or turn it off and limit
+  a low default (10 a day in 1.7.7 through 1.7.9); set it on purpose or turn it off and limit
   in the binding.
 - **Keys and tokens are secrets in the user's hands**: shown once, stored
   hashed, expiring, revocable from the app, and never logged or put in a span.
@@ -160,7 +160,7 @@ relationship in the database, never from a header, a query or a body.
 | **sessions**       | server-side and revocable; `__Host-` cookies, `Secure`, `HttpOnly`, `SameSite=Lax` or stricter; rotated on privilege change; short idle timeout for privileged roles                                 |
 | **IDs**            | opaque and non-guessable in URLs; possessing an ID is never authorization                                                                                                                            |
 | **input**          | Zod at every boundary, including webhooks, queue messages and model output                                                                                                                           |
-| **output**         | React escaping; no `dangerouslySetInnerHTML` without a sanitizer, and a census for it; user-uploaded files served from a separate origin with `Content-Disposition`                                  |
+| **output**         | React escaping; no `dangerouslySetInnerHTML` without a sanitizer, and a pattern check for it; user-uploaded files served from a separate origin with `Content-Disposition`                           |
 | **headers**        | strict CSP with nonces, HSTS, `frame-ancestors 'none'`, COOP, a referrer policy                                                                                                                      |
 | **abuse**          | per-caller rate limits (Cloudflare rate limiting or a Durable Object), the WAF, bot protection on sign-in and sign-up                                                                                |
 | **webhooks**       | verify the signature, reject replays (timestamp plus idempotency key), and process idempotently                                                                                                      |

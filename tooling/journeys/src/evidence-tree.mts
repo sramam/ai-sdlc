@@ -14,7 +14,7 @@
  * name or by an absence. A discriminator that works by absence gets a wrong
  * answer from any folder that is merely half-written. A path found directly
  * under a journey folder — door_nexa's layout before the persona level was
- * unconditional — is still enumerated, with no persona, so the census can name
+ * unconditional — is still enumerated, with no persona, so the pattern check can name
  * it rather than the walk silently skipping it.
  *
  * **Walked, never assumed to a fixed depth.** door_nexa's learner scanned two

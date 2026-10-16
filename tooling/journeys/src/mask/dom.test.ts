@@ -112,7 +112,7 @@ describe("boxOf is the only thing that makes a box", () => {
    */
   it("contains the interval it was given, for any rect", () => {
     /*
-     * **Seeded, not random**, and the volatility census is right to insist:
+     * **Seeded, not random**, and the volatility pattern check is right to insist:
      * anything under `e2e/` that varies between runs makes a recording
      * non-deterministic. A property test is the one place randomness earns
      * its place, and a *seeded* one is strictly better than an exemption —
@@ -154,10 +154,10 @@ describe("boxOf is the only thing that makes a box", () => {
    * **Scoped to the whole of `src/` and not to this file, which is how the fourth
    * spelling was missed.** `pdf-pages.ts` rounded a PDF glyph's rect with
    * `round(left)` and `round(width)` — the worst of the four forms, losing an
-   * edge in 87.5% of rects — and a census reading one file could not see it,
+   * edge in 87.5% of rects — and a pattern check reading one file could not see it,
    * because it is not a DOM probe and nobody auditing the three would have
-   * opened it. *A census naming one shape goes silent outside it* is a failure
-   * this repository has now paid for in `list-census` and here.
+   * opened it. *A pattern check naming one shape goes silent outside it* is a failure
+   * this repository has now paid for in door_nexa's list-pane check and here.
    *
    * Declared exemptions rather than a narrower scan: each is an **exact
    * expression** with a reason that is a property of what it computes, so a new
@@ -171,7 +171,7 @@ describe("boxOf is the only thing that makes a box", () => {
      * door_nexa's list named a canvas buffer, a duration and a name table. The
      * canvas buffer arrived with `render/pdf.mts`; the duration here uses
      * `Math.trunc` instead. The grid arithmetic in `regions.mts`
-     * is new here only because door_nexa's census scanned `e2e/support/` and
+     * is new here only because door_nexa's pattern check scanned `e2e/support/` and
      * `regions` lived in `scripts/`: it was never asked.
      */
     const NOT_A_BOX = new Map([
@@ -225,7 +225,7 @@ describe("boxOf is the only thing that makes a box", () => {
   });
 
   /**
-   * **Two `Math.round` calls stay, and a census that flagged them would be
+   * **Two `Math.round` calls stay, and a pattern check that flagged them would be
    * fixed by deleting them.** Neither is a box: one is a geometry fingerprint
    * and one collects rendered widths into a `Set`, and in both the rounding is
    * a deliberate **tolerance**. Strip it and `geometry()` reports every

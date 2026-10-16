@@ -107,7 +107,7 @@ pnpm db:local reset            # empty, then migrate
 - **Secrets** are set with `wrangler secret put` per environment. Bindings and
   variables are validated by a schema at startup, failing loudly with the name
   of anything missing. `.env.example` and `.dev.vars.example` list everything,
-  and a census keeps them in step with the schema.
+  and a pattern check keeps them in step with the schema.
 - **Capture transports** (email to disk, local storage) are refused on every
   deployed environment, at build time and at call time.
 - **Backups**: rely on the database host's point-in-time recovery, and R2

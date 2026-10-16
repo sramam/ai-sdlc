@@ -65,9 +65,11 @@ would differ between MCP and every other binding. Tool names use `_`
 (`project_create`), because model APIs that clients forward tools to reject
 dots.
 
-**Versions** are pinned at least two weeks old (2026-10-16): MCP 2.2.0
-(2026-09-28), Better Auth 1.7.7 (2026-09-30). The app recipe pins Better Auth
-1.7.10; a project uses one version for both. `@better-auth/utils`,
+**Versions** (2026-10-16): MCP 2.2.0 (2026-09-28) is pinned at least two weeks
+old. Better Auth is 1.7.9 (2026-10-15), the version every recipe here pins: a
+project uses one, and the app recipe's 1.7.10 was younger than the starter's
+one-day `minimumReleaseAge` when the recipes were aligned. 1.7.10 only fixed
+Google One Tap and `@better-auth/oauth-provider` edge cases. `@better-auth/utils`,
 `better-call` and `@better-auth/oauth-provider` are direct dependencies so
 pnpm resolves the plugins' peers to the same copies: without them it installed
 two `@better-auth/core`s and the plugin types stopped matching.
@@ -89,7 +91,7 @@ by an admin still cannot write, checked before the port is reached. An MCP
 token minted for `/mcp` is refused by the HTTP API and the reverse, because
 each verifies its own audience. A key store that cannot be asked is 503, never 401.
 
-**Better Auth 1.7.7's API-key plugin defaults to 10 requests per key per day**
+**Better Auth's API-key plugin (1.7.7 through 1.7.9) defaults to 10 requests per key per day**
 (measured). Configure `rateLimit` deliberately, or rate-limit in the binding
 (`limit`) and turn the plugin's off. Metadata needs `enableMetadata: true`.
 

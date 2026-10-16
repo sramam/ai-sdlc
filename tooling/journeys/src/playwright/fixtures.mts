@@ -23,7 +23,7 @@ export { expect } from "@playwright/test";
  *
  * `test.beforeAll(resetJourneyStack)` — per file rather than per test, because a
  * per-test reset runs *after* that test's fixtures and deletes what they built.
- * The isolation census (`census.mts`) requires every spec to call it before
+ * The isolation pattern check (`pattern-check.mts`) requires every spec to call it before
  * anything else.
  */
 export async function resetJourneyStack(): Promise<void> {

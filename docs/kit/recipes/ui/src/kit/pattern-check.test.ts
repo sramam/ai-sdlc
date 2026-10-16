@@ -22,7 +22,7 @@ const RULES: [string, RegExp][] = [
   ["a v3 custom-property shorthand", /-\[--[a-z]/],
 ];
 
-describe("ui census", () => {
+describe("ui pattern check", () => {
   const all = [...files(join(root, "kit")), ...files(join(root, "components"))];
   it("finds the files it scans", () => expect(all.length).toBeGreaterThan(10));
   it.each(RULES)("no component uses %s", (_name, re) => {

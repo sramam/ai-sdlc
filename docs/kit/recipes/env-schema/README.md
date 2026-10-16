@@ -17,6 +17,6 @@ production` is refused, never defaulted.
   a `connectionString`), so the schema runs in Node.
 
 Keep `.dev.vars.example` (secrets) and the `vars` in `wrangler.jsonc` in step
-with the schema; a census over the three is the next step. Under
+with the schema; a pattern check over the three is the next step. Under
 `nodejs_compat` with a compatibility date on or after 2025-04-01, vars and
 secrets also appear in `process.env`; read them through this schema anyway.

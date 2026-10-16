@@ -91,7 +91,7 @@ exceeds N" or "if the vendor changes its retention policy"). Then update:
 
 - `docs/architecture.md`: the component, citing the ADR
 - the plan: items for the integration package, its port (if the vendor may
-  change), its census and its spans
+  change), its pattern check and its spans
 
 ## What the agent must not do
 

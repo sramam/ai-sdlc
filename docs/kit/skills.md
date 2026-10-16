@@ -53,7 +53,7 @@ below exists because doing its job by hand went wrong.
   instruction travels with the output.
 - **The count of criteria in the header must equal the number of sections.**
   door_nexa's code-reviewer said four criteria and had eight, and the
-  unreported four included tenant safety. Put a census on your own skills.
+  unreported four included tenant safety. Put a pattern check on your own skills.
 
 ## Tools that worked
 

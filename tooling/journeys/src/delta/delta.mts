@@ -26,9 +26,9 @@
  * ## The report lives outside the evidence root
  *
  * door_nexa wrote its images into a scratch folder under `docs/`, and seven
- * censuses that enumerate the evidence then had to be taught to skip it — on
+ * pattern checks that enumerate the evidence then had to be taught to skip it — on
  * the one machine that ran it, since it was gitignored and CI never saw it.
- * Here the report and its images go under `reportRoot`, which no census reads.
+ * Here the report and its images go under `reportRoot`, which no pattern check reads.
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";

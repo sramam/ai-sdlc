@@ -11,10 +11,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@better-auth/drizzle-adapter": "1.7.10",
+    "@better-auth/drizzle-adapter": "1.7.9",
     "@tanstack/react-router": "1.170.44",
     "@tanstack/react-start": "1.169.2",
-    "better-auth": "1.7.10",
+    "better-auth": "1.7.9",
     "drizzle-orm": "0.45.4",
     "pg": "8.23.1",
     "react": "^19.2.0",

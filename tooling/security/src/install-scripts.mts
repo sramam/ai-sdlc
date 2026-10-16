@@ -1,10 +1,10 @@
 /**
- * The install-script census. Every installed package that would run code at
+ * The install-script pattern check. Every installed package that would run code at
  * install time is named, and the policy is read from pnpm's own settings:
  *
  * - `onlyBuiltDependencies` in pnpm-workspace.yaml (or root package.json
  *   `pnpm.onlyBuiltDependencies`) is the allow-list. Everything unlisted is
- *   **denied** by pnpm, and the census reports it as denied.
+ *   **denied** by pnpm, and the pattern check reports it as denied.
  * - A listed package that is no longer installed, or no longer has a script,
  *   **fails**: the list may only shrink, and an entry outliving its reason is
  *   a standing grant nobody is reviewing.
@@ -39,7 +39,7 @@ export interface BuildPolicy {
   only: string[] | null;
   dangerouslyAllowAll: boolean;
   never: string[] | null;
-  /** Declared in a form this census cannot read. */
+  /** Declared in a form this pattern check cannot read. */
   unreadable: string[];
 }
 
@@ -98,7 +98,7 @@ export function checkInstallScripts(
     return result(
       "install-scripts",
       "could-not-run",
-      `policy declared in a form this census cannot read: ${policy.unreadable.join(", ")}`,
+      `policy declared in a form this pattern check cannot read: ${policy.unreadable.join(", ")}`,
     );
 
   const withScripts = installed

@@ -35,7 +35,7 @@ lives elsewhere is, for practical purposes, forgotten.
 Something costs time, and the question is where its lesson goes so that nobody
 pays for it twice:
 
-1. **Fix it**, and **add a guard** if one is possible: a test, a census, a hook,
+1. **Fix it**, and **add a guard** if one is possible: a test, a pattern check, a hook,
    a lint rule. A guard is memory that cannot be skipped.
 2. **Write the rule where it will be read**, as one line:
    - a non-negotiable → `docs/guardrails.md`

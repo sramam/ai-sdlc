@@ -5,7 +5,7 @@ dist/
 test-results/
 .localdb/
 
-# Secrets. The *.example files are committed and kept in step by a census.
+# Secrets. The *.example files are committed and kept in step by a pattern check.
 .env
 .env.*
 !.env.example

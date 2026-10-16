@@ -1,4 +1,4 @@
-// API key → Caller, against a real Better Auth 1.7.7 with the api-key plugin
+// API key → Caller, against a real Better Auth 1.7.9 with the api-key plugin
 // (memory adapter, in process). The key carries the user and a relationship
 // id, both written server-side at creation; the request carries only the key.
 import { apiKey } from "@better-auth/api-key";
@@ -26,7 +26,7 @@ async function setup() {
       apiKey({
         defaultPrefix: "app_",
         enableMetadata: true,
-        // 1.7.7 defaults to 10 requests per key per day; the binding owns rate limiting.
+        // 1.7.9 defaults to 10 requests per key per day; the binding owns rate limiting.
         rateLimit: { enabled: false },
       }),
     ],

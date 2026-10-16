@@ -5,7 +5,7 @@ Preserved failure modes — each is asserted by a test here; do not weaken one t
 - **A mask may only grow through a relearn.** It is a union across passes, so a wrong box is permanent. `MAX_STEP_COVERAGE` and `MAX_DECLARED_BOX` are ratchets: raising one needs a written reason beside it, in the same commit.
 - **`pixelmatch` needs `diffMask: true`**, or every pixel reads as differing and the learned mask is the whole page.
 - **A box path names one element, not a set.** `mergeBoxes` joins boxes sharing a `from` however far apart; a selector or a bare `span` as a path spans the gap between two clocks.
-- **One rounding: `boxOf`.** `[floor(left), ceil(right))`, never `floor(left) + ceil(width)`. The census in `dom.test.ts` fails on any other `Math.floor`/`Math.ceil` under `src/`.
+- **One rounding: `boxOf`.** `[floor(left), ceil(right))`, never `floor(left) + ceil(width)`. The pattern check in `dom.test.ts` fails on any other `Math.floor`/`Math.ceil` under `src/`.
 - **Declared boxes resolve from a selector, and a comparison never learns.** `refreshDeclared` unions for one comparison and writes nothing; `verifyStored` drops on a learning pass. Opposite answers, both right.
 - **A settling region is not volatile.** `classifyMotion` masks only what is still moving when the window closes.
 - **A check has three answers.** `unknown` port holders are never killed, a probe timeout is `unreadable` (and discards the pass), a load of 0 is `cannot-ask`, a missing sign-off file releases nothing, a red journey is not QA's whatever the sign-off says.
@@ -20,7 +20,7 @@ Preserved failure modes — each is asserted by a test here; do not weaken one t
 - **A dead stack learns nothing.** The learner probes the control channel after each learning pass and restores every mask from before pass 1 when it is not `up`.
 - **The verdict markers live in `README.md`**, from one constant (`FAILED_MARKER`, `CHANGED_MARKER`) that every writer and reader imports. Moved to `diff.md`, every path would read green.
 - **A wait, never a mask, for a page still arriving.** `settle.selectors` are presence-guarded and so must run after the `aria-busy` wait, or a skeleton makes them vacuous.
-- **The delta report and its images live under `reportRoot`, outside the evidence root**, which every census enumerates.
+- **The delta report and its images live under `reportRoot`, outside the evidence root**, which every pattern check enumerates.
 - **Selection is by spec path, never by `--grep`**, and a selector that matches nothing throws rather than widening to the whole suite.
 - **Every recording carries the persona level**, marked by `persona.json`, never by a name or an absence.
-- Files run under plain `node`: erasable TypeScript only, no constructor parameter properties, relative imports with `.mts`, `import type` for types. Only `recorder/`, `render/` and `playwright/` import `@playwright/test` at runtime; config, CLIs and censuses must not.
+- Files run under plain `node`: erasable TypeScript only, no constructor parameter properties, relative imports with `.mts`, `import type` for types. Only `recorder/`, `render/` and `playwright/` import `@playwright/test` at runtime; config, CLIs and pattern checks must not.

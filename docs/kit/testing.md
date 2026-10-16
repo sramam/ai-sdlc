@@ -21,7 +21,7 @@ ORM reimplemented from memory. Replacing it with PGlite exposed:
 - "fake was wrong, real code looked broken", five times over
 
 Mocking the DB module also substitutes away the **scoping extension**, which is
-the thing most worth testing. Enforce the rule with a census that fails on a
+the thing most worth testing. Enforce the rule with a pattern check that fails on a
 `vi.mock` factory that answers queries. A **spy** (`vi.fn()`, asserting what was
 written) is fine. A **fake** (returns made-up rows) is not.
 
@@ -43,7 +43,7 @@ that the secrets are undefined inside a test.
 **With CI local, this matters more.** door_nexa found the leak only because a
 clean hosted runner disagreed with the laptop. With no hosted runner, nothing
 disagrees. So `ci:local` must run each suite in a scrubbed child environment,
-spawned with an explicit env and not inheriting the shell's. Add a census test
+spawned with an explicit env and not inheriting the shell's. Add a pattern check
 that fails if any test can see a known secret variable. Periodically run
 `ci:local` from a fresh clone with no `.env.local` at all.
 
@@ -148,7 +148,7 @@ These are door_nexa's expensive lessons, and they come with the machinery:
 - **One spec file per persona**, with the persona in the name:
   `j04-signing-in.organizer.spec.ts` (which resolves to journey `J04`, so registry
   IDs are spelled `J04`), using your own persona IDs, and
-  `.common.spec.ts` for refusals that depend on nobody. A census checks the name
+  `.common.spec.ts` for refusals that depend on nobody. A pattern check verifies the name
   against the persona registry.
 - **Indexes are generated from disk.** Never hand-merge a generated table;
   re-run the generator. Playwright's teardown regenerates them after every run

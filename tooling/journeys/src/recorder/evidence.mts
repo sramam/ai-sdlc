@@ -18,7 +18,7 @@
  * opens shows a failure. Moving either string to `diff.md` would make every
  * gate read a file that no longer carries it, and **every path would report
  * green**. One constant, imported by every writer and every reader, is what
- * stops the spellings drifting; door_nexa pinned it with a source-text census.
+ * stops the spellings drifting; door_nexa pinned it with a source-text pattern check.
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -83,7 +83,7 @@ export type PathMeta = {
 
 /**
  * A duration a person reads, not a number they convert. `Math.trunc`, not
- * `Math.floor`: the rounding census in `mask/dom.test.ts` reserves floor and
+ * `Math.floor`: the rounding pattern check in `mask/dom.test.ts` reserves floor and
  * ceil for `boxOf`, and a duration is not a box.
  */
 export const duration = (ms: number): string =>

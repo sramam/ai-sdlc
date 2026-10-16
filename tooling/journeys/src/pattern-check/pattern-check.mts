@@ -1,19 +1,19 @@
 /**
- * **The censuses a project runs over its own journeys**, as functions that
+ * **The pattern checks a project runs over its own journeys**, as functions that
  * return findings — so a project's test file is a few lines and the logic, with
  * its reasons, lives here once.
  *
  * ```ts
- * // e2e/journeys.census.test.ts (vitest)
+ * // e2e/journeys.pattern-check.test.ts (vitest)
  * import { loadJourneysConfig } from "../tooling/journeys/src/config.mts";
- * import { journeyCensus } from "../tooling/journeys/src/census/census.mts";
- * const report = journeyCensus(root, await loadJourneysConfig(root));
+ * import { journeyPatternCheck } from "../tooling/journeys/src/pattern-check/pattern-check.mts";
+ * const report = journeyPatternCheck(root, await loadJourneysConfig(root));
  * for (const [name, c] of Object.entries(report)) it(name, () => expect(c.findings).toEqual([]));
  * ```
  *
- * Each has the shape every census here shares, because the shape is what keeps
+ * Each has the shape every pattern check here shares, because the shape is what keeps
  * one honest: **enumerate from the source, check against it, report what was
- * checked** (`checked` — a census satisfied by finding nothing at all must show
+ * checked** (`checked` — a pattern check satisfied by finding nothing at all must show
  * it found something to check), and **ratchet in both directions** — a known
  * exception that no longer applies is itself a finding, so a gap list cannot
  * outlive its gap.
@@ -27,7 +27,7 @@ import { COMMON, journeyFolder } from "../registry.mts";
 import type { Registry } from "../registry.mts";
 import { parseSpecName } from "../cli/select.mts";
 
-export type Census = { checked: number; findings: string[] };
+export type PatternCheck = { checked: number; findings: string[] };
 
 /**
  * **Every screenshot in a recording is named by its narrative**, and every
@@ -40,10 +40,10 @@ export type Census = { checked: number; findings: string[] };
  * embeds one and `diff.md` the other. Masks are never what trips it: an
  * orphan's mask siblings are listed beside it.
  */
-export function snapshotCensus(
+export function snapshotPatternCheck(
   evidenceRoot: string,
   { knownOrphans = [] }: { knownOrphans?: readonly string[] } = {},
-): Census {
+): PatternCheck {
   const findings: string[] = [];
   const orphans = new Set<string>();
   let checked = 0;
@@ -93,7 +93,7 @@ export function snapshotCensus(
  * one holding a complete, plausible, stale set of screenshots that every
  * disk-derived page reports as current.
  */
-export function directoryCensus(evidenceRoot: string, registry: Registry): Census {
+export function directoryPatternCheck(evidenceRoot: string, registry: Registry): PatternCheck {
   const want = new Map(registry.journeys.map((j) => [journeyFolder(j.id, j.title), j]));
   const folders = journeyFolders(evidenceRoot);
   const findings = folders
@@ -116,7 +116,7 @@ export function directoryCensus(evidenceRoot: string, registry: Registry): Censu
  * `organizer` whose marker says `attendee` renders a page naming one persona and
  * describing the other — no throw, and it reads as though somebody meant it.
  */
-export function personaCensus(evidenceRoot: string, registry: Registry): Census {
+export function personaPatternCheck(evidenceRoot: string, registry: Registry): PatternCheck {
   const findings: string[] = [];
   let checked = 0;
   for (const rec of recordedPaths(evidenceRoot)) {
@@ -153,7 +153,7 @@ export function personaCensus(evidenceRoot: string, registry: Registry): Census 
  * or the directory scheme's protection fails one level up. A spec with no
  * journey in it (a fixture test) has no `persona:` and is not asked.
  */
-export function specCensus(specDir: string, registry: Registry): Census {
+export function specPatternCheck(specDir: string, registry: Registry): PatternCheck {
   const findings: string[] = [];
   const files = existsSync(specDir)
     ? readdirSync(specDir)
@@ -188,10 +188,10 @@ export function specCensus(specDir: string, registry: Registry): Census {
  * runs on the previous journey's state and is red for a reason nobody changed;
  * a reset *after* building rows deletes them. Read from code, not comments.
  */
-export function isolationCensus(
+export function isolationPatternCheck(
   specDir: string,
   { reset = "resetJourneyStack" }: { reset?: string } = {},
-): Census {
+): PatternCheck {
   const findings: string[] = [];
   const files = existsSync(specDir)
     ? readdirSync(specDir)
@@ -213,21 +213,21 @@ export function isolationCensus(
 }
 
 /** All five, from one config, rooted at `root`. */
-export function journeyCensus(
+export function journeyPatternCheck(
   root: string,
   config: JourneysConfig,
   options: { knownOrphans?: readonly string[]; reset?: string } = {},
-): Record<"snapshots" | "directories" | "personas" | "specs" | "isolation", Census> {
+): Record<"snapshots" | "directories" | "personas" | "specs" | "isolation", PatternCheck> {
   const evidence = join(root, config.evidenceRoot);
   const specs = join(root, config.specDir);
   return {
-    snapshots: snapshotCensus(
+    snapshots: snapshotPatternCheck(
       evidence,
       options.knownOrphans ? { knownOrphans: options.knownOrphans } : {},
     ),
-    directories: directoryCensus(evidence, config.registry),
-    personas: personaCensus(evidence, config.registry),
-    specs: specCensus(specs, config.registry),
-    isolation: isolationCensus(specs, options.reset ? { reset: options.reset } : {}),
+    directories: directoryPatternCheck(evidence, config.registry),
+    personas: personaPatternCheck(evidence, config.registry),
+    specs: specPatternCheck(specs, config.registry),
+    isolation: isolationPatternCheck(specs, options.reset ? { reset: options.reset } : {}),
   };
 }

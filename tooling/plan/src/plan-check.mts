@@ -1,8 +1,8 @@
 /**
  * `pnpm plan:check [--stage pre-discovery|requirements|plan|build] [--allow-unknown]`
  *
- * The census over the requirements and the plan
- * (docs/kit/plan-and-requirements.md § The census). Each stage includes the
+ * The pattern check over the requirements and the plan
+ * (docs/kit/plan-and-requirements.md § The pattern check). Each stage includes the
  * ones before it. Prints its table on every run, success included; exits 1 on
  * a failure, and on a check that *could not ask* (git unavailable, say) unless
  * `--allow-unknown` is given.
@@ -878,9 +878,9 @@ export function gatherBuildFacts(root: string, dirs: Dirs): BuildFacts {
   };
 }
 
-// ─── The census ───────────────────────────────────────────────────────────────
+// ─── The pattern check ──────────────────────────────────────────────────────
 
-export function runCensus(m: Model, stage: Stage, build?: BuildFacts): CheckResult[] {
+export function runPatternCheck(m: Model, stage: Stage, build?: BuildFacts): CheckResult[] {
   const out: CheckResult[] = [checkUniqueIds(m), checkReferences(m)];
   if (stage === "pre-discovery") out.push(checkDiscoveryNotStarted(m));
   if (reached(stage, "requirements"))
@@ -976,7 +976,7 @@ export async function main(argv: string[]): Promise<number> {
   const stage = (forced as Stage | undefined) ?? detected.stage;
   const model = loadModel(root, dirs);
   const build = STAGES.indexOf(stage) >= 2 ? gatherBuildFacts(root, dirs) : undefined;
-  const results = runCensus(model, stage, build);
+  const results = runPatternCheck(model, stage, build);
   console.log(`plan:check: stage ${stage} (${forced ? "--stage" : `auto: ${detected.reason}`})`);
   for (const l of formatTable(results, stage)) console.log(l);
   const v = verdict(results, allowUnknown);

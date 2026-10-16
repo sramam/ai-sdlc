@@ -27,7 +27,7 @@
 
 **The plan is in the repository.** There are no GitHub Issues and no Projects.
 [plan-and-requirements.md](plan-and-requirements.md) has the layout, the IDs and
-the census.
+the pattern check.
 
 - **`docs/requirements/` is locked.** Only `/kickoff`, `/idea` and
   `/add-requirement` may write it, enforced by a hook and a commit trailer.

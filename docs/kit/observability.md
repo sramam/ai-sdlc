@@ -48,7 +48,7 @@ whatever you send it:
   logged.
 - **No PII, secrets, tokens, full URLs with query strings, or request bodies.**
   Use IDs, not emails.
-- **A census test** fails if a span or log call passes an unregistered key.
+- **A pattern check** fails if a span or log call passes an unregistered key.
 - Retention in the backend is set to match the data classification, and written
   down.
 

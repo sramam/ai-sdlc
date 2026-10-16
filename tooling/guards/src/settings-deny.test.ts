@@ -1,5 +1,5 @@
 /**
- * A census of the permission rules that keep merges and hook bypasses out of
+ * A pattern check of the permission rules that keep merges and hook bypasses out of
  * an agent's hands on this machine. Merging happens only through `pnpm land`;
  * GitHub enforces it server-side only on a public repo or a paid plan, so on a
  * private free repo these rules (with pre-push) are the whole local guard. A

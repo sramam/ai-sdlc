@@ -11,6 +11,6 @@
 
 Exit 0 pass (or reported, not judged), 1 fail (a suite failed or a floor was missed), 2 could not run (vitest or the provider unavailable, no coverage written, bad arguments, or a unit-only report refused over a merged one).
 
-**`floor-prose.test-helper.mts`** exports `floorProseCensus(root, { floors, declared })`: every markdown file under `docs/` except `docs/quality/coverage.md` is scanned, and a percentage, a figure pair (`92 / 88`) or a bare declared floor value within 80 characters of _floor_ or _coverage_ is an offence. A historical quote (past tense about a floor that no longer exists) may be declared with a reason; a declaration whose text has left its file fails. A project test calls it and asserts no offences, as `floor-prose.test.ts` does for this repository.
+**`floor-prose.test-helper.mts`** exports `floorProsePatternCheck(root, { floors, declared })`: every markdown file under `docs/` except `docs/quality/coverage.md` is scanned, and a percentage, a figure pair (`92 / 88`) or a bare declared floor value within 80 characters of _floor_ or _coverage_ is an offence. A historical quote (past tense about a floor that no longer exists) may be declared with a reason; a declaration whose text has left its file fails. A project test calls it and asserts no offences, as `floor-prose.test.ts` does for this repository.
 
 Upstream-owned: changed in the ai-sdlc starter, pulled with `pnpm sdlc:update`. A project that needs different behaviour replaces the module and lists it in `sdlc.config.json` `modules.replaced` (docs/kit/starter-repo.md).

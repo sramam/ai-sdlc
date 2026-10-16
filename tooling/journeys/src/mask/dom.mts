@@ -345,7 +345,7 @@ export async function declaredVolatileBoxes(
  * could not get from a static scan of the source: the formatting call and the
  * element are routinely in different files — `platform/staff/page.tsx` calls
  * `toLocaleDateString` and `staff-table.tsx` renders the string — so a source
- * census can ask *did somebody declare this* and never *is the value covered*.
+ * pattern check can ask *did somebody declare this* and never *is the value covered*.
  * Read from the DOM, both questions are answerable, because an element has a
  * rectangle and so does a mask.
  *

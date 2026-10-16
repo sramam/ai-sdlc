@@ -19,7 +19,7 @@ by the setup agent from what `/kickoff` and `/idea` decided.
 | **recipes**: reference implementations most projects need (listed under _Layout_), kept as docs and **not wired into the build** | **any app, and any package.** Which apps exist, and which packages, is decided in `/kickoff` (topic 9) |
 |                                                                                                                                  | a feature, a persona, a tenancy model                                                                  |
 | configuration with neutral defaults (`sdlc.config.json`)                                                                         | a vendor wrapper for a vendor not yet chosen (Oso _and_ SpiceDB, Resend _and_ Postmark)                |
-| censuses that pass vacuously on an empty project                                                                                 | fixtures, seeds or journeys about anything                                                             |
+| pattern checks that pass vacuously on an empty project                                                                           | fixtures, seeds or journeys about anything                                                             |
 
 If a starter file would need deleting for some plausible project, it does not
 belong in the starter. It belongs in the docs, as a recipe the setup agent
@@ -64,7 +64,7 @@ tooling/                   THE SDLC TOOLING: one workspace package per module, U
                            · worktree-trace · worktrees · requirements-lock · provenance
                            (prepare-commit-msg) · trailers (commit-msg, and --range for ci:local)
   plan/                    @ai-sdlc/plan: plan-lib (the markdown conventions) · plan-check
-                           (staged census) · plan-status (from git) · item-check
+                           (staged pattern check) · plan-status (from git) · item-check
   ci/                      @ai-sdlc/ci: ci-local (snapshot in .ci-local/run-<sha>-<random>/, scrubbed env,
                            local-ci commit status, fingerprint reuse)
   setup/                   @ai-sdlc/setup: sdlc-init · sdlc-update · bootstrap · accounts-check
@@ -195,11 +195,11 @@ Extracting the starter means **generalising and leaving behind**, not copying:
 | worktree guards, `git-command`, the registry, `worktrees`                                                                            | `clickup/*`, the ClickUp sync, weekly plan, status, and everything about the board                    |
 | `ci-local` (steps become config), the coverage gate                                                                                  | Neon branch scripts (replaced by per-environment Hyperdrive and DB config)                            |
 | `journey-*` (record, masks, delta, drift, index, verdict, status, regions)                                                           | jurisdiction, screening, address, payouts and statements scripts                                      |
-| `e2e/support`: journey, mask, page-diff, dom-boxes, ports, stack, verdict, pdf-pages, the censuses                                   | `e2e/support`: portfolio, onboarding, staff, organization, and every per-journey helper               |
+| `e2e/support`: journey, mask, page-diff, dom-boxes, ports, stack, verdict, pdf-pages, the pattern checks                             | `e2e/support`: portfolio, onboarding, staff, organization, and every per-journey helper               |
 | `bootstrap`, `load-env` (main-checkout fallback), the attribution trailer, lockfile checks; `issue-check` reworked into `item-check` | `dev-session` as written (Better Auth and organization specific; it becomes the `dev-session` recipe) |
 | `playground-db` (per-checkout data directory, port probing, pid lock)                                                                | seed portfolio, seed history, fixtures                                                                |
 | the skills, generalised                                                                                                              | persona agents, and the journey and persona registries                                                |
 
 Each extracted piece must pass its own tests in the empty starter, and every
-census must pass **vacuously** on an empty project and **meaningfully** after
+pattern check must pass **vacuously** on an empty project and **meaningfully** after
 one capability and one journey are added. Prove both by tripping them.

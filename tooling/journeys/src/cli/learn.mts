@@ -46,7 +46,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { journeysRoot, loadJourneysConfig } from "../config.mts";
-import { censusTable, judge, maskCensus } from "../learn/mask-census.mts";
+import { patternCheckTable, judge, maskPatternCheck } from "../learn/mask-pattern-check.mts";
 import { MAX_DECLARED_BOX, MAX_STEP_COVERAGE } from "../mask/boxes.mts";
 import { check, overrideReason } from "../stack/load-gate.mts";
 import { checkoutOf, checkoutOfPid } from "../stack/ports.mts";
@@ -302,8 +302,8 @@ async function main(): Promise<number> {
    */
   outcome.finish();
 
-  const rows = maskCensus(evidence, startedAt);
-  console.warn(`\n${censusTable(rows).join("\n")}`);
+  const rows = maskPatternCheck(evidence, startedAt);
+  console.warn(`\n${patternCheckTable(rows).join("\n")}`);
   const unexercised = rows.filter((r) => r.unexercised.length > 0);
   if (unexercised.length > 0) {
     console.warn(

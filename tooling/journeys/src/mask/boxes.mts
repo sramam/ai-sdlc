@@ -387,7 +387,7 @@ export function snapToDom(
    *
    * Per-cluster boxes were tried and are worse in a way that is easy to miss:
    * three differing words in one paragraph become three boxes that *overlap*
-   * once padded, and the census sums box areas to report coverage — so the
+   * once padded, and the pattern check sums box areas to report coverage — so the
    * page would be reported as more masked than it is. One box per element also
    * keeps the narrative's table one row per thing.
    */

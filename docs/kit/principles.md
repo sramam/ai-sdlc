@@ -72,17 +72,19 @@ was skipped. Print one line per check, including on a green run.
 
 ## 6. Enumerate from the source, declare only what cannot be derived, then check the declaration
 
-This is the **census** pattern, and it was the most reusable idea in door_nexa.
-A census is a test that:
+This is a **pattern check**, and it was the most reusable idea in door_nexa
+(which called it a _census_). A pattern check is a test that:
 
-1. enumerates the real things: modules that reach the DB, list panes, forms,
+1. lists every real instance of something, read from the source of truth rather
+   than from a list somebody keeps: modules that reach the DB, list panes, forms,
    state-machine events, test files that mock the DB
-2. requires each to be either handled or **declared exempt with a reason**
-3. fails on an unlisted thing, **and** on an exemption that no longer applies,
-   so the list can only shrink
+2. requires each one to follow the pattern, or to sit on an exception list
+   **with a written reason**
+3. fails on an instance that is neither, **and** on an exception that no longer
+   applies, so the exception list can only shrink
 4. prints its table on success
 
-Before censuses existed, four hand-written inventories were each wrong.
+Before pattern checks existed, four hand-written inventories were each wrong.
 **Proximity is not evidence.** "The file contains the event name and the word
 `applyEvent`" passed while the machine was bypassed. Read the code that runs, not
 comments and not the file as a whole.
@@ -172,7 +174,7 @@ user (a decision, a credential, an account, a clarification):
      the parts on both sides of the decision
    - proceeding on an **explicit, reversible assumption**. Write it in the
      item and in the commit (`Assumes: Q-007 → B`), and keep it cheap to undo
-   - quality work: coverage gaps, a census, docs, `/idea check` on the next feature
+   - quality work: coverage gaps, a pattern check, docs, `/idea check` on the next feature
 4. **Never** build irreversibly on a guess, and never silently fill a gap with a
    plausible value. That is the sentinel failure of §4 in human form.
 

@@ -52,13 +52,13 @@ Packages (each has its own `agents.md`):
   requirements. **A new technology is never added silently**: the decision
   dialog runs, and the user decides.
 - **Architecture is traceable.** Every app, package and integration in
-  `docs/architecture.md` cites a requirement or an ADR. _Census: `plan:check`._
+  `docs/architecture.md` cites a requirement or an ADR. _Pattern check: `plan:check`._
 - **Blocked on a person? Ask once, write a `Q-` file, and keep working.**
   Move to the next ready item, do the part every answer needs, or proceed on a
   recorded, reversible assumption (`Assumes:` in the commit). Never idle, and
   never build irreversibly on a guess.
 - **IDs are stable and never reused**: `@persona`, `F<nn>`, `F<nn>-R<nn>`,
-  `J<nn>`, `F<nn>-<nnn>`, `X-<nnn>`, `Q-<nnn>`. _Census: `plan:check`._
+  `J<nn>`, `F<nn>-<nnn>`, `X-<nnn>`, `Q-<nnn>`. _Pattern check: `plan:check`._
 - **An item's status is never written down.** It is derived from git (the
   `Closes:` trailer on `origin/dev`, or a claim).
 - **Every session works in a worktree forked from `origin/dev`**, never in the
@@ -129,7 +129,7 @@ Packages (each has its own `agents.md`):
   needs it, stop and ask.
 - **A lifecycle is a state machine, and the machine is the only writer of its
   column.** Creation is a transition too, so there is no `@default`. Every event
-  needs a sender. _Census: `machine-census.test.ts`, added with the first
+  needs a sender. _Pattern check: `machine-pattern-check.test.ts`, added with the first
   lifecycle._
 - **A third-party service gets its own package, named for the capability, not the
   vendor.** Build the client lazily at call time. Add a vendor-neutral port only
@@ -144,7 +144,7 @@ Packages (each has its own `agents.md`):
 
 - The unit suite never touches the network or a model, and runs with credentials cleared.
 - Anything reading or writing rows uses `createTestDb()` (PGlite). **Never write a
-  database fake.** _Census: `db-fake-census.test.ts`._
+  database fake.** _Pattern check: `db-fake-pattern-check.test.ts`._
 - Data-access rules (whatever `access-model.md` says: tenant, team, user or
   none) are asserted against a real database, with each refusal paired with
   the same call succeeding for whoever is allowed it.

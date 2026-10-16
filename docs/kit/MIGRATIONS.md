@@ -21,3 +21,14 @@ Initial release. Nothing to migrate.
   comments dropped (examples are in `tooling/core/README.md`). Then delete the
   `.ts` file and remove it from `tsconfig.json`'s `include`.
 - `.sdlc-version` records the starter release applied; `sdlc:update` writes it.
+- A _census_ is now called a **pattern check** (`docs/kit/principles.md` §6).
+  A project holding an earlier snapshot renames its imports:
+  `tooling/journeys/src/census/census.mts` is now
+  `tooling/journeys/src/pattern-check/pattern-check.mts`, exporting
+  `journeyPatternCheck`, `snapshotPatternCheck`, `directoryPatternCheck`,
+  `personaPatternCheck`, `specPatternCheck`, `isolationPatternCheck` and the
+  type `PatternCheck`; `floorProseCensus` in `@ai-sdlc/coverage` is
+  `floorProsePatternCheck`. Renaming the project's own
+  `e2e/journeys.census.test.ts` to `e2e/journeys.pattern-check.test.ts` is
+  optional. It worked when `pnpm exec vitest run` passes and `grep -rn
+census tooling/ e2e/` finds nothing.

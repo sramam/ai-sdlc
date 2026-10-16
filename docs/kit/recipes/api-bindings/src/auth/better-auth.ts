@@ -1,4 +1,4 @@
-// The Better Auth side of caller resolution (verified against 1.7.7).
+// The Better Auth side of caller resolution (verified against 1.7.9).
 //
 // | binding       | credential                     | Better Auth                                     |
 // | ------------- | ------------------------------ | ----------------------------------------------- |
@@ -48,7 +48,7 @@ export type BetterAuthApi = {
  * in the app; the key itself never names a tenant.
  *
  * Configure the plugin with `enableMetadata: true` and an explicit rate limit:
- * 1.7.7's default is 10 requests per key per day (measured 2026-10-16).
+ * the default is 10 requests per key per day (measured 2026-10-16 on 1.7.7; unchanged in 1.7.9).
  */
 export function betterAuthVerifiers(auth: BetterAuthApi): Pick<Verifiers, "session" | "apiKey"> {
   return {

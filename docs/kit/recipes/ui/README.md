@@ -22,7 +22,7 @@ here (they are generated, and regenerating beats a stale copy).
 | `src/kit/patterns/empty.tsx`                      | what it is, why it is empty, the one action                                                                             |
 | `src/kit/patterns/data-state.tsx`                 | `DataState`: loading (a skeleton, `aria-busy`), error with retry, empty, populated                                      |
 | `src/kit/demo.tsx`                                | every pattern inside the shell; what `vite build` compiles so the built CSS can be checked                              |
-| `src/kit/census.test.ts`                          | no hex or arbitrary colour, and no v3 `[--x]` shorthand, in the kit or in `components/ui`                               |
+| `src/kit/pattern-check.test.ts`                   | no hex or arbitrary colour, and no v3 `[--x]` shorthand, in the kit or in `components/ui`                               |
 | `*.test.tsx`, `test/setup.ts`, `vitest.config.ts` | one suite per pattern and the shell (jsdom); the polyfills jsdom needs, each naming who needs it                        |
 
 ## Instantiate
@@ -53,10 +53,10 @@ Tailwind 4, TypeScript 6.0, TanStack Table 9.3.1, react-hook-form 7.90.0,
 @hookform/resolvers 5.9.1, vitest 3.2.4, jsdom 30):
 
 - `vitest run`: 20 tests pass (list 5, form 4, dashboard 1, detail 1, shell 4,
-  demo 1, census 4); `tsc --noEmit` clean; `vite build` succeeds.
+  demo 1, pattern check 4); `tsc --noEmit` clean; `vite build` succeeds.
 - **Proved by tripping**: routing every refusal to the form banner fails the
   field test; sorting on the stringified value fails the sort test (`"125000"`
-  sorts before `"90000"`); a hex colour in a kit file fails the census.
+  sorts before `"90000"`); a hex colour in a kit file fails the pattern check.
 - The built CSS had **no** `prop:--x` declarations: the Base UI registry writes
   v4's `w-(--x)` form, so door_nexa's v3 trap did not reproduce. Keep the check.
 - **Not verified**: rendering in a browser (layout, focus rings, the sidebar's

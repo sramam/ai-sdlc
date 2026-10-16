@@ -36,7 +36,7 @@ import { join, relative } from "node:path";
  * | --- | --- |
  * | a step that **throws** does not learn (the recorder) | per-step, and asks whether *this step's own assertion* failed. When the stack dies, earlier steps compared a good screenshot against a broken baseline without throwing themselves |
  * | `MASK_VERSION` discards boxes from an older rule | the rule did not change; only the run was bad |
- * | `MAX_STEP_COVERAGE` fails the census over its ceiling | it runs *after* the masks are written, so it reports the damage rather than preventing it — and it is a ratchet, so a bad run landing under it is absorbed silently |
+ * | `MAX_STEP_COVERAGE` fails the pattern check over its ceiling | it runs *after* the masks are written, so it reports the damage rather than preventing it — and it is a ratchet, so a bad run landing under it is absorbed silently |
  * | `snapToDom` drops an unattributable page-sized box | these are attributable and merely large — card-sized, not page-sized |
  *
  * ## The composition #550 asks for: detect it, abort, learn nothing
