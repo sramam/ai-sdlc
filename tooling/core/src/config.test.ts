@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   CONFIG_FILE,
   ConfigError,
+  FIXED_BRANCHES,
   STARTER_MODULES,
   STARTER_SKILLS,
   findRoot,
@@ -32,6 +33,10 @@ const problems = (v: unknown): string[] => {
   return r.ok ? [] : r.problems;
 };
 /** A complete config with one thing changed, as a plain value. */
+/** Set one branch name on an otherwise valid config. */
+const withBranch = (role: string, name: string): unknown =>
+  edited((c) => ((c.branches as Record<string, unknown>)[role] = name));
+
 const edited = (f: (c: Record<string, unknown>) => void): unknown => {
   const c = JSON.parse(JSON.stringify(exampleConfig())) as Record<string, unknown>;
   f(c);
@@ -113,6 +118,26 @@ describe("validation", () => {
     expect(problems([])).toEqual(["(root): expected an object, got an array"]);
   });
 
+  it("the branch names are fixed, and a refusal says why", () => {
+    expect(FIXED_BRANCHES).toEqual({ integration: "dev", staging: "staging", production: "main" });
+    expect(problems(withBranch("integration", "trunk"))).toEqual([
+      'branches.integration: must be "dev", got "trunk" — the branch names are fixed (dev → staging → main), because the pre-push hook, the permission denies and the skills name them literally',
+    ]);
+    expect(problems(withBranch("production", "prod"))[0]).toMatch(
+      /^branches\.production: must be "main", got "prod" — the branch names are fixed/,
+    );
+  });
+
+  it("identical branch names are refused — one branch cannot be two tiers", () => {
+    const dup = problems(withBranch("staging", "dev"));
+    expect(dup).toHaveLength(1);
+    expect(dup[0]).toMatch(/^branches\.staging: must be "staging", got "dev"/);
+    const all = problems(
+      edited((c) => (c.branches = { integration: "main", staging: "main", production: "main" })),
+    );
+    expect(all.map((p) => p.split(":")[0])).toEqual(["branches.integration", "branches.staging"]);
+  });
+
   it("a replaced module must be one of the starter's", () => {
     expect(problems(edited((c) => (c.modules = { replaced: ["gaurds"] })))[0]).toMatch(
       /^modules\.replaced\[0\]: expected one of "core"/,
@@ -184,7 +209,7 @@ describe("finding and loading", () => {
     const first = g("rev-parse", "HEAD");
     writeFileSync(
       join(dir, CONFIG_FILE),
-      JSON.stringify(exampleConfig((c) => (c.branches.integration = "trunk"))),
+      JSON.stringify(exampleConfig((c) => (c.claimStaleDays = 42))),
     );
     g("add", ".");
     g("commit", "-q", "--no-verify", "-m", "config");
@@ -193,8 +218,8 @@ describe("finding and loading", () => {
     writeFileSync(join(dir, CONFIG_FILE), "{}");
 
     expect(await loadConfigAt(dir, first)).toBeNull();
-    expect((await loadConfigAt(dir, second))?.branches.integration).toBe("trunk");
-    expect((await loadConfigAt(dir, "dev"))?.branches.integration).toBe("trunk");
+    expect((await loadConfigAt(dir, second))?.claimStaleDays).toBe(42);
+    expect((await loadConfigAt(dir, "dev"))?.claimStaleDays).toBe(42);
     await expect(loadConfigAt(dir, "no-such-ref")).rejects.toThrow(/cannot resolve no-such-ref/);
 
     writeFileSync(join(dir, CONFIG_FILE), '{ "bogus": 1 }');

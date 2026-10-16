@@ -1,4 +1,14 @@
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -8,6 +18,9 @@ import {
   appliesTo,
   cacheKey,
   containerCommand,
+  envFingerprint,
+  gitCommonDir,
+  machineEnvKey,
   hasPlan,
   isHistoryStep,
   hasSource,
@@ -113,6 +126,7 @@ function deps(
     installTimeoutMs: 1000,
     toolchain: TOOLCHAIN,
     selfHash: "self",
+    envKey: () => Buffer.alloc(32, 7),
     sleep: async () => {},
     ...over,
   };
@@ -243,6 +257,43 @@ describe("a full run", () => {
       new RegExp(`reused ${o.key?.slice(0, 7)}`),
     );
     expect(runDirs()).toEqual([]);
+  });
+
+  it("a changed value of a declared variable misses the cache; an undeclared one does not", async () => {
+    const lintOk: Rule = [/^sh -c pnpm run lint/, result(0)];
+    const run = async (env: NodeJS.ProcessEnv) => {
+      const t = deps([lintOk, ...gitRules()], config(steps), env);
+      const o = await runCiLocal(opts({ noStatus: true }), t.d);
+      return { o, ran: t.fake.calls.some((c) => c.cmd === "sh") };
+    };
+    const first = await run({ DECLARED: "one" });
+    expect(first.ran).toBe(true);
+    expect((await run({ DECLARED: "one" })).o.reused).toBe(true);
+    // A different value, then unset: each is a different environment.
+    const second = await run({ DECLARED: "two" });
+    expect(second).toMatchObject({ ran: true, o: { reused: false } });
+    expect(second.o.key).not.toBe(first.o.key);
+    const unset = await run({ DECLARED: undefined });
+    expect(unset).toMatchObject({ ran: true, o: { reused: false } });
+    // SECRET is not declared by any step: changing it says nothing about the result.
+    expect((await run({ DECLARED: "one", SECRET: "rotated" })).o.reused).toBe(true);
+    // The value never appears in the key or in a remembered pass.
+    for (const name of passed()) {
+      expect(name).not.toMatch(/one|two/);
+      expect(readFileSync(join(ciDir(), "passed", name), "utf8")).not.toMatch(/"one"|"two"/);
+    }
+  });
+
+  it("could not ask (no machine key): runs everything, remembers nothing, and says so", async () => {
+    const lintOk: Rule = [/^sh -c pnpm run lint/, result(0)];
+    for (let i = 0; i < 2; i++) {
+      const t = deps([lintOk, ...gitRules()], config(steps), {}, { envKey: () => null });
+      const o = await runCiLocal(opts({ noStatus: true }), t.d);
+      expect(o).toMatchObject({ exit: 0, verdict: "pass", reused: false });
+      expect(t.fake.calls.some((c) => c.cmd === "sh")).toBe(true);
+      expect(t.out()).toMatch(/cache not used: steps declare env variables/);
+    }
+    expect(passed()).toEqual([]);
   });
 
   it("fails, keeps the snapshot, posts failure and prints the step's output", async () => {
@@ -613,10 +664,15 @@ describe("applies", () => {
     expect(appliesTo("has-packages", root).ok).toBe(false);
   });
 
-  it("has-source ignores the starter's own tooling and config files", () => {
+  it("has-source counts apps/ and packages/ only — not tooling, recipes, or config files", () => {
     write("tooling/ci/src/ci-local.mts");
     write("tooling/journeys/src/x.ts");
+    write("docs/kit/recipes/db-prisma/src/client.ts");
+    write("scripts/x.ts");
+    write("src/stray.ts");
     write("sdlc.config.ts");
+    write("apps/web/vite.config.ts");
+    write("packages/x/node_modules/a/index.ts");
     write("node_modules/a/index.ts");
     expect(hasSource(root)).toBe(false);
     write("packages/core/src/index.ts");
@@ -979,5 +1035,52 @@ describe("against a real git repository", () => {
     const o = await runCiLocal(opts({ noStatus: true }), await realDeps(lines));
     expect(o.verdict, lines.join("\n")).toBe("pass");
     expect(lines.join("\n")).toMatch(/origin\/dev has no sdlc\.config\.json yet/);
+  });
+});
+
+describe("the declared-environment fingerprint", () => {
+  const key = Buffer.alloc(32, 1);
+  const step = (env?: string[]) => ({ name: "s", run: "x", applies: "always" as const, env });
+
+  it("is absent when no step declares a variable, so such a key is what it always was", () => {
+    expect(envFingerprint([step()], { A: "1" }, key)).toBeUndefined();
+    expect(envFingerprint([step([])], { A: "1" }, null)).toBeUndefined();
+  });
+
+  it("is null — could not ask — with declared variables and no key", () => {
+    expect(envFingerprint([step(["A"])], { A: "1" }, null)).toBeNull();
+  });
+
+  it("changes with a value, with presence, and with the key; not with order or undeclared names", () => {
+    const f = (env: NodeJS.ProcessEnv, k = key) => envFingerprint([step(["B", "A"])], env, k);
+    const base = f({ A: "1", B: "2" });
+    expect(base).toMatch(/^[0-9a-f]{64}$/);
+    expect(f({ A: "1", B: "3" })).not.toBe(base);
+    expect(f({ A: "1", B: "" })).not.toBe(f({ A: "1" }));
+    expect(f({ A: "1", B: "2" }, Buffer.alloc(32, 2))).not.toBe(base);
+    expect(f({ B: "2", A: "1", C: "x" })).toBe(base);
+  });
+
+  it("the machine key lives under the git common dir, 0600, made once and shared by worktrees", () => {
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    const k1 = machineEnvKey(root);
+    expect(k1?.length).toBe(32);
+    const file = join(root, ".git", "sdlc-ci-env-key");
+    expect(statSync(file).mode & 0o777).toBe(0o600);
+    expect(machineEnvKey(root)?.equals(k1 as Buffer)).toBe(true);
+    // A linked worktree: .git is a file naming its gitdir, which names the common dir.
+    const wt = join(root, "wt");
+    const wtGit = join(root, ".git", "worktrees", "wt");
+    mkdirSync(wt);
+    mkdirSync(wtGit, { recursive: true });
+    writeFileSync(join(wt, ".git"), `gitdir: ${wtGit}\n`);
+    writeFileSync(join(wtGit, "commondir"), "../..\n");
+    expect(gitCommonDir(wt)).toBe(join(root, ".git"));
+    expect(machineEnvKey(wt)?.equals(k1 as Buffer)).toBe(true);
+  });
+
+  it("no repository: no key, which is the could-not-ask answer", () => {
+    expect(gitCommonDir(root)).toBeNull();
+    expect(machineEnvKey(root)).toBeNull();
   });
 });

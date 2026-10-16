@@ -14,7 +14,8 @@
  *      read the CI definition from origin/<integration> — never from the commit
  *      under test, so a branch cannot change what its own gate runs
  *   5. cache key = sha256(tree + resolved steps + node + pnpm + platform/arch +
- *      lockfile + this file's source). A hit skips install and every CONTENT
+ *      lockfile + this file's source + an HMAC of the values of every variable
+ *      a step declares in `env`). A hit skips install and every CONTENT
  *      step; HISTORY steps (below) always run, because they read a commit range
  *      the tree id says nothing about
  *   6. otherwise install, and run each configured step in a scrubbed environment
@@ -32,7 +33,7 @@
  * the branch's code — tests, lint plugins, install scripts — and a container is
  * what keeps that code off this machine's credentials.
  */
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes } from "node:crypto";
 import {
   closeSync,
   existsSync,
@@ -47,7 +48,7 @@ import {
   writeSync,
 } from "node:fs";
 import { hostname } from "node:os";
-import { join, relative } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { exec as realExec, firstLine, formatDuration, isEntry } from "../../core/src/exec.mts";
 import type { Exec, ExecResult } from "../../core/src/exec.mts";
@@ -58,6 +59,7 @@ import {
   loadConfigAt as realLoadConfigAt,
 } from "../../core/src/config.mts";
 import { planWritten } from "../../plan/src/plan-lib.mts";
+import { PRODUCT_SOURCE_DIRS, isProductSource } from "../../core/src/source.mts";
 import type { Applies, CiContainer, CiStep, SdlcConfig } from "../../core/src/config.mts";
 
 export type StepState = "pass" | "fail" | "could-not-run" | "n/a";
@@ -106,6 +108,11 @@ export interface CiDeps {
   toolchain?: Toolchain;
   /** Hash of the runner's own source for the cache key. Default: this file's. */
   selfHash?: string;
+  /**
+   * The machine-local key the declared-env fingerprint is an HMAC under, or
+   * null when it could not be read or made. Default: `machineEnvKey(root)`.
+   */
+  envKey?: () => Buffer | null;
   /** How long to wait for another run holding this SHA's lock. Default 45 minutes. */
   lockWaitMs?: number;
   /** Default: a real timer. */
@@ -271,6 +278,8 @@ export interface CacheKeyParts {
   self: string;
   /** `<engine>:<image>` in container mode; absent on the host. */
   container?: string;
+  /** envFingerprint(): absent when no step declares a variable. */
+  env?: string;
 }
 
 /**
@@ -290,8 +299,82 @@ export function cacheKey(p: CacheKeyParts): string {
     ["self", p.self],
     // Only when present, so a host run's key is what it always was.
     ...(p.container ? [["container", p.container]] : []),
+    ...(p.env ? [["env", p.env]] : []),
   ]);
   return createHash("sha256").update(canonical).digest("hex");
+}
+
+/**
+ * A step's result depends on the values of the variables it declares — a
+ * different DATABASE_URL is a different test — so a pass remembered under one
+ * value is no evidence under another. The fingerprint is an HMAC-SHA256 under
+ * a key that never leaves this machine, so the cache directory (and anything
+ * that prints a key) carries no secret in clear and no guessable hash of one.
+ *
+ * Three answers: `undefined` when no step declares anything (the key is what
+ * it always was); a fingerprint; or `null` when there are declared variables
+ * and no key to hash them under — could not ask, and the caller must not use
+ * the cache at all rather than remember a pass it cannot tell apart.
+ */
+export function envFingerprint(
+  steps: CiStep[],
+  source: NodeJS.ProcessEnv,
+  key: Buffer | null,
+): string | undefined | null {
+  const names = [...new Set(steps.flatMap((s) => s.env ?? []))].sort();
+  if (!names.length) return undefined;
+  if (!key) return null;
+  // Presence is part of it: unset and empty are different environments.
+  const pairs = names.map((n) => [n, source[n] === undefined ? null : source[n]]);
+  return createHmac("sha256", key).update(JSON.stringify(pairs)).digest("hex");
+}
+
+const ENV_KEY_FILE = "sdlc-ci-env-key";
+
+/** The repository's common git dir, read from the filesystem (no git process). */
+export function gitCommonDir(root: string): string | null {
+  try {
+    const dotGit = join(root, ".git");
+    if (!existsSync(dotGit)) return null;
+    let gitDir = dotGit;
+    const text = (() => {
+      try {
+        return readFileSync(dotGit, "utf8");
+      } catch {
+        return null; // a directory: the main checkout
+      }
+    })();
+    if (text !== null) {
+      const m = /^gitdir:\s*(.+)$/m.exec(text);
+      if (!m?.[1]) return null;
+      gitDir = resolve(root, m[1].trim());
+    }
+    const common = join(gitDir, "commondir");
+    return existsSync(common) ? resolve(gitDir, readFileSync(common, "utf8").trim()) : gitDir;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A random 32-byte key under the git common dir, made on first use (mode 0600)
+ * and shared by every worktree. Null when it can be neither read nor made.
+ */
+export function machineEnvKey(root: string): Buffer | null {
+  const dir = gitCommonDir(root);
+  if (!dir) return null;
+  const path = join(dir, ENV_KEY_FILE);
+  try {
+    writeFileSync(path, randomBytes(32), { flag: "wx", mode: 0o600 });
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== "EEXIST") return null;
+  }
+  try {
+    const key = readFileSync(path);
+    return key.length >= 32 ? key : null;
+  } catch {
+    return null;
+  }
 }
 
 function sha256File(path: string): string {
@@ -437,23 +520,20 @@ function hasPackageDir(dir: string, sub: string): boolean {
 
 const SKIP_DIRS = new Set(["node_modules", ".git", ".ci-local", ".claude", "dist", "coverage"]);
 // The starter's own tooling is not the project's source; neither is config.
-const NOT_SOURCE = ["tooling/", "scripts/one-of/"];
-
+/** Product source only — apps/ and packages/ (tooling/core/src/source.mts). */
 export function hasSource(dir: string): boolean {
   const walk = (d: string): boolean => {
     for (const e of readdirSync(d, { withFileTypes: true })) {
       if (e.isDirectory()) {
         if (SKIP_DIRS.has(e.name)) continue;
-        const rel = `${relative(dir, join(d, e.name))}/`;
-        if (NOT_SOURCE.some((p) => rel.startsWith(p))) continue;
         if (walk(join(d, e.name))) return true;
-      } else if (/\.(ts|tsx|mts)$/.test(e.name) && !/\.config\.(ts|mts)$/.test(e.name)) {
+      } else if (isProductSource(relative(dir, join(d, e.name)).split("\\").join("/"))) {
         return true;
       }
     }
     return false;
   };
-  return walk(dir);
+  return PRODUCT_SOURCE_DIRS.some((top) => existsSync(join(dir, top)) && walk(join(dir, top)));
 }
 
 /**
@@ -818,6 +898,11 @@ async function runLocked(
     platform: process.platform,
     arch: process.arch,
   };
+  const fingerprint = envFingerprint(
+    configured,
+    deps.env,
+    deps.envKey ? deps.envKey() : machineEnvKey(deps.root),
+  );
   const key = cacheKey({
     tree,
     steps: configured,
@@ -828,7 +913,14 @@ async function runLocked(
     lockfile: sha256File(join(snap, "pnpm-lock.yaml")),
     self: deps.selfHash ?? sha256File(fileURLToPath(import.meta.url)),
     container: container ? `${container.engine ?? "docker"}:${container.image}` : undefined,
+    // Could not ask: a key nothing else can produce, so this run neither hits
+    // nor leaves a pass another run could hit.
+    env: fingerprint === null ? `unkeyed-${randomBytes(16).toString("hex")}` : fingerprint,
   });
+  if (fingerprint === null)
+    log(
+      `  cache not used: steps declare env variables and there is no machine key to fingerprint them (${ENV_KEY_FILE} under the git common dir)`,
+    );
   const passedDir = join(ciDir, "passed");
   const passedFile = join(passedDir, key);
   const ctx = { deps, snap, ready: true, planDir: stepConfig.dirs.plan, record, shell, container };
@@ -888,7 +980,10 @@ async function runLocked(
   // history steps. An allow-unknown override is a person's decision about one
   // run, not a fact about the tree, so `unknown` is never remembered.
   const historyNames = new Set(configured.filter(isHistoryStep).map((s) => s.name));
-  if (verdictOf(steps.filter((s) => !historyNames.has(s.name))) === "pass") {
+  if (
+    fingerprint !== null &&
+    verdictOf(steps.filter((s) => !historyNames.has(s.name))) === "pass"
+  ) {
     mkdirSync(passedDir, { recursive: true });
     writeAtomic(
       passedFile,

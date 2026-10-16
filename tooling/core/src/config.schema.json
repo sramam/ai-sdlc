@@ -11,19 +11,19 @@
     },
     "branches": {
       "type": "object",
-      "description": "Branch names: where work integrates, the staging tier and production.",
+      "description": "Branch names, fixed: dev, staging and main. Kept so tools read one source; not configurable (tooling/core/src/config.mts FIXED_BRANCHES).",
       "properties": {
         "integration": {
           "type": "string",
-          "minLength": 1
+          "enum": ["dev"]
         },
         "staging": {
           "type": "string",
-          "minLength": 1
+          "enum": ["staging"]
         },
         "production": {
           "type": "string",
-          "minLength": 1
+          "enum": ["main"]
         }
       },
       "required": ["integration", "staging", "production"],

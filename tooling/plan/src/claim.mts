@@ -27,10 +27,13 @@
  * single), and this tool only ever talks to the remote.
  *
  * Exit: 0 claimed; 3 somebody else holds it (and who); 2 bad usage, an unknown
- * or dropped item, or no identity to claim as; 1 could not ask (gh missing,
+ * or dropped item, no identity to claim as, or an sdlc.config.json that does
+ * not load (never defaults: a claim mutates GitHub); 1 could not ask (gh missing,
  * not signed in, the API refused something other than an existing ref).
  */
-import { findRoot, loadConfig } from "../../core/src/config.mts";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { CONFIG_FILE, findRoot, loadConfig } from "../../core/src/config.mts";
 import { exec as realExec, firstLine, isEntry } from "../../core/src/exec.mts";
 import type { Exec, ExecResult } from "../../core/src/exec.mts";
 import { DEFAULT_DIRS, loadItems, normId } from "./plan-lib.mts";
@@ -176,7 +179,11 @@ export async function claim(
   return 0;
 }
 
-export async function main(argv: string[], exec: Exec = realExec): Promise<number> {
+export async function main(
+  argv: string[],
+  exec: Exec = realExec,
+  start: string = process.cwd(),
+): Promise<number> {
   const si = argv.indexOf("--session");
   const session = si >= 0 ? argv[si + 1] : undefined;
   if (si >= 0 && (!session || session.startsWith("--"))) {
@@ -188,21 +195,27 @@ export async function main(argv: string[], exec: Exec = realExec): Promise<numbe
     console.error("usage: pnpm claim <ITEM-ID> [--session <id>]");
     return 2;
   }
-  const root = findRoot();
+  const root = findRoot(start);
   if (!root) {
     console.error("claim: could not find sdlc.config.json above the current directory");
     return 2;
   }
   let dirs: Dirs = DEFAULT_DIRS;
   let integration = "dev";
-  try {
-    const cfg = await loadConfig(root);
-    dirs = { requirements: cfg.dirs.requirements, plan: cfg.dirs.plan, adr: cfg.dirs.adr };
-    integration = cfg.branches.integration;
-  } catch (e) {
-    console.error(
-      `claim: could not load sdlc.config.json (${(e as Error).message}); using defaults`,
-    );
+  // Defaults only when there is no file to read. A file that exists and does
+  // not load is a configuration nobody can vouch for, and a claim mutates
+  // GitHub — so it stops here rather than claiming against a guessed branch.
+  if (existsSync(join(root, CONFIG_FILE))) {
+    try {
+      const cfg = await loadConfig(root);
+      dirs = { requirements: cfg.dirs.requirements, plan: cfg.dirs.plan, adr: cfg.dirs.adr };
+      integration = cfg.branches.integration;
+    } catch (e) {
+      console.error(
+        `claim: ${CONFIG_FILE} did not load, so nothing was claimed: ${(e as Error).message}`,
+      );
+      return 2;
+    }
   }
   return claim(
     id,

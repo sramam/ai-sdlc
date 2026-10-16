@@ -55,11 +55,14 @@ function deps(
   rules: Rule[],
   cfg: SdlcConfig = config(),
   http: PromoteDeps["httpGet"] = async () => ({ status: 200 }),
+  arm: PromoteDeps["armPush"] | null = null,
 ) {
   const exec = scriptedExec(rules);
   const lines: string[] = [];
   const removed: string[] = [];
   const gets: string[] = [];
+  /** Every handoff armed, and whether it was withdrawn. */
+  const armed: Array<{ sha: string; ref: string; nonce: string; disarmed: boolean }> = [];
   const d: PromoteDeps = {
     exec,
     root: "/repo",
@@ -69,6 +72,13 @@ function deps(
     removeDir: (dir) => removed.push(dir),
     exists: (p) => p === `${CHECKOUT}/pnpm-lock.yaml`,
     httpGet: async (url) => (gets.push(url), http(url)),
+    armPush:
+      arm ??
+      (async (sha, ref) => {
+        const h = { sha, ref, nonce: `nonce-${armed.length + 1}`, disarmed: false };
+        armed.push(h);
+        return { nonce: h.nonce, disarm: () => void (h.disarmed = true) };
+      }),
   };
   const lineOf = (cmd: ScriptedCall) => [cmd.cmd, ...cmd.args].join(" ");
   return {
@@ -76,6 +86,7 @@ function deps(
     lines,
     removed,
     gets,
+    armed,
     calls: () => exec.calls.map(lineOf),
     sh: () => exec.calls.filter((c) => c.cmd === "sh").map((c) => c.args[1]),
     callsOf: (cmd: string) => exec.calls.filter((c) => c.cmd === cmd),
@@ -336,6 +347,29 @@ describe("runPromote", () => {
     const t = deps(happy([[/^git rev-parse --verify --quiet origin\/staging/, result(1)]]));
     expect((await runPromote(opts(), t.d)).exit).toBe(0);
     expect(t.out()).toMatch(/does not exist yet/);
+  });
+
+  it("hands each push to the pre-push hook: exact SHA and ref, its own nonce, withdrawn after", async () => {
+    const t = deps(happy());
+    expect((await runPromote(opts(), t.d)).exit).toBe(0);
+    expect(t.armed).toEqual([
+      { sha: SRC, ref: "refs/heads/staging", nonce: "nonce-1", disarmed: true },
+      { sha: SRC, ref: "refs/heads/staging", nonce: "nonce-2", disarmed: true },
+    ]);
+    const pushes = t.callsOf("git").filter((c) => c.args[0] === "push");
+    expect(pushes.map((c) => c.opts.env?.SDLC_PROMOTE_NONCE)).toEqual(["nonce-1", "nonce-2"]);
+    // Nothing else git runs carries a nonce.
+    const others = t.callsOf("git").filter((c) => c.args[0] !== "push");
+    expect(others.some((c) => c.opts.env?.SDLC_PROMOTE_NONCE)).toBe(false);
+  });
+
+  it("could not write the handoff: could-not-ask at push-check, nothing deployed", async () => {
+    const t = deps(happy(), config(), undefined, async () => ({ error: "read-only .git" }));
+    const o = await runPromote(opts(), t.d);
+    expect(o).toMatchObject({ exit: 2, stoppedAt: "push-check", deployed: false });
+    expect(t.out()).toMatch(/could not hand the push to the pre-push hook: read-only \.git/);
+    expect(t.calls().some((c) => c.startsWith("git push"))).toBe(false);
+    expect(t.sh()).toEqual([]);
   });
 
   it("a rejected push after deploy says the environment and the branch now disagree", async () => {

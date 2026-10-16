@@ -14,7 +14,7 @@ One line per step, each `ok`, `REFUSED`, `FAILED` or `COULD NOT ASK`:
 4. **source**: `origin/<source>`, or `--sha` when it is on it.
 5. **local-ci**: refuses unless that SHA carries the commit status `local-ci` = `success` (`gh api repos/{owner}/{repo}/commits/<sha>/status`). `local-ci/allow-unknown` is an override, not a pass, and is refused. There is no override here.
 6. **ff**: refuses unless `origin/<target>` is an ancestor of the SHA. It never merges and never opens a PR into `main`.
-7. **push-check**: `git push --dry-run` of the exact push from step 13. The pre-push hook and the remote answer before anything changes.
+7. **push-check**: `git push --dry-run` of the exact push from step 13. The pre-push hook and the remote answer before anything changes. Both this push and step 13's are handed to the hook first (below); a handoff that cannot be written is could-not-ask.
 8. **approval**: `requiresApproval` prints the plan and stops unless `--yes` is given. `--dry-run` stops here with exit 0.
 9. **checkout**: `git clone --shared` into a temporary directory, detached at the SHA. The working tree is never what gets deployed.
 10. **install**: `pnpm install --frozen-lockfile` in the checkout, when it has a lockfile.
@@ -72,6 +72,10 @@ The `migrate` command connects to the environment's **direct** (unpooled) databa
 
 ## The pre-push hook
 
-The push is `<sha>:refs/heads/<target>`, so git hands the hook the SHA as the local ref. The starter's `.husky/pre-push` allows only `dev:staging` and `staging:main` by branch name, so it refuses this push. `promote` catches the refusal at **push-check**, before migrating. The hook also has to accept a SHA that is on `origin/<source>`. `promote.git.test.ts` holds that change and runs it against a real repository.
+`.husky/pre-push` refuses every update of `dev`, `staging` and `main`, including a SHA that is already on `origin/dev` and a push from a local branch named `dev` or `staging`. Neither proves the commit was approved, migrated, deployed or smoke-tested, which is what this script is for.
+
+So promote hands each push to the hook. Before it, `armPush` (shared.mts) writes `<git-common-dir>/sdlc-promote-handoff` holding `<nonce> <sha> <ref>`, and the push runs with the nonce in `SDLC_PROMOTE_NONCE`. The hook accepts the update only when the nonce, the SHA and the ref all match, and deletes the file either way, so a handoff is good for one push. Promote deletes it after the push too, in case the hook never saw it. `promote.git.test.ts` trips the real hook with every other road: a raw SHA push, named-ref pushes, a guessed nonce, a handoff for another SHA or ref, a replay, a deletion, and a push to `dev`.
+
+It is a guardrail, not a boundary: anything that can write `.git/` and set a variable can forge a handoff. A GitHub ruleset on `staging` and `main` is the stronger layer where the plan offers one (docs/kit/environments.md).
 
 Upstream-owned: changed in the ai-sdlc starter, pulled with `pnpm sdlc:update`. A project that needs different behaviour replaces the module (docs/kit/starter-repo.md).

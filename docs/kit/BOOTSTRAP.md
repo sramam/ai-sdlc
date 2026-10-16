@@ -30,9 +30,9 @@ write a `Q-` file, and carry on with whatever does not depend on it
 ```bash
 gh auth login
 wrangler login
-gh repo create <org>/<name> --template <org>/<starter> --private --clone
+gh repo create sramam/<name> --template sramam/ai-sdlc --private --clone
 cd <name>
-git remote add starter https://github.com/<org>/<starter>.git   # for pnpm sdlc:update
+git remote add starter https://github.com/sramam/ai-sdlc.git   # for pnpm sdlc:update
 ```
 
 A template copy has clean history and its own `origin`, so there is nothing to
@@ -107,13 +107,16 @@ It runs **in parallel with Phase 1**, in another session and worktree
 **configures and proves** it, and builds nothing.
 
 - **Part 1, independent of discovery:** trip every guard (the table below),
-  set branch names and `claimStaleDays`. Land it.
+  set `claimStaleDays`. Land it.
 - **Part 2, after kickoff's first pass has landed** (merge `origin/dev` into
   the branch first): copy the accounts list and the reporting cadence from the
   project brief into `sdlc.config.json`, and run `pnpm accounts:check`. Land it
   with `Closes: X-001`.
 
-- Fill in `sdlc.config.json`: branch names, ID prefixes, `claimStaleDays`. The
+- Fill in `sdlc.config.json`: ID prefixes and `claimStaleDays`. **Leave
+  `branches` as shipped** (`dev`, `staging`, `main`): the names are fixed, and
+  the validator refuses any other value, because the pre-push hook, the
+  permission denies and the skills name them literally. The
   accounts list and the reporting cadence come from the project brief once
   kickoff's first pass has decided them; coverage floors stay unset until there
   is code.
@@ -122,17 +125,17 @@ It runs **in parallel with Phase 1**, in another session and worktree
 - Run `pnpm accounts:check`.
 - **Trip every guard**, and paste each refusal into the `X-001` PR:
 
-| guard               | trip it by                                                                                                       |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `pre-push`          | `git push origin HEAD:dev`                                                                                       |
-| `commit-msg`        | a model-named trailer; `Progress:` naming no item; a `docs/requirements/` change with no `Requirements:` trailer |
-| `requirements-lock` | an Edit under `docs/requirements/` with no lock; any Edit under `sources/`                                       |
-| `worktree-required` | an Edit in the main checkout (and check that `docs/handoffs/` is allowed)                                        |
-| `worktree-base`     | `git worktree add … main`                                                                                        |
-| `worktree-single`   | a second worktree in the same session                                                                            |
-| `ci:local`          | a dirty tree; a branch without `origin/dev` as ancestor; no `Progress:`/`No-Item:`                               |
-| `/land`             | merging without a green `local-ci` status on the head SHA                                                        |
-| `plan:check`        | a duplicate ID; an item citing a missing requirement                                                             |
+| guard               | trip it by                                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `pre-push`          | `git push origin HEAD:dev`; `git push origin <a SHA on origin/dev>:refs/heads/staging` (only `pnpm promote:*` moves staging and main) |
+| `commit-msg`        | a model-named trailer; `Progress:` naming no item; a `docs/requirements/` change with no `Requirements:` trailer                      |
+| `requirements-lock` | an Edit under `docs/requirements/` with no lock; any Edit under `sources/`                                                            |
+| `worktree-required` | an Edit in the main checkout (and check that `docs/handoffs/` is allowed)                                                             |
+| `worktree-base`     | `git worktree add … main`                                                                                                             |
+| `worktree-single`   | a second worktree in the same session                                                                                                 |
+| `ci:local`          | a dirty tree; a branch without `origin/dev` as ancestor; no `Progress:`/`No-Item:`                                                    |
+| `/land`             | merging without a green `local-ci` status on the head SHA                                                                             |
+| `plan:check`        | a duplicate ID; an item citing a missing requirement                                                                                  |
 
 Guards that need product code (seed refusal, capture transports, `promote`,
 the authorization census) are tripped in the foundation items that create them.

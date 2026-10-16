@@ -18,8 +18,8 @@ description: Takes a committed branch all the way to dev by running `pnpm land` 
 
 `pnpm land` (`tooling/ci/src/land.mts`) is the only way an agent merges.
 `.claude/settings.json` denies the raw routes (`gh pr merge`, pushing to `dev`,
-`--no-verify`, force-pushes), so there is nothing to remember and nothing to
-skip.
+`staging` or `main`, `--no-verify`, force-pushes), so there is nothing to
+remember and nothing to skip.
 
 ## What `pnpm land` does, in order
 
@@ -32,9 +32,12 @@ skip.
 4. Pushes, then runs `ci:local` on the pushed SHA, which posts `local-ci`.
 5. Opens or reuses the PR into `dev`, with a body listing the `Progress:` and
    `Closes:` lines.
-6. Re-checks that the PR head is the tested SHA and `origin/dev` has not moved.
-   If either changed, it stops and asks for a re-run.
-7. Merges with a **merge commit** (`gh pr merge --merge`), deleting the branch
+6. Re-checks that the PR is still open **into `dev`**, that its head is the
+   tested SHA, and that `origin/dev` has not moved. If any changed (a PR
+   retargeted to another base included), it stops and asks for a re-run.
+7. Merges with a **merge commit** (`gh pr merge --merge --match-head-commit
+<tested SHA>`, so GitHub itself refuses a head that moved after the
+   re-check), deleting the branch
    **only** when it carries `Closes:`. A partial PR keeps its branch, so the item
    still reads as claimed.
 8. Fetches and runs `ci:local --sha origin/dev`, so the merge commit has its own
@@ -56,6 +59,8 @@ override.
 - **Red CI:** report the failing steps and the log path it prints. Do not decide
   a failure is "unrelated".
 - **Head or base moved:** merge `origin/dev` again if needed, then re-run.
+- **PR retargeted:** set its base back to `dev` (`gh pr edit <n> --base dev`)
+  and re-run. Land never merges into anything but `dev`.
 - **Merged, but the dev-tip status failed:** the merge landed. Re-run the
   `ci:local --sha origin/dev` command it prints.
 

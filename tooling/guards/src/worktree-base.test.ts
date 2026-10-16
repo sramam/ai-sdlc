@@ -128,14 +128,17 @@ it("has no opinion about any other tool", () => {
 });
 
 describe("the integration branch, from sdlc.config.json", () => {
-  it("is read from the checkout's config", async () => {
+  it("is read from the checkout's config, where the names are fixed", async () => {
     const root = mkdtempSync(join(tmpdir(), "sdlc-base-"));
     execFileSync("git", ["init", "-q"], { cwd: root });
+    writeFileSync(join(root, "sdlc.config.json"), exampleConfigJson());
+    expect(await integrationBranch(root)).toBe("dev");
+    // Any other name is invalid config (FIXED_BRANCHES), so it never takes effect.
     writeFileSync(
       join(root, "sdlc.config.json"),
       exampleConfigJson((c) => (c.branches.integration = "trunk")),
     );
-    expect(await integrationBranch(root)).toBe("trunk");
+    expect(await integrationBranch(root)).toBe("dev");
   });
 
   it("could not ask (no config, or an invalid one): the default", async () => {

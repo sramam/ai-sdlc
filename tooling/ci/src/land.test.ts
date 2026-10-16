@@ -67,8 +67,8 @@ function happy(over: Rule[] = [], opts: { branch?: string; log?: string } = {}):
     ],
     [/^gh pr create/, result(0, "https://github.com/o/r/pull/42\n")],
     [
-      /^gh pr view 42 --json headRefOid,state$/,
-      result(0, JSON.stringify({ headRefOid: HEAD, state: "OPEN" })),
+      /^gh pr view 42 --json headRefOid,state,baseRefName$/,
+      result(0, JSON.stringify({ headRefOid: HEAD, state: "OPEN", baseRefName: "dev" })),
     ],
     [/^gh pr merge 42 --merge/, result(0)],
   ];
@@ -115,7 +115,7 @@ describe("the happy path", () => {
     expect(at(/^git push/)).toBeLessThan(at(/^gh pr create/));
     expect(at(/^gh pr view 42/)).toBeLessThan(at(/^gh pr merge/));
     expect(order.find((l) => l.startsWith("gh pr merge"))).toBe(
-      "gh pr merge 42 --merge --delete-branch",
+      `gh pr merge 42 --merge --match-head-commit ${HEAD} --delete-branch`,
     );
 
     expect(ciCalls).toEqual([
@@ -138,7 +138,7 @@ describe("the happy path", () => {
     const { d, fake } = landDeps(happy([], { log: "wip\x1fProgress: F1-002 half\n\x1e" }));
     expect((await runLand({ allowUnknown: false }, d)).exit).toBe(0);
     expect(fake.calls.map(lineOf).find((l) => l.startsWith("gh pr merge"))).toBe(
-      "gh pr merge 42 --merge",
+      `gh pr merge 42 --merge --match-head-commit ${HEAD}`,
     );
   });
 
@@ -314,8 +314,8 @@ describe("the re-check before merging", () => {
     const { d, fake, out } = landDeps(
       happy([
         [
-          /^gh pr view 42 --json headRefOid,state$/,
-          result(0, JSON.stringify({ headRefOid: MOVED, state: "OPEN" })),
+          /^gh pr view 42 --json headRefOid,state,baseRefName$/,
+          result(0, JSON.stringify({ headRefOid: MOVED, state: "OPEN", baseRefName: "dev" })),
         ],
       ]),
     );
@@ -323,6 +323,43 @@ describe("the re-check before merging", () => {
     expect(o).toMatchObject({ exit: 1, stoppedAt: "recheck", merged: false });
     expect(out()).toMatch(/not the tested aaaaaaaaaaaa — re-run land/);
     expect(merged(fake)).toBe(false);
+  });
+
+  it("stops when the PR was retargeted away from dev after it was found", async () => {
+    const { d, fake, out } = landDeps(
+      happy([
+        [
+          /^gh pr view 42 --json headRefOid,state,baseRefName$/,
+          result(0, JSON.stringify({ headRefOid: HEAD, state: "OPEN", baseRefName: "main" })),
+        ],
+      ]),
+    );
+    const o = await runLand({ allowUnknown: false }, d);
+    expect(o).toMatchObject({ exit: 1, stoppedAt: "recheck", merged: false });
+    expect(out()).toMatch(/#42 now targets main, not dev/);
+    expect(merged(fake)).toBe(false);
+  });
+
+  it("an unreadable base is not dev: refused, never merged", async () => {
+    const { d, fake } = landDeps(
+      happy([
+        [
+          /^gh pr view 42 --json headRefOid,state,baseRefName$/,
+          result(0, JSON.stringify({ headRefOid: HEAD, state: "OPEN" })),
+        ],
+      ]),
+    );
+    expect(await runLand({ allowUnknown: false }, d)).toMatchObject({ stoppedAt: "recheck" });
+    expect(merged(fake)).toBe(false);
+  });
+
+  it("pins the merge to the tested head, so a push after the re-check cannot ride in", async () => {
+    const { d, fake } = landDeps(happy());
+    await runLand({ allowUnknown: false }, d);
+    const merge = fake.calls.find((c) => c.cmd === "gh" && c.args[1] === "merge");
+    const i = merge?.args.indexOf("--match-head-commit") ?? -1;
+    expect(i).toBeGreaterThan(-1);
+    expect(merge?.args[i + 1]).toBe(HEAD);
   });
 
   it("stops when origin/dev moved since the run", async () => {

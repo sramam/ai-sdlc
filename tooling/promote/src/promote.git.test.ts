@@ -2,8 +2,11 @@
  * The promotion against real git: a work repository, a bare `origin`, and the
  * repository's own `.husky/pre-push`. GitHub and the deploy are not real — gh
  * is scripted and the "deploy" is a shell command that records where it ran.
+ *
+ * The hook is tripped here, not only satisfied: every way of moving staging
+ * other than `pnpm promote` is pushed at it and must be refused.
  */
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   chmodSync,
   existsSync,
@@ -21,39 +24,10 @@ import { exec as realExec, result } from "../../core/src/exec.mts";
 import type { Exec } from "../../core/src/exec.mts";
 import { runPromote } from "./promote.mts";
 import type { PromoteDeps } from "./promote.mts";
+import { HANDOFF_FILE, NONCE_ENV, armPush } from "./shared.mts";
 
 const REPO = join(import.meta.dirname, "..", "..", "..");
 const HUSKY_PRE_PUSH = join(REPO, ".husky", "pre-push");
-
-/**
- * The change tooling/promote/README.md asks of .husky/pre-push: also allow a
- * promotion pushed as `<sha>:refs/heads/<target>` when the SHA is on
- * origin/<source>. Kept here so the suggestion is tested, not just written.
- */
-const PROPOSED_PRE_PUSH = `while read -r local_ref local_sha remote_ref remote_sha; do
-  case "$remote_ref" in
-    refs/heads/dev | refs/heads/staging | refs/heads/main) ;;
-    *) continue ;;
-  esac
-  target=\${remote_ref#refs/heads/}
-  source=\${local_ref#refs/heads/}
-  case "$source:$target" in
-    dev:staging | staging:main)
-      echo "pre-push: promoting $source → $target"
-      continue
-      ;;
-  esac
-  case "$target" in staging) from=dev ;; main) from=staging ;; *) from= ;; esac
-  if [ -n "$from" ] && [ "$local_ref" = "$local_sha" ] &&
-    git merge-base --is-ancestor "$local_sha" "refs/remotes/origin/$from" 2>/dev/null; then
-    echo "pre-push: promoting origin/$from ($local_sha) → $target"
-    continue
-  fi
-  echo "pre-push: refusing to push $target directly. Land work with /land (a PR into dev)."
-  echo "  Promotion is exempt: pnpm promote:staging, pnpm promote:prod."
-  exit 1
-done
-`;
 
 let dir: string;
 let work: string;
@@ -94,6 +68,17 @@ function installHook(text: string) {
   git(work, "config", "core.hooksPath", hooks);
 }
 
+/** A push as somebody at a shell would make it: the exit and what the hook said. */
+function shellPush(env: NodeJS.ProcessEnv, ...args: string[]) {
+  const r = spawnSync("git", ["push", ...args], {
+    cwd: work,
+    encoding: "utf8",
+    env: { ...process.env, [NONCE_ENV]: undefined, ...env },
+  });
+  return { code: r.status, out: `${r.stdout}${r.stderr}` };
+}
+const handoffPath = () => join(work, ".git", HANDOFF_FILE);
+
 function deps(logs: string[]): PromoteDeps {
   // Real git and sh; a scripted GitHub that reports local-ci green.
   const exec: Exec = (cmd, args, opts) =>
@@ -121,6 +106,7 @@ function deps(logs: string[]): PromoteDeps {
     removeDir: (d) => rmSync(d, { recursive: true, force: true }),
     exists: existsSync,
     httpGet: async () => ({ status: 200 }),
+    armPush: (sha, ref) => armPush(realExec, work, sha, ref),
   };
 }
 
@@ -132,7 +118,7 @@ describe("promote against real git", () => {
     git(work, "push", "-q", "origin", "dev");
     // The working tree sits somewhere else entirely: it must not be what is deployed.
     git(work, "checkout", "-q", "-b", "elsewhere", "origin/staging");
-    installHook(PROPOSED_PRE_PUSH);
+    installHook(readFileSync(HUSKY_PRE_PUSH, "utf8"));
     const logs: string[] = [];
     const o = await runPromote(opts, deps(logs));
     expect(o, logs.join("\n")).toMatchObject({ exit: 0, deployed: true, pushed: true });
@@ -143,22 +129,105 @@ describe("promote against real git", () => {
     expect(git(remote, "rev-parse", "refs/heads/staging")).toBe(two);
   });
 
-  it("the current .husky/pre-push refuses the SHA push — caught by the dry run, before migrating", async () => {
+  it("leaves no handoff behind after a promotion", async () => {
     save(work, "two");
     git(work, "push", "-q", "origin", "dev");
     installHook(readFileSync(HUSKY_PRE_PUSH, "utf8"));
-    const logs: string[] = [];
-    const o = await runPromote(opts, deps(logs));
-    if (/is-ancestor/.test(readFileSync(HUSKY_PRE_PUSH, "utf8"))) {
-      // The hook has been changed to allow it; nothing left to document.
-      expect(o.exit).toBe(0);
-      return;
-    }
-    expect(o).toMatchObject({ exit: 1, stoppedAt: "push-check", deployed: false });
-    expect(existsSync(join(out, "migrate"))).toBe(false);
-    expect(git(remote, "rev-parse", "refs/heads/staging")).not.toBe(git(work, "rev-parse", "dev"));
+    const o = await runPromote(opts, deps([]));
+    expect(o.exit).toBe(0);
+    expect(existsSync(handoffPath())).toBe(false);
+  });
+});
+
+describe(".husky/pre-push refuses every other way to move staging and main", () => {
+  let two: string;
+  beforeEach(() => {
+    two = save(work, "two");
+    git(work, "push", "-q", "origin", "dev");
+    installHook(readFileSync(HUSKY_PRE_PUSH, "utf8"));
+  });
+  const stagingAt = () => git(remote, "rev-parse", "refs/heads/staging");
+
+  it("a raw SHA push, even of a commit already on origin/dev", () => {
+    const before = stagingAt();
+    const r = shellPush({}, "origin", `${two}:refs/heads/staging`);
+    expect(r.code, r.out).not.toBe(0);
+    expect(r.out).toMatch(/pre-push: refusing to push staging directly/);
+    expect(stagingAt()).toBe(before);
   });
 
+  it("a named-ref push from a local dev, and main from a local staging", () => {
+    expect(shellPush({}, "origin", "dev:staging").code).not.toBe(0);
+    git(work, "branch", "-f", "staging", two);
+    expect(shellPush({}, "origin", "staging:main").code).not.toBe(0);
+    expect(shellPush({}, "origin", "HEAD:refs/heads/main").code).not.toBe(0);
+  });
+
+  it("a push to dev, whatever handoff is lying around", async () => {
+    const three = save(work, "three");
+    const armed = await armPush(realExec, work, three, "refs/heads/dev");
+    if ("error" in armed) throw new Error(armed.error);
+    expect(shellPush({ [NONCE_ENV]: armed.nonce }, "origin", "dev").code).not.toBe(0);
+    armed.disarm();
+  });
+
+  it("a nonce that does not match, and the handoff is spent by the attempt", async () => {
+    const armed = await armPush(realExec, work, two, "refs/heads/staging");
+    if ("error" in armed) throw new Error(armed.error);
+    const r = shellPush({ [NONCE_ENV]: "guessed" }, "origin", `${two}:refs/heads/staging`);
+    expect(r.code).not.toBe(0);
+    expect(r.out).toMatch(/handoff names a different push/);
+    expect(existsSync(handoffPath())).toBe(false);
+    // The right nonce, now, finds nothing to match.
+    expect(
+      shellPush({ [NONCE_ENV]: armed.nonce }, "origin", `${two}:refs/heads/staging`).code,
+    ).not.toBe(0);
+  });
+
+  it("a handoff for another SHA or another ref", async () => {
+    const one = git(work, "rev-parse", "HEAD~1");
+    const forOne = await armPush(realExec, work, one, "refs/heads/staging");
+    if ("error" in forOne) throw new Error(forOne.error);
+    expect(
+      shellPush({ [NONCE_ENV]: forOne.nonce }, "origin", `${two}:refs/heads/staging`).code,
+    ).not.toBe(0);
+    const forStaging = await armPush(realExec, work, two, "refs/heads/staging");
+    if ("error" in forStaging) throw new Error(forStaging.error);
+    expect(
+      shellPush({ [NONCE_ENV]: forStaging.nonce }, "origin", `${two}:refs/heads/main`).code,
+    ).not.toBe(0);
+  });
+
+  it("a deletion of a protected branch", async () => {
+    const armed = await armPush(realExec, work, "0".repeat(40), "refs/heads/staging");
+    if ("error" in armed) throw new Error(armed.error);
+    expect(shellPush({ [NONCE_ENV]: armed.nonce }, "origin", ":refs/heads/staging").code).not.toBe(
+      0,
+    );
+  });
+
+  it("accepts exactly the handed-off push, once", async () => {
+    const armed = await armPush(realExec, work, two, "refs/heads/staging");
+    if ("error" in armed) throw new Error(armed.error);
+    const ok = shellPush({ [NONCE_ENV]: armed.nonce }, "origin", `${two}:refs/heads/staging`);
+    expect(ok.code, ok.out).toBe(0);
+    expect(stagingAt()).toBe(two);
+    expect(existsSync(handoffPath())).toBe(false);
+    const three = save(work, "three");
+    // dev moves by a merged PR in life; here, past the hook, which refuses it.
+    git(work, "push", "-q", "--no-verify", "origin", "dev");
+    expect(
+      shellPush({ [NONCE_ENV]: armed.nonce }, "origin", `${three}:refs/heads/staging`).code,
+    ).not.toBe(0);
+  });
+
+  it("an ordinary feature branch is not its business", () => {
+    git(work, "checkout", "-q", "-b", "feat/x");
+    expect(shellPush({}, "origin", "feat/x").code).toBe(0);
+  });
+});
+
+describe("promote, when something reached staging by another road", () => {
   it("refuses a target that is not an ancestor, with the hook allowing the push", async () => {
     // Something reached staging that dev does not have.
     git(work, "checkout", "-q", "-b", "stray", "origin/staging");
@@ -167,7 +236,7 @@ describe("promote against real git", () => {
     git(work, "checkout", "-q", "dev");
     save(work, "two");
     git(work, "push", "-q", "origin", "dev");
-    installHook(PROPOSED_PRE_PUSH);
+    installHook(readFileSync(HUSKY_PRE_PUSH, "utf8"));
     const logs: string[] = [];
     const o = await runPromote(opts, deps(logs));
     expect(o).toMatchObject({ exit: 1, stoppedAt: "ff" });

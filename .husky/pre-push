@@ -1,30 +1,49 @@
-# Refuse a direct push to an integration branch. Work reaches dev by pull
-# request (/land); staging and main move only by the named promotions.
-# A reminder at the moment of the mistake, not a permission system.
+# Refuse every push that updates dev, staging or main. Work reaches dev by a
+# pull request (pnpm land); staging and main move only by `pnpm promote:*`, which
+# approves, migrates, deploys and smoke-tests before it pushes.
+#
+# The one exception is a push made by tooling/promote itself. Before it pushes,
+# promote writes a one-shot handoff, `<git-common-dir>/sdlc-promote-handoff`,
+# holding `<nonce> <sha> <ref>`, and puts the nonce in SDLC_PROMOTE_NONCE for
+# that one git process. The hook accepts the update only when the nonce, the
+# exact SHA and the exact ref all match, and deletes the handoff either way.
+# Nothing is trusted by branch name: a local `dev` is whatever somebody made it,
+# and a SHA being on origin/dev says nothing about whether it was approved,
+# migrated or smoke-tested.
+#
+# A guardrail against an ordinary mistake, not a security boundary: anything
+# that can write .git/ and set an environment variable can forge a handoff. A
+# server-side GitHub ruleset on staging and main is the stronger layer where
+# the plan offers one (docs/kit/environments.md).
+zero_only() { case "$1" in *[!0]*) return 1 ;; *) return 0 ;; esac }
+
+# Could not ask git where the handoff lives: no promotion can be verified, so a
+# protected update is refused (the stopping answer, chosen on purpose).
+common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || common=
+handoff=${common:+$common/sdlc-promote-handoff}
+
 while read -r local_ref local_sha remote_ref remote_sha; do
   case "$remote_ref" in
     refs/heads/dev | refs/heads/staging | refs/heads/main) ;;
     *) continue ;;
   esac
   target=${remote_ref#refs/heads/}
-  source=${local_ref#refs/heads/}
-  case "$source:$target" in
-    dev:staging | staging:main)
-      echo "pre-push: promoting $source → $target"
+
+  if [ "$target" != dev ] && [ -n "${SDLC_PROMOTE_NONCE:-}" ] && [ -n "$handoff" ] && [ -f "$handoff" ]; then
+    h_nonce= h_sha= h_ref=
+    read -r h_nonce h_sha h_ref <"$handoff" || true
+    rm -f "$handoff" # one shot, matched or not
+    if [ "$h_nonce" = "$SDLC_PROMOTE_NONCE" ] && [ "$h_sha" = "$local_sha" ] &&
+      [ "$h_ref" = "$remote_ref" ] && ! zero_only "$local_sha"; then
+      echo "pre-push: promotion of $local_sha → $target, handed off by pnpm promote"
       continue
-      ;;
-  esac
-  # A promotion pushes an exact SHA (pnpm promote:*), so git hands this hook the
-  # raw SHA as the local ref. Allow it only when that SHA is already on the
-  # branch it promotes from, so nothing unreviewed can be published this way.
-  case "$target" in staging) from=dev ;; main) from=staging ;; *) from= ;; esac
-  if [ -n "$from" ] && [ "$local_ref" = "$local_sha" ] &&
-    git merge-base --is-ancestor "$local_sha" "refs/remotes/origin/$from" 2>/dev/null; then
-    echo "pre-push: promoting origin/$from ($local_sha) → $target"
-    continue
+    fi
+    echo "pre-push: refusing $local_sha → $remote_ref: the promotion handoff names a different push."
+    exit 1
   fi
 
-  echo "pre-push: refusing to push $target directly. Land work with /land (a PR into dev)."
-  echo "  Promotion is exempt: pnpm promote:staging, pnpm promote:prod."
+  echo "pre-push: refusing to push $target directly."
+  echo "  dev moves by pull request: pnpm land."
+  echo "  staging and main move only by pnpm promote:staging / pnpm promote:prod, which hand their push to this hook."
   exit 1
 done

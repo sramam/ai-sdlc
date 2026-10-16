@@ -14,8 +14,12 @@
  *                  `local-ci/allow-unknown` override does not count
  *   6. ff          refuse unless origin/<target> is an ancestor of the SHA —
  *                  fast-forward only, never a merge, never a PR into main
- *   7. push-check  `git push --dry-run` of the exact push step 12 makes, so the
- *                  pre-push hook and the remote answer before anything changes
+ *   7. push-check  `git push --dry-run` of the exact push step 13 makes, so the
+ *                  pre-push hook and the remote answer before anything changes.
+ *                  Each push (dry and real) is handed to the hook first: a
+ *                  one-shot `<nonce> <sha> <ref>` file under the git common
+ *                  dir and the nonce in SDLC_PROMOTE_NONCE. The hook refuses
+ *                  any staging/production update that does not match one
  *   8. approval    requiresApproval: print the plan and stop unless --yes
  *                  (--dry-run stops here too, exit 0)
  *   9. checkout    a shared clone of this repository in a temp dir, detached at
@@ -38,8 +42,17 @@ import { exec as realExec, isEntry } from "../../core/src/exec.mts";
 import type { Exec, ExecOptions } from "../../core/src/exec.mts";
 import { findRoot, loadConfig as realLoadConfig } from "../../core/src/config.mts";
 import type { EnvironmentConfig, SdlcConfig } from "../../core/src/config.mts";
-import { exitFor, localCiVerdict, reporter, shortSha, sourceBranch, why } from "./shared.mts";
-import type { LineState } from "./shared.mts";
+import {
+  NONCE_ENV,
+  armPush,
+  exitFor,
+  localCiVerdict,
+  reporter,
+  shortSha,
+  sourceBranch,
+  why,
+} from "./shared.mts";
+import type { ArmedPush, LineState } from "./shared.mts";
 
 export interface PromoteOptions {
   env: string;
@@ -61,6 +74,8 @@ export interface PromoteDeps {
   exists: (path: string) => boolean;
   /** GET for the smoke URL: the status, or an error to report. */
   httpGet: (url: string) => Promise<{ status: number } | { error: string }>;
+  /** Hand the next push of `sha` to `ref` to the pre-push hook (shared.mts armPush). */
+  armPush: (sha: string, ref: string) => Promise<ArmedPush>;
 }
 
 export interface PromoteOutcome {
@@ -112,6 +127,21 @@ export async function runPromote(opts: PromoteOptions, deps: PromoteDeps): Promi
   };
   const git = (args: string[], timeoutMs = 60_000) =>
     deps.exec("git", args, { cwd: root, timeoutMs });
+  /** A push the pre-push hook will accept: armed, run with the nonce, disarmed. */
+  const handedPush = async (flags: string[], refspec: string, ref: string, sha: string) => {
+    const armed = await deps.armPush(sha, ref);
+    if ("error" in armed) return { armError: armed.error } as const;
+    try {
+      const r = await deps.exec("git", ["push", ...flags, "origin", refspec], {
+        cwd: root,
+        timeoutMs: flags.includes("--dry-run") ? 120_000 : 300_000,
+        env: { ...process.env, [NONCE_ENV]: armed.nonce },
+      });
+      return { r } as const;
+    } finally {
+      armed.disarm();
+    }
+  };
 
   // 1. Config.
   const config = await deps.loadConfig(root);
@@ -225,8 +255,16 @@ export async function runPromote(opts: PromoteOptions, deps: PromoteDeps): Promi
     );
 
   // 7. Push check: the same push, dry-run, so the hook and the remote answer now.
-  const refspec = `${sha}:refs/heads/${target}`;
-  const dry = await git(["push", "--dry-run", "--porcelain", "origin", refspec], 120_000);
+  const targetRef = `refs/heads/${target}`;
+  const refspec = `${sha}:${targetRef}`;
+  const dryRun = await handedPush(["--dry-run", "--porcelain"], refspec, targetRef, sha);
+  if ("armError" in dryRun)
+    return stop(
+      "push-check",
+      "COULD NOT ASK",
+      `could not hand the push to the pre-push hook: ${dryRun.armError}`,
+    );
+  const dry = dryRun.r;
   if (dry.code !== 0) {
     const said = `${dry.stderr}\n${dry.stdout}`;
     if (/pre-push/i.test(said))
@@ -347,12 +385,19 @@ export async function runPromote(opts: PromoteOptions, deps: PromoteDeps): Promi
     line("deploy", "ok", `${env.deploy} (${shortSha(sha)})`);
 
     // 13. Push.
-    const p = await git(["push", "--porcelain", "origin", refspec], 300_000);
+    const pushed13 = await handedPush(["--porcelain"], refspec, targetRef, sha);
+    if ("armError" in pushed13)
+      return stop(
+        "push",
+        "COULD NOT ASK",
+        `could not hand the push to the pre-push hook: ${pushed13.armError} — ${opts.env} now runs ${shortSha(sha)} while ${target} still names ${targetTip ? shortSha(targetTip) : "nothing"}. Re-run pnpm promote ${opts.env}`,
+      );
+    const p = pushed13.r;
     if (p.code !== 0)
       return stop(
         "push",
         p.notFound || p.timedOut ? "COULD NOT ASK" : "FAILED",
-        `git push: ${why(p)} — ${opts.env} now runs ${shortSha(sha)} while ${target} still names ${targetTip ? shortSha(targetTip) : "nothing"}. Push by hand: git push origin ${refspec}`,
+        `git push: ${why(p)} — ${opts.env} now runs ${shortSha(sha)} while ${target} still names ${targetTip ? shortSha(targetTip) : "nothing"}. Re-run pnpm promote ${opts.env} — a push by hand is refused by the pre-push hook`,
       );
     pushed = true;
     line("push", "ok", `${target} → ${shortSha(sha)}`);
@@ -422,6 +467,7 @@ export function realPromoteDeps(root: string, log: (l: string) => void): Promote
     },
     exists: existsSync,
     httpGet: fetchStatus,
+    armPush: (sha, ref) => armPush(realExec, root, sha, ref),
   };
 }
 

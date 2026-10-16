@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { result, scriptedExec } from "../../core/src/exec.mts";
 import type { ExecResult, ScriptedCall } from "../../core/src/exec.mts";
@@ -167,5 +170,27 @@ describe("claim", () => {
     expect(await main([], exec)).toBe(2);
     expect(await main(["F03-012", "--session"], exec)).toBe(2);
     expect(exec.calls).toEqual([]);
+  });
+
+  it("main refuses a config that exists and does not validate, and asks GitHub nothing", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "claim-config-"));
+    try {
+      // The item exists under the default dirs, so falling back to defaults
+      // would go on to ask GitHub; only refusing the config keeps it silent.
+      mkdirSync(join(dir, "docs", "plan", "items"), { recursive: true });
+      writeFileSync(
+        join(dir, "docs", "plan", "items", "F03-012-x.md"),
+        "---\nid: F03-012\ntitle: Stop reminders\n---\n",
+      );
+      writeFileSync(
+        join(dir, "sdlc.config.json"),
+        JSON.stringify({ branches: { integration: 7 } }),
+      );
+      const exec = scriptedExec(happy);
+      expect(await main(["F03-012", "--session", "s"], exec, dir)).toBe(2);
+      expect(exec.calls).toEqual([]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

@@ -2,6 +2,9 @@
  * What promote, rollback and release share: the `local-ci` verdict for a
  * commit, the one-line step reporter, and the branch chain.
  */
+import { randomBytes } from "node:crypto";
+import { rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { firstLine } from "../../core/src/exec.mts";
 import type { Exec, ExecResult } from "../../core/src/exec.mts";
 import type { EnvironmentConfig, SdlcConfig } from "../../core/src/config.mts";
@@ -90,3 +93,42 @@ export function sourceBranch(config: SdlcConfig, env: EnvironmentConfig): string
 }
 
 export const shortSha = (sha: string): string => sha.slice(0, 12);
+
+// ─── The pre-push handoff ─────────────────────────────────────────────────────
+
+/** Under the git common dir, so every worktree of the repository sees one file. */
+export const HANDOFF_FILE = "sdlc-promote-handoff";
+/** The variable the nonce travels in, set on the one git push that needs it. */
+export const NONCE_ENV = "SDLC_PROMOTE_NONCE";
+
+/** A push the hook will accept once: the nonce for its environment, and how to withdraw it. */
+export type ArmedPush = { nonce: string; disarm: () => void } | { error: string };
+
+/**
+ * Write the one-shot handoff `.husky/pre-push` consumes: `<nonce> <sha> <ref>`.
+ * The hook accepts a staging or production update only when all three match
+ * the push it is shown, and deletes the file whether or not they do. The
+ * caller disarms after the push too, so a push the hook never saw (a network
+ * failure first) leaves nothing behind.
+ */
+export async function armPush(
+  exec: Exec,
+  root: string,
+  sha: string,
+  ref: string,
+): Promise<ArmedPush> {
+  const r = await exec("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], {
+    cwd: root,
+    timeoutMs: 30_000,
+  });
+  const dir = r.code === 0 ? r.stdout.trim() : "";
+  if (!dir) return { error: `git rev-parse --git-common-dir: ${why(r)}` };
+  const path = join(dir, HANDOFF_FILE);
+  const nonce = randomBytes(16).toString("hex");
+  try {
+    writeFileSync(path, `${nonce} ${sha} ${ref}\n`, { mode: 0o600 });
+  } catch (e) {
+    return { error: `could not write ${path}: ${(e as Error).message}` };
+  }
+  return { nonce, disarm: () => rmSync(path, { force: true }) };
+}

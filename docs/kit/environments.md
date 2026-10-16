@@ -70,6 +70,18 @@ pnpm db:local reset            # empty, then migrate
      time; `--env` at deploy time does nothing
   4. fast-forwards the git branch
   5. smoke-tests the deployed URL (sign in, reach a page) and fails loudly
+- **Only the promote scripts move `staging` and `main`.** `.husky/pre-push`
+  refuses every update of either unless the push was handed to it by promote:
+  a one-shot `<nonce> <sha> <ref>` file under the git common dir, matched
+  against `SDLC_PROMOTE_NONCE` and the exact SHA and ref, and deleted on use.
+  A branch name proves nothing and neither does a SHA being on `origin/dev`,
+  so a raw `git push origin <sha>:refs/heads/staging` is refused even for an
+  approved commit. `.claude/settings.json` denies the raw push commands too.
+  Both are guardrails against an ordinary mistake, not a boundary: anything
+  that can write `.git/` can forge a handoff. **A GitHub ruleset on `staging`
+  and `main` is the stronger layer** (restrict updates to the people who
+  promote; no force-push, no deletion), and is worth applying wherever the plan
+  offers rulesets.
 - **Deploy tokens are scoped** to one account and the Workers, R2 and Queues
   permissions needed. They are never on agents' machines, and they are used only
   by the promote scripts.

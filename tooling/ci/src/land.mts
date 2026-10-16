@@ -17,8 +17,11 @@
  *   8. ci         ci:local on the pushed SHA; on red, stop
  *   9. pr         find the open PR into <integration>, or create one whose body
  *                 lists the branch's Progress/Closes/No-Item lines
- *  10. recheck    PR head == the tested SHA, origin/<integration> unmoved; else stop
- *  11. merge      gh pr merge --merge (never squash), --delete-branch only with Closes:
+ *  10. recheck    PR open, still into <integration>, head == the tested SHA,
+ *                 origin/<integration> unmoved; else stop
+ *  11. merge      gh pr merge --merge --match-head-commit <tested SHA> (never
+ *                 squash; GitHub refuses if the head moved after the recheck),
+ *                 --delete-branch only with Closes:
  *  12. dev-status fetch, then ci:local --sha origin/<integration>: the merge
  *                 commit's tree is the tree just tested, so its content checks
  *                 are a cache hit and only the history checks run
@@ -330,10 +333,10 @@ export async function runLand(opts: LandOptions, deps: LandDeps): Promise<LandOu
   }
 
   // 10. Re-check: nothing moved between the test and the merge.
-  const again = await gh(["pr", "view", String(pr), "--json", "headRefOid,state"]);
+  const again = await gh(["pr", "view", String(pr), "--json", "headRefOid,state,baseRefName"]);
   if (again.code !== 0)
     return stop("recheck", "COULD NOT ASK", `gh pr view ${pr}: ${why(again)}`, { pr });
-  let head: { headRefOid?: string; state?: string };
+  let head: { headRefOid?: string; state?: string; baseRefName?: string };
   try {
     head = JSON.parse(again.stdout) as typeof head;
   } catch {
@@ -341,6 +344,14 @@ export async function runLand(opts: LandOptions, deps: LandDeps): Promise<LandOu
   }
   if (head.state !== "OPEN")
     return stop("recheck", "REFUSED", `#${pr} is ${head.state ?? "unknown"}, not open`, { pr });
+  // Retargeted after it was found or created: merging would land on another branch.
+  if (head.baseRefName !== integration)
+    return stop(
+      "recheck",
+      "REFUSED",
+      `#${pr} now targets ${head.baseRefName ?? "an unreadable base"}, not ${integration} — retarget it to ${integration} and re-run land`,
+      { pr },
+    );
   if (head.headRefOid !== headSha)
     return stop(
       "recheck",
@@ -360,11 +371,23 @@ export async function runLand(opts: LandOptions, deps: LandDeps): Promise<LandOu
       `origin/${integration} moved since the run (${baseSha.slice(0, 12)} → ${base2.stdout.trim().slice(0, 12)}) — merge it and re-run land`,
       { pr },
     );
-  line("recheck", "ok", `#${pr} head = tested SHA; origin/${integration} unmoved`);
+  line(
+    "recheck",
+    "ok",
+    `#${pr} into ${integration}, head = tested SHA; origin/${integration} unmoved`,
+  );
 
   // 11. Merge commit. A partial PR keeps its branch, so its item still reads as claimed.
   const closes = trailers.closes.length > 0;
-  const mergeArgs = ["pr", "merge", String(pr), "--merge", ...(closes ? ["--delete-branch"] : [])];
+  const mergeArgs = [
+    "pr",
+    "merge",
+    String(pr),
+    "--merge",
+    "--match-head-commit",
+    headSha,
+    ...(closes ? ["--delete-branch"] : []),
+  ];
   const merge = await gh(mergeArgs);
   if (merge.code !== 0) {
     // `--delete-branch` also tidies the local branch, which can fail in a

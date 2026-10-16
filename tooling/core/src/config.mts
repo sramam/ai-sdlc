@@ -71,6 +71,22 @@ export interface Account {
   manual?: string;
 }
 
+/**
+ * The branch names are fixed. They stay in the config so every tool reads them
+ * from one place, but they are not knobs: the pre-push hook, the permission
+ * denies in .claude/settings.json, the skills and the journey drift default all
+ * name dev, staging and main literally, and a project that renamed one would
+ * have land and ci:local looking for an origin branch that does not exist.
+ * Making them configurable would mean making every one of those read the
+ * config first — the hook runs before `pnpm install` and a permission rule
+ * cannot read a file at all — so they are refused instead of half-supported.
+ */
+export const FIXED_BRANCHES = {
+  integration: "dev",
+  staging: "staging",
+  production: "main",
+} as const;
+
 /** The starter's tooling modules, one workspace package each under tooling/. */
 export const STARTER_MODULES = [
   "core",
@@ -227,8 +243,12 @@ export const SHAPE: Shape = obj({
     "The config format version; default 1. sdlc:update refuses a project behind the starter's minConfigVersion.",
   ),
   branches: req(
-    obj({ integration: req(str), staging: req(str), production: req(str) }),
-    "Branch names: where work integrates, the staging tier and production.",
+    obj({
+      integration: req({ t: "enum", values: [FIXED_BRANCHES.integration] }),
+      staging: req({ t: "enum", values: [FIXED_BRANCHES.staging] }),
+      production: req({ t: "enum", values: [FIXED_BRANCHES.production] }),
+    }),
+    "Branch names, fixed: dev, staging and main. Kept so tools read one source; not configurable (tooling/core/src/config.mts FIXED_BRANCHES).",
   ),
   dirs: req(
     obj({
@@ -369,7 +389,14 @@ export class ConfigError extends Error {
 export function validateConfig(
   value: unknown,
 ): { ok: true; config: SdlcConfig } | { ok: false; problems: string[] } {
-  const problems = check(SHAPE, value);
+  // The fixed branch names get a sentence saying why, not just "expected one of".
+  const problems = check(SHAPE, value).map((p) => {
+    const m = /^branches\.(integration|staging|production): expected one of/.exec(p);
+    if (!m) return p;
+    const role = m[1] as keyof typeof FIXED_BRANCHES;
+    const got = (value as { branches: Record<string, unknown> }).branches[role];
+    return `branches.${role}: must be "${FIXED_BRANCHES[role]}", got ${JSON.stringify(got)} — the branch names are fixed (dev → staging → main), because the pre-push hook, the permission denies and the skills name them literally`;
+  });
   if (problems.length) return { ok: false, problems };
   const config = value as SdlcConfig;
   // Cross-field: a seed's database must be a declared localdb database.
