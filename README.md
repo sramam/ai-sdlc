@@ -161,7 +161,8 @@ every recipe through `add`. It is not a GitHub template.
 
 The modules, the recipes, the CLI and the workflow's skills are built:
 Addy Osmani's agent-skills at `aeac41d`, wrapped, plus three skills of our own
-in base, `journeys` with its module, and two optional third-party skills. Not yet exercised:
-`pnpm dlx github:sramam/ai-sdlc#<tag>` against GitHub itself (the same path is
-proven from a local git URL), `ci:local`'s container mode, a live OpenRouter
-call, and the authorization engines inside a deployed Worker.
+in base, `journeys` with its module, and two optional third-party skills.
+`pnpm dlx github:sramam/ai-sdlc#v0.2.0 init` was run against GitHub on
+2026-10-16 and produced a project whose first commit passed its own hooks. Not
+yet exercised: `ci:local`'s container mode, a live OpenRouter call, and the
+authorization engines inside a deployed Worker.
