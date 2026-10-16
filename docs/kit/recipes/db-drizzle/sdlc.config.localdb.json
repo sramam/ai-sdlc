@@ -1,0 +1,10 @@
+{
+  "localdb": {
+    "databases": [
+      {
+        "name": "app",
+        "migrate": "pnpm --filter @app/web exec drizzle-kit migrate"
+      }
+    ]
+  }
+}

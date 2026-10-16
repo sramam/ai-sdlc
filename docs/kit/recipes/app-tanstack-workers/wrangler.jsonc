@@ -1,0 +1,60 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "app",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "@tanstack/react-start/server-entry",
+  "observability": { "enabled": true, "traces": { "enabled": true } },
+
+  // Top level = local (`vite dev`, `wrangler dev`). `vars` and bindings are NOT
+  // inherited by the named environments below: each one repeats them.
+  "vars": {
+    "APP_ENV": "local",
+    "BETTER_AUTH_URL": "http://localhost:3000",
+    "EMAIL_TRANSPORT": "capture",
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      // Not used locally, but required by the schema.
+      "id": "00000000000000000000000000000000",
+      // A deliberately dead URL: the real one comes from
+      // CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE (it wins), which
+      // the journeys adapter and `pnpm dev:worker` set from `pnpm db:local url`.
+      "localConnectionString": "postgres://localdb:unset@127.0.0.1:1/run-pnpm-db-local-start",
+    },
+  ],
+
+  // Selected at BUILD time: `CLOUDFLARE_ENV=staging vite build`, then
+  // `wrangler deploy` (no --env; the build wrote a flattened dist/server/wrangler.json).
+  "env": {
+    "dev": {
+      "vars": {
+        "APP_ENV": "dev",
+        "BETTER_AUTH_URL": "https://dev.example.com",
+        "EMAIL_TRANSPORT": "resend",
+      },
+      "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<wrangler hyperdrive create app-dev …>" }],
+    },
+    "staging": {
+      "vars": {
+        "APP_ENV": "staging",
+        "BETTER_AUTH_URL": "https://staging.example.com",
+        "EMAIL_TRANSPORT": "resend",
+      },
+      "hyperdrive": [
+        { "binding": "HYPERDRIVE", "id": "<wrangler hyperdrive create app-staging …>" },
+      ],
+    },
+    "production": {
+      "vars": {
+        "APP_ENV": "production",
+        "BETTER_AUTH_URL": "https://example.com",
+        "EMAIL_TRANSPORT": "resend",
+      },
+      "hyperdrive": [
+        { "binding": "HYPERDRIVE", "id": "<wrangler hyperdrive create app-production …>" },
+      ],
+    },
+  },
+}

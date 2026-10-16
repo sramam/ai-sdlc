@@ -1,0 +1,19 @@
+// Prisma 7 on Workers: the `prisma-client` generator (not `prisma-client-js`)
+// with runtime "workerd", and no `url` here — it lives in prisma.config.ts.
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  runtime  = "workerd"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Note {
+  id        Int      @id @default(autoincrement())
+  body      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("note")
+}
