@@ -23,6 +23,10 @@ import {
   resolveJourneyPorts,
 } from "./ports.mts";
 import type { PortHolder, PortPlan } from "./ports.mts";
+import { askHost, judgeOwnership, processStarted, recordedBy } from "./ownership.mts";
+import type { HostAnswer, Ownership } from "./ownership.mts";
+import { UNKNOWN_STACK, readStackStamp } from "./stamp.mts";
+import type { StackStamp } from "./stamp.mts";
 
 /** The variables that pin a run's ports. Set either to move this run out of the way. */
 export const APP_PORT_VAR = "JOURNEY_APP_PORT";
@@ -174,6 +178,24 @@ export async function resetStack(
  * directory cannot be read stops it too (`JOURNEY-003`) — neither safe to kill
  * nor safe to share with.
  *
+ * ## And this checkout's own listener is killed only when it is provably abandoned
+ *
+ * Being *this checkout's* is not being an orphan. A second journey run here,
+ * or a dev server that sits on a derived port, has the same working directory
+ * as an orphan and is alive and wanted. So a listener of ours is killed only
+ * when the last stack this checkout stamped (`stack.json` in scratch) does not
+ * answer its control channel, **and** recorded that exact listener — pid and
+ * start time — while it was alive (`ownership.mts`):
+ *
+ * | | |
+ * | --- | --- |
+ * | the stamped host answers `/whoami` (or anything answers there) | `JOURNEY-005`: a live run owns it |
+ * | the listener is not one the abandoned stack recorded, or its start time differs or cannot be read | `JOURNEY-006`: named, left alone |
+ * | the host could not be asked (a timeout) | `JOURNEY-007`: could not ask, so nothing is killed |
+ *
+ * Every holder of every port is judged before anything is signalled, so a
+ * refusal on the third port does not follow a kill on the first.
+ *
  * `kill` is separate from `classify` so a refusal can be asserted to have killed
  * nothing, which is the only assertion about a refusal worth making.
  */
@@ -181,14 +203,30 @@ export function freeStackPorts(
   urls: Pick<StackUrls, "appPort" | "dbPort" | "checkout">,
   {
     env = process.env,
-    classify = classifyPort,
+    marker = DEFAULT_PORT_PLAN.marker,
+    classify = (port: number, ours: string) =>
+      classifyPort(port, ours, listenerPids, (pid) => checkoutOfPid(pid, marker)),
     kill = process.kill,
     log = (line: string) => console.warn(line),
+    scratchDir = join(urls.checkout, "test-results"),
+    readStamp = () => {
+      const stamp = readStackStamp(scratchDir);
+      return stamp === UNKNOWN_STACK ? null : stamp;
+    },
+    ask = askHost,
+    startedOf = processStarted,
   }: {
     env?: NodeJS.ProcessEnv;
+    /** The file that marks a checkout (`ports.marker` in the journeys config). */
+    marker?: string;
     classify?: (port: number, ours: string) => PortHolder;
     kill?: (pid: number, signal: NodeJS.Signals) => void;
     log?: (line: string) => void;
+    /** Where this checkout's stack stamp lives: `<root>/<scratchRoot>`. */
+    scratchDir?: string;
+    readStamp?: () => StackStamp | null;
+    ask?: (controlUrl: string) => HostAnswer;
+    startedOf?: (pid: number) => string | null;
   } = {},
 ): void {
   // A Playwright config is re-loaded in every worker; a worker sweeping after
@@ -200,6 +238,10 @@ export function freeStackPorts(
   // the learner had started thirty seconds earlier.
   if (env[EXTERNAL_VAR]) return;
 
+  const move = `  Set ${APP_PORT_VAR} and ${DB_PORT_VAR} to move this run out of the way.`;
+  let ownership: Ownership | undefined;
+  const condemned: Array<{ port: number; pid: number }> = [];
+
   // The control channel too: an orphan holding `+1` fails the next run as surely.
   for (const port of [urls.dbPort, urls.dbPort + 1, urls.appPort]) {
     const holder = classify(port, urls.checkout);
@@ -210,23 +252,59 @@ export function freeStackPorts(
         `JOURNEY-002: port ${port} is held by ${holder.checkout} (pid ${holder.pids.join(", ")}), ` +
           `which is a different checkout — refusing to kill it.\n` +
           `  Ports are derived from the checkout path, so this is a hash collision or a port taken since.\n` +
-          `  Set ${APP_PORT_VAR} and ${DB_PORT_VAR} to move this run out of the way.`,
+          move,
       );
     }
     if (holder.kind === "unknown") {
       throw new Error(
         `JOURNEY-003: port ${port} is held by pid ${holder.pids.join(", ")}, whose checkout could not be read ` +
           `— refusing to kill what cannot be attributed.\n` +
-          `  Set ${APP_PORT_VAR} and ${DB_PORT_VAR} to move this run out of the way.`,
+          move,
+      );
+    }
+
+    ownership ??= judgeOwnership(readStamp(), ask);
+    if (ownership.kind === "live") {
+      throw new Error(
+        `JOURNEY-005: port ${port} (pid ${holder.pids.join(", ")}) belongs to a live journey run in this checkout — ` +
+          `${ownership.who} answered its control channel. Refusing to kill it.\n` +
+          `  Wait for that run to finish, or run alongside it:\n` +
+          move,
+      );
+    }
+    if (ownership.kind === "could-not-ask") {
+      throw new Error(
+        `JOURNEY-007: port ${port} is held by pid ${holder.pids.join(", ")} of this checkout, and whether the stack ` +
+          `that owns it is still alive could not be asked — ${ownership.why}. Refusing to kill it.\n` +
+          move,
       );
     }
     for (const pid of holder.pids) {
-      try {
-        kill(pid, "SIGKILL");
-        log(`journeys: freed port ${port} (killed ${pid} from an earlier run here)`);
-      } catch {
-        // Gone between the listing and the kill, which is the outcome wanted.
+      const verdict =
+        ownership.kind === "abandoned"
+          ? recordedBy(ownership.stamp, pid, startedOf)
+          : { kill: false as const, why: "no journey stack of this checkout stamped it" };
+      if (!verdict.kill) {
+        throw new Error(
+          `JOURNEY-006: port ${port} is held by pid ${pid}, a process of this checkout, and ${verdict.why} — ` +
+            `so it is not provably an orphan of a journey run (a dev server, say, or a run killed before it ` +
+            `was ready). Refusing to kill it. Stop it yourself if it is an orphan:\n` +
+            `    kill ${pid}\n` +
+            move,
+        );
       }
+      condemned.push({ port, pid });
+    }
+  }
+
+  for (const { port, pid } of condemned) {
+    try {
+      kill(pid, "SIGKILL");
+      log(
+        `journeys: freed port ${port} (killed ${pid}, recorded by an abandoned journey stack here)`,
+      );
+    } catch {
+      // Gone between the listing and the kill, which is the outcome wanted.
     }
   }
 }

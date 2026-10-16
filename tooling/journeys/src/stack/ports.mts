@@ -179,7 +179,9 @@ export function classifyPort(
   const pids = probe(port);
   if (pids.length === 0) return { kind: "free" };
 
-  const owners = pids.map(owner);
+  // Not `pids.map(owner)`: map passes the index as a second argument, which
+  // `checkoutOfPid` reads as its marker — the real sweep threw on every held port.
+  const owners = pids.map((pid) => owner(pid));
   if (owners.every((checkout) => checkout === ours)) return { kind: "ours", pids };
 
   const theirs = owners.find((checkout) => checkout !== null && checkout !== ours);

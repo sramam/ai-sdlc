@@ -238,20 +238,23 @@ describe("the refusal", () => {
     expect(quiet).not.toContain("the stack died");
   });
 
-  it("names every mask it put back, and the issue", () => {
-    const text = refusal(2, "down", { reverted: ["a.mask.json"], removed: ["b.mask.json"] }, "u");
-    expect(text).toContain("reverted  a.mask.json");
-    expect(text).toContain("removed   b.mask.json");
+  it("names everything it put back, and the issue", () => {
+    const text = refusal(2, "down", { reverted: ["J1-a"], removed: ["J2-b"] }, "u");
+    expect(text).toContain("restored  J1-a");
+    expect(text).toContain("removed   J2-b");
     expect(text).toContain("#550");
   });
 
   /**
-   * The screenshots are the half this cannot undo, so the refusal has to name
-   * the command that does — otherwise the run leaves broken baselines behind
-   * while reporting that nothing was learned.
+   * The screenshots used to be the half this could not undo, so the refusal
+   * sent the operator to `git restore`. The learner now restores the whole
+   * evidence tree (learn/evidence-backup.mts), so the refusal says so — and
+   * must not send anybody to discard work by hand that is already back.
    */
-  it("tells the operator to discard the screenshots it did not restore", () => {
-    expect(refusal(1, "down", undone, "u")).toContain("git restore docs/journeys");
+  it("says the whole evidence was put back, not only the masks", () => {
+    const text = refusal(1, "down", undone, "u");
+    expect(text).toContain("screenshots, masks, narratives and the index");
+    expect(text).not.toContain("git restore");
   });
 
   it("names the configured evidence root and stack", () => {
@@ -259,7 +262,7 @@ describe("the refusal", () => {
       evidenceRoot: "e2e/evidence",
       stackName: "my-stack",
     });
-    expect(text).toContain("git restore e2e/evidence");
+    expect(text).toContain("under e2e/evidence/");
     expect(text).toContain("my-stack is not listening on u");
   });
 });

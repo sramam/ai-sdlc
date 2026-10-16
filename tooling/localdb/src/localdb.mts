@@ -58,6 +58,16 @@ export interface Ctx {
   isFree?: (port: number) => Promise<boolean>;
   /** Milliseconds to wait for a spawned server to report ready. */
   startTimeoutMs?: number;
+  /** Does Postgres answer on a port? A seam so a failed readiness probe can be staged. */
+  answers?: (port: number) => Promise<boolean>;
+  /** What `ps` says about a pid, or null when it cannot say. A seam for the fail-closed path. */
+  identify?: (pid: number) => ProcessInfo | null;
+}
+
+/** A process as `ps` reports it: its full command line and, if readable, when it started. */
+export interface ProcessInfo {
+  command: string;
+  started: Date | null;
 }
 
 const SERVER_SCRIPT = join(import.meta.dirname, "server.mts");
@@ -277,23 +287,54 @@ export async function start(
     }
     await new Promise((r) => setTimeout(r, 100));
   }
+  /*
+   * Every failure from here on owns a live child it spawned, so it ends that
+   * exact child — through the handle, never a pid read back from a file —
+   * waits for it to exit, and drops the lock only if the lock still names it.
+   * A failed start that left its server running would hold the data directory
+   * and the port with nothing pointing at it.
+   */
+  const abandon = async (): Promise<string> => {
+    if (exited !== undefined) return "";
+    const waitExit = async (ms: number) => {
+      const until = Date.now() + ms;
+      while (exited === undefined && Date.now() < until)
+        await new Promise((r) => setTimeout(r, 50));
+    };
+    child.kill("SIGTERM");
+    await waitExit(5_000);
+    if (exited === undefined) {
+      child.kill("SIGKILL");
+      await waitExit(5_000);
+    }
+    return exited === undefined
+      ? `; pid ${child.pid} would not exit`
+      : `; stopped pid ${child.pid}`;
+  };
+  const dropLockOf = (pid: number | undefined): void => {
+    try {
+      if ((JSON.parse(readFileSync(paths.lock, "utf8")) as Lock).pid === pid)
+        rmSync(paths.lock, { force: true });
+    } catch {
+      // Gone already.
+    }
+  };
   if (!ready) {
-    if (exited === undefined && child.pid) process.kill(child.pid, "SIGKILL");
+    const why = exited === undefined ? "did not report ready in time" : `exited (${exited})`;
+    const how = await abandon();
+    dropLockOf(child.pid);
     release(paths);
-    say(
-      ctx,
-      "failed",
-      db,
-      `server ${exited === undefined ? "did not report ready in time" : `exited (${exited})`}; its log:\n${tail(paths.log)}`,
-    );
+    say(ctx, "failed", db, `server ${why}${how}; its log:\n${tail(paths.log)}`);
     return "failed";
   }
-  if (!(await answers(ready.port!))) {
+  if (!(await (ctx.answers ?? answers)(ready.port!))) {
+    const how = await abandon();
+    dropLockOf(child.pid);
     say(
       ctx,
       "failed",
       db,
-      `server pid ${ready.pid} reported ready but port ${ready.port} does not answer; log: ${paths.log}`,
+      `server pid ${ready.pid} reported ready but port ${ready.port} does not answer${how}; log: ${paths.log}`,
     );
     return "failed";
   }
@@ -310,9 +351,84 @@ export async function start(
   return "ok";
 }
 
-function commandOf(pid: number): string | null {
-  const r = spawnSync("ps", ["-p", String(pid), "-o", "command="], { encoding: "utf8" });
-  return r.status === 0 ? r.stdout.trim() : null;
+/**
+ * What `ps` says about a pid: the full command line (`-ww`, never truncated)
+ * and its start time. Null when `ps` cannot answer — which is *could not ask*,
+ * never "not our server".
+ */
+export function processInfo(pid: number): ProcessInfo | null {
+  const ps = (field: string) =>
+    spawnSync("ps", ["-ww", "-p", String(pid), "-o", `${field}=`], {
+      encoding: "utf8",
+      env: { ...process.env, LC_ALL: "C" },
+    });
+  const cmd = ps("command");
+  if (cmd.status !== 0 || !cmd.stdout.trim()) return null;
+  const lstart = ps("lstart");
+  const started = lstart.status === 0 ? new Date(lstart.stdout.trim()) : null;
+  return {
+    command: cmd.stdout.trim(),
+    started: started && !Number.isNaN(started.getTime()) ? started : null,
+  };
+}
+
+/**
+ * Is this the server the lock describes? Three answers, because the signal
+ * this gates cannot be taken back:
+ *
+ *   ours       the exact script, this checkout's data directory and lock, the
+ *              lock's port — and it did not start after the lock was written
+ *   not-ours   it does not serve this data directory at all: a reused pid
+ *   unsure     anything else, including a command line naming our data
+ *              directory in some other shape. Nobody is signalled on unsure.
+ *
+ * A substring like `server.mts` is not identity: every checkout's server
+ * carries it, so the check that used it could stop another checkout's database.
+ */
+export function judgeServer(
+  info: ProcessInfo,
+  paths: DbPaths,
+  lock: Lock,
+): "ours" | "not-ours" | "unsure" {
+  const cmd = ` ${info.command} `;
+  const servesOurData = cmd.includes(` --data ${paths.data} `);
+  const exact =
+    cmd.includes(` ${SERVER_SCRIPT} `) &&
+    servesOurData &&
+    cmd.includes(` --lock ${paths.lock} `) &&
+    cmd.includes(` --port ${lock.port} `);
+  if (!exact) return servesOurData ? "unsure" : "not-ours";
+  const written = Date.parse(lock.startedAt);
+  // `lstart` has one-second resolution; the server starts before it writes its lock.
+  if (info.started && Number.isFinite(written) && info.started.getTime() > written + 1_000)
+    return "unsure";
+  return "ours";
+}
+
+type StopAsk =
+  | { kind: "stopping"; pid: number }
+  | { kind: "not-there"; why: string }
+  | { kind: "someone-else"; why: string };
+
+/** Ask the server, over its own control channel and with its own token, to stop. */
+async function askToStop(lock: Lock): Promise<StopAsk> {
+  const { port, token } = lock.control!;
+  let res: Response;
+  try {
+    res = await fetch(`http://127.0.0.1:${port}/stop`, {
+      method: "POST",
+      headers: { "x-localdb-token": token },
+      signal: AbortSignal.timeout(5_000),
+    });
+  } catch (err) {
+    return { kind: "not-there", why: (err as Error).message };
+  }
+  const body = (await res.json().catch(() => ({}))) as { ok?: boolean; pid?: number };
+  if (res.ok && body.ok && body.pid === lock.pid) return { kind: "stopping", pid: lock.pid };
+  return {
+    kind: "someone-else",
+    why: `control port ${port} answered ${res.status}${body.pid ? ` as pid ${body.pid}` : ""}`,
+  };
 }
 
 export async function stop(ctx: Ctx, database: LocaldbDatabase): Promise<Outcome> {
@@ -329,28 +445,98 @@ export async function stop(ctx: Ctx, database: LocaldbDatabase): Promise<Outcome
     say(ctx, "ok", db, "not running");
     return "ok";
   }
-  const pid = (st as { lock: Lock }).lock.pid;
-  // A pid is reused; make sure it is still our server before signalling it.
-  const cmd = commandOf(pid);
-  if (cmd !== null && !cmd.includes("server.mts")) {
-    rmSync(paths.lock, { force: true });
-    say(ctx, "ok", db, `not running (pid ${pid} now belongs to another program; cleared the lock)`);
+  const lock = (st as { lock: Lock }).lock;
+  const pid = lock.pid;
+  const identify = ctx.identify ?? processInfo;
+  const waitGone = async (ms: number) => {
+    const deadline = Date.now() + ms;
+    while (isAlive(pid) && Date.now() < deadline) await new Promise((r) => setTimeout(r, 100));
+    return !isAlive(pid);
+  };
+  const dropLock = () => {
+    try {
+      if ((JSON.parse(readFileSync(paths.lock, "utf8")) as Lock).pid === pid)
+        rmSync(paths.lock, { force: true });
+    } catch {
+      // Removed by the server itself, which is the clean path.
+    }
+  };
+  /** Signal only what `judgeServer` calls ours; say why not otherwise. */
+  const verified = (): "ours" | "not-ours" | "unsure" | "unknown" => {
+    const info = identify(pid);
+    return info ? judgeServer(info, paths, lock) : "unknown";
+  };
+
+  // 1. The authenticated path: only the server that wrote the lock holds its token.
+  const asked = await askToStop(lock);
+  if (asked.kind === "stopping") {
+    if (await waitGone(15_000)) {
+      dropLock();
+      say(ctx, "ok", db, `stopped (pid ${pid}, asked over its control channel)`);
+      return "ok";
+    }
+    // It said yes and did not go. Escalate only on a verified identity.
+    if (verified() !== "ours") {
+      say(
+        ctx,
+        "could-not-ask",
+        db,
+        `pid ${pid} agreed to stop and is still running after 15s, and its identity cannot be confirmed to kill it — inspect it by hand`,
+      );
+      return "could-not-ask";
+    }
+    process.kill(pid, "SIGKILL");
+    await waitGone(5_000);
+    dropLock();
+    say(ctx, "ok", db, `stopped (pid ${pid}) — did not exit 15s after agreeing to, and was killed`);
     return "ok";
   }
+
+  // 2. The control channel is not this server's. Fall back to a signal — but only
+  //    on an exact identity, and never when identity cannot be established.
+  const why = asked.why;
+  const who = verified();
+  if (who === "unknown") {
+    say(
+      ctx,
+      "could-not-ask",
+      db,
+      `pid ${pid} did not answer its control channel (${why}) and ps cannot say what it is; nothing was signalled. Lock: ${paths.lock}`,
+    );
+    return "could-not-ask";
+  }
+  if (who === "not-ours") {
+    dropLock();
+    say(
+      ctx,
+      "ok",
+      db,
+      `not running (pid ${pid} now belongs to another program; cleared the lock, signalled nothing)`,
+    );
+    return "ok";
+  }
+  if (who === "unsure") {
+    say(
+      ctx,
+      "could-not-ask",
+      db,
+      `pid ${pid} names this database but is not exactly the server the lock describes (${why}); nothing was signalled — inspect it by hand`,
+    );
+    return "could-not-ask";
+  }
   process.kill(pid, "SIGTERM");
-  const deadline = Date.now() + 15_000;
-  while (isAlive(pid) && Date.now() < deadline) await new Promise((r) => setTimeout(r, 100));
-  let note = "";
-  if (isAlive(pid)) {
-    process.kill(pid, "SIGKILL");
-    note = " — did not stop on SIGTERM in 15s and was killed";
+  let note = ` — its control channel did not answer (${why}), so it was signalled`;
+  if (!(await waitGone(15_000))) {
+    if (verified() === "ours") {
+      process.kill(pid, "SIGKILL");
+      await waitGone(5_000);
+      note += "; did not stop on SIGTERM in 15s and was killed";
+    } else {
+      say(ctx, "could-not-ask", db, `pid ${pid} ignored SIGTERM and can no longer be identified`);
+      return "could-not-ask";
+    }
   }
-  try {
-    if ((JSON.parse(readFileSync(paths.lock, "utf8")) as Lock).pid === pid)
-      rmSync(paths.lock, { force: true });
-  } catch {
-    // Removed by the server itself, which is the clean path.
-  }
+  dropLock();
   say(ctx, "ok", db, `stopped (pid ${pid})${note}`);
   return "ok";
 }

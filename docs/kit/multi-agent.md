@@ -11,13 +11,40 @@ them not shared.** Each row below was a real incident.
 | working tree                               | `git add -A` swept another agent's work into a commit                                                                 | stage by path; work in a worktree                                                                                                                  |
 | stash (one per repo, across all worktrees) | a `pop` applied another session's stash                                                                               | never `git stash`. Copy a file to a scratchpad, or `git show HEAD:<path>`                                                                          |
 | HEAD (per worktree)                        | four subagents sharing one HEAD: one was reset four times mid-edit; a 914-line commit landed on another lane's branch | each code-writing subagent gets `isolation: "worktree"`, which the **spawner** must pass                                                           |
-| ports                                      | an e2e run `SIGKILL`ed another agent's dev server on :3000, then probed that server as its own                        | derive ports from a hash of the checkout path; kill only listeners whose cwd is this checkout                                                      |
+| ports                                      | an e2e run `SIGKILL`ed another agent's dev server on :3000, then probed that server as its own                        | derive ports from a hash of the checkout path; kill only what an abandoned run of this checkout recorded (§ _Ports_)                               |
 | `pkill -f <script>`                        | matched processes in every worktree                                                                                   | stop by PID, within your own checkout                                                                                                              |
 | dev database                               | `migrate dev` applied a half-finished migration to the shared branch, and every other agent then hit drift            | each worktree has its own PGlite database (`pnpm db:local`), with snapshots before every migration; shared environments change only by promotion   |
 | tools that glob from the root              | vitest collected every other worktree's tests                                                                         | exclude `.claude/worktrees/**` everywhere                                                                                                          |
 | `.dev.vars` / `.env` (gitignored)          | absent in worktrees, so "DATABASE_URL is not set"                                                                     | `pnpm bootstrap` symlinks them from the main checkout. Use a symlink, not a copy, so it cannot drift                                               |
 | `node_modules`                             | absent in fresh worktrees, so hooks failed open                                                                       | `pnpm install` in each worktree (fast, hard-linked). **Never symlink `node_modules`**: workspace links would resolve to the main checkout's source |
 | CPU during compile-heavy work              | three parallel cold compiles were slower than serial warm ones                                                        | one warm checkout for recording or visual work                                                                                                     |
+
+## Ports
+
+A port sweep sends `SIGKILL`, so it kills only what it can prove is an orphan.
+**This checkout's working directory is not that proof**: a second journey run in
+the same checkout, and a dev server that sits on a derived port, share the cwd of
+an orphan and are alive. So the journey stack host **stamps** itself once ready
+(`stack.json` in scratch): its pid, a random nonce, its control URL, and every
+listener on its ports with that process's start time. The next sweep then:
+
+| finds on a port                                                        | does                                                   |
+| ---------------------------------------------------------------------- | ------------------------------------------------------ |
+| another checkout's listener                                            | refuses, `JOURNEY-002`                                 |
+| a listener whose checkout cannot be read                               | refuses, `JOURNEY-003`                                 |
+| this checkout's, and the stamped host answers `/whoami`                | refuses, `JOURNEY-005`: a live run owns it             |
+| this checkout's, not recorded by an abandoned stack, or its pid reused | refuses, `JOURNEY-006`, naming the pid to stop by hand |
+| this checkout's, and the host could not be asked (a timeout)           | refuses, `JOURNEY-007`                                 |
+| a listener the abandoned stack recorded, same start time               | kills it                                               |
+
+Every port is judged before anything is signalled. To run alongside a live
+run, set `JOURNEY_APP_PORT` and `JOURNEY_DB_PORT`.
+
+`pnpm db:local stop` follows the same rule for its own servers: it asks the
+server to stop over its control channel, with the token only that server holds,
+and signals a pid only after matching the exact script, this checkout's data
+directory and lock, and a start time no later than the lock. When `ps` cannot
+answer, nothing is signalled.
 
 ## Worktrees
 

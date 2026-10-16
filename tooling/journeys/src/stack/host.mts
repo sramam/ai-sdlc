@@ -29,6 +29,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { createServer } from "node:http";
 import type { Server } from "node:http";
+import { WHOAMI_PATH } from "./ownership.mts";
 import { sweepScratch } from "./scratch.mts";
 import type { StackUrls } from "./urls.mts";
 
@@ -93,6 +94,12 @@ export type HostOptions = {
   readyTimeoutMs?: number;
   /** How long the app tree gets between SIGTERM and SIGKILL. door_nexa: 2s. */
   killGraceMs?: number;
+  /**
+   * A random value this host answers `GET /whoami` with, beside its pid. The
+   * stamp records it, so a later sweep can tell this host — alive — from one
+   * that merely left a stamp behind (`ownership.mts`).
+   */
+  nonce?: string;
   log?: (line: string) => void;
 };
 
@@ -204,6 +211,7 @@ export async function startHost({
   scratchKeep,
   readyTimeoutMs = 120_000,
   killGraceMs = 2_000,
+  nonce,
   log = (line: string) => console.warn(line),
 }: HostOptions): Promise<Host> {
   const t0 = Date.now();
@@ -285,6 +293,11 @@ export async function startHost({
     say(seed ? "reset and seeded" : "reset (no seed adapter)");
 
     control = createServer((request, response) => {
+      if (request.method === "GET" && request.url === WHOAMI_PATH && nonce !== undefined) {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(JSON.stringify({ pid: process.pid, nonce }));
+        return;
+      }
       if (request.method !== "POST" || request.url !== "/reset") {
         // Any answer proves the host is listening — `probe.mts` reads a 404
         // to a liveness GET as "up", deliberately.

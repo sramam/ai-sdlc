@@ -8,6 +8,13 @@
  * random port and a token, both recorded in the lock file, and it accepts only
  * a label — it writes into its own snapshots directory and nowhere else.
  *
+ * **It is also how this server is stopped.** `POST /stop` with the token is the
+ * one request that proves the process on the other end is the server that wrote
+ * the lock: a pid can be reused, and a command line can match another
+ * checkout's server, but only this process knows this token. The CLI signals a
+ * pid only when this channel cannot be reached, and only after checking the
+ * pid's exact command line (localdb.mts `stop`).
+ *
  *   node server.mts --name <db> --data <dir> --snapshots <dir> --lock <file> --port <n>
  */
 import { randomBytes } from "node:crypto";
@@ -85,6 +92,11 @@ const control = createHttpServer((req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
   if (req.method === "GET" && url.pathname === "/ping")
     return reply(200, { ok: true, pid: process.pid });
+  if (req.method === "POST" && url.pathname === "/stop") {
+    // Answer first, then stop: the caller learns the pid to wait on.
+    res.on("finish", () => shutdown("POST /stop"));
+    return reply(200, { ok: true, pid: process.pid });
+  }
   if (req.method === "POST" && url.pathname === "/snapshot") {
     const label = url.searchParams.get("label") ?? "";
     if (!validLabel(label))
@@ -131,13 +143,13 @@ async function stop(signal: string): Promise<void> {
   }
   say("stopped cleanly");
 }
-for (const signal of ["SIGTERM", "SIGINT"] as const)
-  process.on(signal, () => {
-    stopping ??= stop(signal).then(
-      () => process.exit(0),
-      (err: Error) => {
-        console.error(`stop failed: ${err.message}`);
-        process.exit(1);
-      },
-    );
-  });
+function shutdown(why: string): void {
+  stopping ??= stop(why).then(
+    () => process.exit(0),
+    (err: Error) => {
+      console.error(`stop failed: ${err.message}`);
+      process.exit(1);
+    },
+  );
+}
+for (const signal of ["SIGTERM", "SIGINT"] as const) process.on(signal, () => shutdown(signal));

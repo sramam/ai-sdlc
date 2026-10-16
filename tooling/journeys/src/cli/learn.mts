@@ -20,7 +20,15 @@
  * at step 5 photographed four real screens, and those deserve masks. A **dead
  * stack** is different — steps either side of it photograph a page that is not
  * working — so after each learning pass the stack is probed, and if it did not
- * survive every mask is put back as it was and nothing is learned (#550).
+ * survive, the evidence is put back as it was and nothing is learned (#550).
+ *
+ * ## An abort leaves the committed evidence as it was
+ *
+ * Every journey folder the run can touch, and the index, is copied aside
+ * before pass 1. A reset the host refuses, a stack that died, or an interrupt —
+ * anything that stops the run before pass 3 — restores all of it: screenshots,
+ * masks, narratives, `run.json`. Once pass 3 has run, the result stands (a red
+ * pass 3 keeps its union, because running again is how a mask converges).
  *
  * ## Preconditions, inside the command
  *
@@ -42,13 +50,9 @@ import { censusTable, judge, maskCensus } from "../learn/mask-census.mts";
 import { MAX_DECLARED_BOX, MAX_STEP_COVERAGE } from "../mask/boxes.mts";
 import { check, overrideReason } from "../stack/load-gate.mts";
 import { checkoutOf, checkoutOfPid } from "../stack/ports.mts";
-import {
-  controlAttempt,
-  probeStack,
-  refusal,
-  restoreMasks,
-  snapshotMasks,
-} from "../stack/probe.mts";
+import { BACKUP_DIR, backupEvidence, putBack } from "../learn/evidence-backup.mts";
+import { runPasses } from "../learn/passes.mts";
+import { controlAttempt, probeStack, refusal } from "../stack/probe.mts";
 import { STACK_STAMP, readStackStamp } from "../stack/stamp.mts";
 import { EXTERNAL_VAR, freeStackPorts, resolveStackUrls } from "../stack/urls.mts";
 import { DELTA_CLI, STACK_CLI } from "./paths.mts";
@@ -115,7 +119,7 @@ async function main(): Promise<number> {
   });
   // This command starts the stack itself, before Playwright — so it is the one
   // path the config's sweep never covers.
-  freeStackPorts(urls);
+  freeStackPorts(urls, { scratchDir: join(root, config.scratchRoot), marker: config.ports.marker });
 
   const evidence = join(root, config.evidenceRoot);
   mkdirSync(evidence, { recursive: true });
@@ -239,36 +243,64 @@ async function main(): Promise<number> {
     return false;
   };
 
-  // Taken once, ahead of both learning passes: a stack dying in pass 2 unwinds pass 1 too.
-  const masksBefore = snapshotMasks(evidence);
-  const redLearningPasses: number[] = [];
-
-  for (const pass of [1, 2]) {
-    if (!(await reset())) return done(1);
-    const status = play(
-      `pass ${pass} of 3 — ${pass === 1 ? "matching against what is committed" : "learning what varies"}`,
-      true,
-    );
-    // Asked before the exit code is read: the two answers are independent.
-    const verdict = await probeStack(controlAttempt(urls.controlUrl));
-    if (verdict !== "up") {
+  /*
+   * Everything the run can touch is copied aside before pass 1, and every abort
+   * before verification — a reset refused, a stack that died, an interrupt —
+   * puts it back. Until pass 3 has run, nothing this run wrote is allowed to
+   * stay in the committed tree (learn/passes.mts).
+   */
+  const outcome = await runPasses({
+    backup: () =>
+      backupEvidence(evidence, join(root, config.scratchRoot, BACKUP_DIR), selected.asked.journey),
+    reset,
+    play: (label, learning) => {
+      const status = play(label, learning);
+      if (learning && status !== 0)
+        console.warn(`\n  ${label.split(" — ")[0]} was red; masks are still learned\n`);
+      return status;
+    },
+    probe: () => probeStack(controlAttempt(urls.controlUrl)),
+    onInterrupt: (undo) => {
+      const quit = (signal: NodeJS.Signals) => {
+        const undone = undo();
+        console.error(
+          `\n✗ ${signal} before the mask was verified — nothing was learned.\n` +
+            putBack(undone, config.evidenceRoot),
+        );
+        if (stackExit === null) server.kill("SIGTERM");
+        process.exit(130);
+      };
+      process.once("SIGINT", quit);
+      process.once("SIGTERM", quit);
+      return () => {
+        process.off("SIGINT", quit);
+        process.off("SIGTERM", quit);
+      };
+    },
+  });
+  if (outcome.kind === "aborted") {
+    if (outcome.why.kind === "stack")
       console.error(
-        refusal(pass, verdict, restoreMasks(evidence, masksBefore), urls.controlUrl, {
+        refusal(outcome.pass, outcome.why.verdict, outcome.undone, urls.controlUrl, {
           evidenceRoot: config.evidenceRoot,
           stackName: "the journey stack",
         }),
       );
-      return done(1);
-    }
-    if (status !== 0) {
-      redLearningPasses.push(pass);
-      console.warn(`\n  pass ${pass} was red; masks are still learned\n`);
-    }
+    else
+      console.error(
+        `  Nothing was learned: the run stopped before pass ${outcome.pass}.\n` +
+          putBack(outcome.undone, config.evidenceRoot),
+      );
+    return done(1);
   }
-
-  if (!(await reset())) return done(1);
-  const validated = play("pass 3 of 3 — checking the mask actually holds", false);
+  const { validated, redLearningPasses } = outcome;
   learned = true;
+  /*
+   * From here the run stands, green or red. A red pass 3 keeps what was
+   * learned on purpose: the mask is a union, and the documented next step is
+   * to run again — the delta report and the pull request review it.
+   */
+  outcome.finish();
 
   const rows = maskCensus(evidence, startedAt);
   console.warn(`\n${censusTable(rows).join("\n")}`);

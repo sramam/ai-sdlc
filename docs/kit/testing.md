@@ -98,6 +98,14 @@ Each path of each journey records, under `<journey>/<persona>/<path>/`:
 | **2. discover** | runs again on the **same build** and diffs against pass 1                             | whatever differs between two runs of identical code is data-volatile, and is added to that step's mask                                           |
 | **3. verify**   | runs a third time and applies the learned masks                                       | **the only pass that proves anything.** Red means the masks do not yet hold, and the run exits 1                                                 |
 
+**An abort before pass 3 leaves the committed evidence as it was.** The learner
+copies every journey folder the run can touch, and the index, aside before pass
+
+1. If the host will not reset, the stack dies, or the run is interrupted, all of
+   it is restored: screenshots, masks, narratives and `run.json`, not the masks
+   alone. Once pass 3 has run the result stands, red or green; a red pass 3 keeps
+   its union, because running again is how a mask converges.
+
 Then `journeys:delta` writes one report, to `test-results/journey-reports/delta.md` (outside the evidence root). For every step whose reference or mask
 changed, it shows the old and new reference, the old and new mask, and the pixel
 diff under the new mask, beside pass 3's verdict. **Read it before committing a
@@ -143,11 +151,20 @@ These are door_nexa's expensive lessons, and they come with the machinery:
   `.common.spec.ts` for refusals that depend on nobody. A census checks the name
   against the persona registry.
 - **Indexes are generated from disk.** Never hand-merge a generated table;
-  re-run the generator.
+  re-run the generator. Playwright's teardown regenerates them after every run
+  and **fails the run** if it cannot (`JOURNEY-070`).
+- **Once a project has journeys, add `pnpm journeys:index --check` to its
+  `ci:local` gate.** It writes nothing, prints a line per generated page, and
+  exits 1 when any page differs from what the evidence renders: a hand edit, or
+  a re-record whose index was not committed. The generator is deterministic (no
+  run durations go into a committed page), which is what makes this a gate rather
+  than noise.
 - **Capture transports** (email to disk, storage in a local directory) let a
   journey read the sign-in code and download its upload. They are refused on
   every deployment.
-- **Ports are derived per checkout**, and the sweep kills only this checkout's
+- **Ports are derived per checkout**, and the sweep kills only a listener an
+  _abandoned_ journey stack of this checkout recorded (see
+  [multi-agent.md](multi-agent.md) § _Ports_); it never kills this checkout's
   listeners.
 - **Drift detection**: `journeys:drift` maps the routes a PR changed to the
   journeys whose recordings visited them, and requires a re-record or a

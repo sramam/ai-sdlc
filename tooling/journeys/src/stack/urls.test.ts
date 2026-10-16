@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { portSlot, portsForSlot } from "./ports.mts";
 import type { PortHolder } from "./ports.mts";
+import type { HostAnswer } from "./ownership.mts";
+import type { StackStamp } from "./stamp.mts";
 import { freeStackPorts, resetStack, resolveStackUrls } from "./urls.mts";
 
 /** A directory that is a checkout: it carries the marker. */
@@ -116,7 +118,26 @@ describe("freeStackPorts", () => {
     (port: number): PortHolder =>
       byPort[port] ?? { kind: "free" };
 
-  it("kills this checkout's own orphans, and only those", () => {
+  /** What a host stamped when it was ready: itself, and every listener on its ports. */
+  const stamp: StackStamp = {
+    name: "fixture",
+    devOverlayPossible: false,
+    pid: 100,
+    nonce: "n0nce",
+    controlUrl: "http://127.0.0.1:5503",
+    owned: [
+      { pid: 100, port: 5503, started: "Fri Oct 16 10:00:00 2026" },
+      { pid: 101, port: 5502, started: "Fri Oct 16 10:00:01 2026" },
+      { pid: 102, port: 3101, started: "Fri Oct 16 10:00:02 2026" },
+      { pid: 103, port: 3101, started: "Fri Oct 16 10:00:03 2026" },
+    ],
+  };
+  const startedAsRecorded = (pid: number) =>
+    stamp.owned!.find((o) => o.pid === pid)?.started ?? "Sat Oct 17 09:00:00 2026";
+  const gone = (): HostAnswer => ({ kind: "refused" });
+  const abandoned = { readStamp: () => stamp, ask: gone, startedOf: startedAsRecorded };
+
+  it("kills the listeners an abandoned stack of this checkout recorded, and only those", () => {
     const kill = vi.fn();
     freeStackPorts(urls, {
       env: {},
@@ -126,12 +147,116 @@ describe("freeStackPorts", () => {
       }),
       kill,
       log: () => {},
+      ...abandoned,
     });
     expect(kill.mock.calls).toEqual([
       [101, "SIGKILL"],
       [102, "SIGKILL"],
       [103, "SIGKILL"],
     ]);
+  });
+
+  it("refuses to kill a live journey run of this checkout (JOURNEY-005)", () => {
+    const kill = vi.fn();
+    expect(() =>
+      freeStackPorts(urls, {
+        env: {},
+        classify: holders({ 3101: { kind: "ours", pids: [102] } }),
+        kill,
+        ...abandoned,
+        ask: () => ({ kind: "answered", pid: 100, nonce: "n0nce" }),
+      }),
+    ).toThrow(/JOURNEY-005.*live journey run/s);
+    expect(kill).not.toHaveBeenCalled();
+  });
+
+  it("refuses when anything else answers the stamped control channel: a newer run still starting", () => {
+    const kill = vi.fn();
+    expect(() =>
+      freeStackPorts(urls, {
+        env: {},
+        classify: holders({ 3101: { kind: "ours", pids: [102] } }),
+        kill,
+        ...abandoned,
+        ask: () => ({ kind: "answered" }),
+      }),
+    ).toThrow(/JOURNEY-005/);
+    expect(kill).not.toHaveBeenCalled();
+  });
+
+  it("refuses a listener of this checkout that no stack stamped: a dev server (JOURNEY-006)", () => {
+    const kill = vi.fn();
+    expect(() =>
+      freeStackPorts(urls, {
+        env: {},
+        classify: holders({ 3101: { kind: "ours", pids: [4242] } }),
+        kill,
+        readStamp: () => null,
+        ask: gone,
+        startedOf: startedAsRecorded,
+      }),
+    ).toThrow(/JOURNEY-006.*4242.*no journey stack/s);
+    expect(kill).not.toHaveBeenCalled();
+  });
+
+  it("refuses a listener the abandoned stack did not record", () => {
+    const kill = vi.fn();
+    expect(() =>
+      freeStackPorts(urls, {
+        env: {},
+        classify: holders({ 3101: { kind: "ours", pids: [4242] } }),
+        kill,
+        ...abandoned,
+      }),
+    ).toThrow(/JOURNEY-006.*did not record it/s);
+    expect(kill).not.toHaveBeenCalled();
+  });
+
+  it("refuses a recorded pid that has since been reused, or whose start cannot be read", () => {
+    for (const startedOf of [() => "Sat Oct 17 09:00:00 2026", () => null]) {
+      const kill = vi.fn();
+      expect(() =>
+        freeStackPorts(urls, {
+          env: {},
+          classify: holders({ 3101: { kind: "ours", pids: [102] } }),
+          kill,
+          ...abandoned,
+          startedOf,
+        }),
+      ).toThrow(/JOURNEY-006/);
+      expect(kill).not.toHaveBeenCalled();
+    }
+  });
+
+  it("refuses when whether the stack is alive could not be asked (JOURNEY-007)", () => {
+    const kill = vi.fn();
+    expect(() =>
+      freeStackPorts(urls, {
+        env: {},
+        classify: holders({ 3101: { kind: "ours", pids: [102] } }),
+        kill,
+        ...abandoned,
+        ask: () => ({ kind: "unreachable", why: "TimeoutError" }),
+      }),
+    ).toThrow(/JOURNEY-007/);
+    expect(kill).not.toHaveBeenCalled();
+  });
+
+  it("judges every port before it kills any", () => {
+    const kill = vi.fn();
+    expect(() =>
+      freeStackPorts(urls, {
+        env: {},
+        // 5502 is a recorded orphan; 3101 is a stranger. Neither dies.
+        classify: holders({
+          5502: { kind: "ours", pids: [101] },
+          3101: { kind: "ours", pids: [4242] },
+        }),
+        kill,
+        ...abandoned,
+      }),
+    ).toThrow(/JOURNEY-006/);
+    expect(kill).not.toHaveBeenCalled();
   });
 
   it("refuses another checkout's live process, and names it", () => {
@@ -164,11 +289,12 @@ describe("freeStackPorts", () => {
     const kill = vi.fn();
     freeStackPorts(urls, {
       env: {},
-      classify: holders({ 5503: { kind: "ours", pids: [7] } }),
+      classify: holders({ 5503: { kind: "ours", pids: [100] } }),
       kill,
       log: () => {},
+      ...abandoned,
     });
-    expect(kill).toHaveBeenCalledWith(7, "SIGKILL");
+    expect(kill).toHaveBeenCalledWith(100, "SIGKILL");
   });
 
   it("does nothing inside a Playwright worker", () => {

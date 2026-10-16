@@ -10,9 +10,12 @@
  * | --- | --- |
  * | `mode.name` | `run.json`'s `stack` — a timing whose stack is unknown supports no comparison (door_nexa #1484) |
  * | `mode.devOverlayPossible` | the recorder, deciding whether a hide rule matching nothing is a finding |
- * | `pid`, `startedAt` | the learner, telling *this* stack's readiness from a stale file |
+ * | `pid`, `readyAt` | the learner, telling *this* stack's readiness from a stale file |
+ * | `nonce`, `controlUrl`, `owned` | the next sweep, telling a live run from an abandoned one (`ownership.mts`) |
  *
- * **In scratch, so the next stack's sweep removes it** before writing its own.
+ * **In scratch, so the next stack's sweep removes it** before writing its own —
+ * after the port sweep has read it, which is the one reader that needs a stamp
+ * from a stack that is gone.
  * A stamp from a dead stack would otherwise read as ready.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -27,6 +30,12 @@ export type StackStamp = {
   pid?: number;
   /** When the host was ready, epoch ms. */
   readyAt?: number;
+  /** Random per host; only the live host can answer `/whoami` with it. */
+  nonce?: string;
+  /** Where the host answers `/whoami`. */
+  controlUrl?: string;
+  /** Every listener on the stack's ports at ready, with its start time as `ps` printed it. */
+  owned?: Array<{ pid: number; port: number; started: string }>;
 };
 
 /** Nothing written: no stack is known, and nothing about one is claimed. */

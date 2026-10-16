@@ -70,7 +70,7 @@ export function defineJourneyPlaywrightConfig(
 
   // Before Playwright checks `webServer.url`. A no-op in a worker and when the
   // stack is somebody else's.
-  freeStackPorts(urls);
+  freeStackPorts(urls, { scratchDir: join(root, config.scratchRoot), marker: config.ports.marker });
 
   const base: PlaywrightTestConfig = {
     testDir: join(root, config.specDir),

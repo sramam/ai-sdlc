@@ -12,10 +12,13 @@
  * how the learner knows *this* stack is up and how a recorder in a test worker
  * knows which stack it photographed.
  */
+import { randomBytes } from "node:crypto";
 import { isAbsolute, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { journeysRoot, loadJourneysConfig } from "../config.mts";
 import { startHost, stopOnSignals } from "../stack/host.mts";
+import { processStarted } from "../stack/ownership.mts";
+import { listenerPids } from "../stack/ports.mts";
 import type { SeedAdapter, StackAdapter } from "../stack/host.mts";
 import { writeStackStamp } from "../stack/stamp.mts";
 import { freeStackPorts, resolveStackUrls } from "../stack/urls.mts";
@@ -53,20 +56,35 @@ async function main(): Promise<void> {
     ports: config.ports,
     scratchRoot: config.scratchRoot,
   });
-  freeStackPorts(urls);
+  freeStackPorts(urls, { scratchDir: join(root, config.scratchRoot), marker: config.ports.marker });
 
+  const nonce = randomBytes(16).toString("hex");
   const host = await startHost({
     adapter,
     ...(seed ? { seed } : {}),
     urls,
     scratchRoot: config.scratchRoot,
     scratchKeep: config.scratchKeep,
+    nonce,
   });
+  /*
+   * Who holds this stack's ports, recorded while it is known to be ours: the
+   * only evidence a later sweep accepts before it kills a listener here.
+   */
+  const owned = [urls.appPort, urls.dbPort, urls.controlPort].flatMap((port) =>
+    listenerPids(port).flatMap((pid) => {
+      const started = processStarted(pid);
+      return started ? [{ pid, port, started }] : [];
+    }),
+  );
   writeStackStamp(join(root, config.scratchRoot), {
     name: adapter.mode.name,
     devOverlayPossible: adapter.mode.devOverlayPossible,
     pid: process.pid,
     readyAt: Date.now(),
+    nonce,
+    controlUrl: urls.controlUrl,
+    owned,
   });
   stopOnSignals(host);
 }

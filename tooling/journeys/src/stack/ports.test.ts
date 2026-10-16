@@ -72,6 +72,20 @@ describe("portSlot", () => {
 });
 
 describe("classifyPort", () => {
+  /**
+   * With its default owner, against a real pid. `pids.map(owner)` passed the
+   * index as `checkoutOfPid`'s marker, so the real attribution threw a
+   * TypeError on every held port; only injected owners had ever been tested.
+   */
+  it("attributes a real pid with the default owner", () => {
+    const repo = checkoutOf(process.cwd());
+    expect(repo).not.toBeNull();
+    expect(classifyPort(3100, repo!, () => [process.pid])).toEqual({
+      kind: "ours",
+      pids: [process.pid],
+    });
+  });
+
   const ours = MAIN;
   const holder = (pids: number[], owner: (pid: number) => string | null) =>
     classifyPort(3100, ours, () => pids, owner);
