@@ -35,7 +35,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { findRoot, loadConfig, upstreamPaths } from "../../core/src/config.mts";
-import { isEntry } from "../../core/src/exec.mts";
+import { exec, isEntry } from "../../core/src/exec.mts";
 import {
   DEFAULT_DIRS,
   git,
@@ -182,7 +182,7 @@ export function upstreamWarnings(
     {
       name: "upstream",
       state: "warn",
-      text: `upstream-owned path(s) changed: ${hits.join(", ")}. pnpm sdlc:update will overwrite them; change the starter instead`,
+      text: `${hits.length} upstream-owned path(s) changed (${hits.slice(0, 3).join(", ")}${hits.length > 3 ? ", …" : ""}). pnpm sdlc:update will overwrite them: change the starter instead, or list the module in modules.replaced`,
     },
   ];
 }
@@ -303,7 +303,23 @@ export async function messageMode(root: string, file: string): Promise<number> {
       text: `could not ask git for the items: ${items.reason}`,
     });
   lines.push(checkAttribution(trailers, readAttribution(root)));
-  if (staged.ok) lines.push(...upstreamWarnings(paths, upstream));
+  // Only a project (which has a `starter` remote, added in Phase 0) is downstream.
+  // In the starter itself these paths are the source, so there is nothing to warn about.
+  if (staged.ok) {
+    const isProject =
+      (await exec("git", ["remote", "get-url", "starter"], { cwd: root })).code === 0;
+    lines.push(
+      ...(isProject
+        ? upstreamWarnings(paths, upstream)
+        : [
+            {
+              name: "upstream",
+              state: "ok" as const,
+              text: "no starter remote: this is the starter, or not yet a project",
+            },
+          ]),
+    );
+  }
   print(lines);
   const bad = lines.filter((l) => l.state === "refused" || l.state === "unknown");
   if (bad.length) {
