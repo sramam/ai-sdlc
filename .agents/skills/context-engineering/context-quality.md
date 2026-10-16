@@ -33,6 +33,11 @@ code review checks it (criterion 7) wherever such text changes.
 
 - [ ] Every fact names where it comes from (a file, a command, a requirement
       ID, an ADR, an upstream commit), and was read there today, not recalled.
+- [ ] Every claim a reader would act on is classified before it is stated:
+      measured (run, with the output), verified against source (read there),
+      inferred (reasoned, not tested) or assumed (no evidence). An inferred or
+      assumed claim that matters is tested, or presented as a hypothesis
+      (`agent-review`, the self-audit).
 - [ ] Nothing restates a value that lives elsewhere (a threshold, a version, a
       status): it links to it, or a pattern check compares the two.
 - [ ] Third-party text is verbatim at a recorded commit; amendments live in the

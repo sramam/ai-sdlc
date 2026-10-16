@@ -20,5 +20,11 @@ in full, with the amendments below. Where they differ, the amendments win.
   Security's _scan codebase_ job, and the threat-model review _(module
   `security`)_ (`security-and-hardening`). A confirmed finding from either is a
   blocker. One that could not run is a NO-GO until a person accepts it.
+- **The fan-out is a Level 3 fresh-eyes round** (`agent-review`): the three
+  personas get the release as its readers would and the sources, not this
+  session's history; each finding is verified against the source before
+  anything changes; a fix is checked by an agent that did not write it; the
+  register is `reviews/findings.md`, and the decision records whether
+  isolation was enforced or only instructed.
 - `local-ci` on the commit must be green; a red or missing status is NO-GO.
 - **After GO**: `shipping-and-launch` § _`/ship` decides; promotion deploys_.

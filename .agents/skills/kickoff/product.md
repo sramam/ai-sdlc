@@ -24,8 +24,11 @@ documents live in `docs/requirements/sources/` and are never edited.
 `Write` (the lock allows creating a new file there, never changing one), run
 `pnpm sources:add <path>` to record its hash in `sources/MANIFEST`, and commit
 with `Requirements: kickoff`. `ci:local` refuses a source whose hash has
-changed. Then restructure it into the requirements with IDs, run the checks,
-and converse about the gaps.
+changed. Then restructure it into the requirements with IDs at Level 2 of
+`agent-review`: two agents extract blind from the source, a third reconciles
+every difference against it, and the control total is the source's own
+counts (its requirements, personas, screens), so nothing is dropped or
+invented in the restructuring. Run the checks, and converse about the gaps.
 
 **Stage 2 recommends; stage 3 decides.** Technology triggers, the
 authorization engine and the backoffice split are recorded in

@@ -30,7 +30,7 @@
   "items": {
     "base": {
       "kind": "base",
-      "description": "The process: the kit (docs/kit), the workflow's skills (Addy Osmani's agent-skills and the humanizer, wrapped, plus kickoff, progress-report and ai-sdlc), the hooks and guards, the plan, local CI and setup. Installed by init.",
+      "description": "The process: the kit (docs/kit), the workflow's skills (Addy Osmani's agent-skills, the humanizer and agent-review, wrapped, plus kickoff, progress-report and ai-sdlc), the hooks and guards, the plan, local CI and setup. Installed by init.",
       "files": [
         ".claude/settings.json",
         {
@@ -46,6 +46,7 @@
         },
         ".agents/3rdparty/agent-skills/",
         ".agents/3rdparty/humanizer/",
+        ".agents/3rdparty/agent-review/",
         ".claude/agents/",
         ".husky/commit-msg",
         ".husky/pre-commit",
