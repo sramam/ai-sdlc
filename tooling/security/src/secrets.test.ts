@@ -156,6 +156,24 @@ describe("checkSecrets (full scan)", () => {
     expect(call?.args).toContain("--no-verification");
   });
 
+  it("never scans its own allow-list, which quotes what it allows", async () => {
+    const sample = secretSamples()["aws-access-key-id"] as string;
+    const root = tempRepo({ "security.config.json": `{"pattern":"${sample}"}\n` });
+    const th = JSON.stringify({
+      DetectorName: "AWS",
+      SourceMetadata: { Data: { Filesystem: { file: "security.config.json", line: 1 } } },
+    });
+    const exec = scriptedExec([
+      [/ls-files/, execResult(0, "security.config.json\0")],
+      [/^gitleaks /, notFound],
+      ["trufflehog --version", execResult(0, "trufflehog 3.90.0")],
+      [/^trufflehog filesystem/, execResult(0, th)],
+    ]);
+    const r = await checkSecrets({ root, exec, config: DEFAULTS, staged: false });
+    expect(r.state).toBe("pass");
+    expect(r.lines).toEqual([]);
+  });
+
   it("degrades to built-in when an installed engine crashes, and says so", async () => {
     const root = tempRepo({ "a.txt": "ok\n" });
     const exec = scriptedExec([

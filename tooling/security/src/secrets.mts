@@ -17,6 +17,7 @@ import { basename, isAbsolute, join, relative } from "node:path";
 import { firstLine } from "../../core/src/exec.mts";
 import type { Exec } from "../../core/src/exec.mts";
 import type { SecretAllow, SecurityConfig } from "./config.mts";
+import { SECURITY_CONFIG_FILE } from "./config.mts";
 import { matchesGlob } from "./glob.mts";
 import { result } from "./types.mts";
 import type { CheckResult } from "./types.mts";
@@ -295,7 +296,12 @@ export interface SecretsOptions {
   staged: boolean;
 }
 
+// The allow-list is never scanned: each `pattern` in it quotes the very text
+// it allows, so scanning it reports every allowed finding a second time, at
+// a line nobody can allow-list. Its shape is validated (config.mts), so a
+// pattern is the only place a string can sit, and each is a reviewed entry.
 function excluded(path: string, config: SecurityConfig): boolean {
+  if (path === SECURITY_CONFIG_FILE) return true;
   return config.secrets.exclude.some((g) => matchesGlob(path, g));
 }
 

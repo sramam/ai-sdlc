@@ -1,3 +1,4 @@
 # Secrets for `vite dev` / `wrangler dev`. Copy to .dev.vars (gitignored).
 # Deployed: `wrangler secret put BETTER_AUTH_SECRET --env <env>`.
-BETTER_AUTH_SECRET=generate-with-openssl-rand-base64-32
+# Fill with: openssl rand -base64 32
+BETTER_AUTH_SECRET=
