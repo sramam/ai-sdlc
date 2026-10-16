@@ -82,8 +82,7 @@ pnpm install && pnpm bootstrap
 
 ## Provenance: which agent made this?
 
-`git log` says _what_ changed. With five agents it could not say _which line of
-work_ changed it. There are two halves, split by what merges:
+There are two halves, split by what merges:
 
 |                    | scope         | where                                         |
 | ------------------ | ------------- | --------------------------------------------- |
@@ -98,7 +97,7 @@ work_ changed it. There are two halves, split by what merges:
 ## Handoffs
 
 - `docs/handoffs/YYYY-MM-DD-<branch>.md` is gitignored. Put the branch in the
-  name: date alone let two agents clobber each other.
+  name.
 - **Write it to the main checkout**, never inside a worktree, where it dies with
   the tree. If the harness refuses that write, **say that the handoff was not
   written**.

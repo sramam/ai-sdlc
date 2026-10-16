@@ -25,14 +25,11 @@ the task last, as short as it can be ([ai.md](ai.md)). The checklist, used when
 writing or reviewing any of it, is
 [`.agents/skills/context-engineering/context-quality.md`](../../.agents/skills/context-engineering/context-quality.md);
 the code review checks it on every commit that changes such text.
-The principles below are, most of them, ways of keeping one of these five true
-mechanically.
 
 ## 1. Enforce mechanically; a convention alone drifts
 
 With several agents in one repository, any rule that only lives in prose is
-broken within days (a documented "no direct pushes to `dev`" was broken anyway,
-and nobody noticed). The fix each time is a hook or a gate. **If a rule
+broken within days. The fix each time is a hook or a gate. **If a rule
 matters, something must refuse its violation.**
 
 ## 2. A hook and a gate are a pair, not a redundancy
@@ -80,9 +77,8 @@ says so. Write the branch even when it is `// allow, because …`.
 
 ## 5. Prefer checks that print on success
 
-A check whose normal output is silence looks exactly like one that never ran
-(a `pnpm doctor` script that silently ran pnpm's own built-in skipped every
-check in it). Print one line per check, including on a green run.
+A check whose normal output is silence looks exactly like one that never ran.
+Print one line per check, including on a green run.
 
 ## 6. Enumerate from the source, declare only what cannot be derived, then check the declaration
 
@@ -99,9 +95,8 @@ test that:
 4. prints its table on success
 
 A hand-written inventory is wrong by the time it is read.
-**Proximity is not evidence.** "The file contains the event name and the word
-`applyEvent`" passed while the machine was bypassed. Read the code that runs, not
-comments and not the file as a whole.
+**Proximity is not evidence.** Read the code that runs, not comments and not the
+file as a whole.
 
 ## 7. Static docs carry no "now" numbers
 

@@ -1,8 +1,6 @@
 # AI in the product — designed in from discovery
 
-**Every application asks how AI can be deeply integrated into it.** Not a chat
-box bolted on at the end, but part of how people do things, see things and set
-things up. `/kickoff` asks the questions below for every persona and journey in
+**Every application asks how AI can be deeply integrated into it.** `/kickoff` asks the questions below for every persona and journey in
 stage 2 (the product), and settles the architecture that follows in stage 3. Where AI does not earn its
 place, the answer is recorded as "no", with the reason.
 
@@ -61,8 +59,7 @@ templates, rules, branding), the default onboarding is **a conversation, not a
 form**.
 
 - **It interviews, then proposes.** "Tell me how your team works" leads to a
-  proposed configuration the user can see, edit and accept. It is the same
-  shape as `/kickoff`, aimed at the product's own users.
+  proposed configuration the user can see, edit and accept.
 - **It writes a draft, never live settings.** The draft is applied in one
   explicit step, with a preview of what will change. An abandoned onboarding
   leaves nothing half-configured.

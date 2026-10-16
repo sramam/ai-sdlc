@@ -3,7 +3,7 @@
 `pnpm dev:session [email]` signs a **seeded** account in to a running app,
 locally or on `dev`, and writes a cookie jar for curl and a `storageState` for
 Playwright, so a script or an agent can reach an authenticated page
-([skills.md](../../skills.md) § _Tools that worked_). It completes the **real**
+([skills.md](../../skills.md) § _Tools not documented elsewhere_). It completes the **real**
 passwordless sign-in of the `app-tanstack-workers` recipe: request a code over
 HTTP, read it back through Better Auth's server-only API, sign in over HTTP.
 
@@ -64,7 +64,7 @@ drizzle-orm 0.45.4, PGlite 0.5.10:
   `APP_ENV=local` with a remote URL → `DEVSESSION-003`.
 - **Not run against the Worker** (`wrangler dev`) or a deployed `dev`. The HTTP
   calls are the same ones the spike ran against the Worker
-  ([../../spike-2026-10.md](../../spike-2026-10.md) § 6).
+  ([../../spike-2026-10-evidence.md](../../spike-2026-10-evidence.md) § 6).
 
 Re-run on the pinned better-auth 1.7.9 (2026-10-16, `pnpm recipes:check`):
 `pnpm test` 11 pass. The CLI run and the origin observations below were on 1.7.10.

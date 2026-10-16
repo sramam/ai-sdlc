@@ -2,8 +2,7 @@
 
 The goal is a product that **looks professional and makes the common task
 effortless**. It is not a design showcase. Use shadcn/ui, apply its conventions
-consistently, get the states right, and take clicks away. Most "beautiful"
-interfaces are consistent ones.
+consistently, get the states right, and take clicks away.
 
 **Discovery** happens in `/kickoff` (stage 2, PRD step 6, the design brief) and produces
 `docs/requirements/ux.md`, the project's design brief. **Building** follows the
@@ -23,7 +22,7 @@ Ask these questions, in batches, with recommendations. The answers become `docs/
 2. Three adjectives for how it should feel: calm, fast, playful, serious,
    premium, friendly.
 3. **Two or three products you like using, and one you dislike, with what
-   specifically.** This is the most informative question in the set.
+   specifically.**
 4. Light, dark, or both? _Default: both, following the system setting, with a
    toggle._
 
@@ -57,8 +56,7 @@ Ask these questions, in batches, with recommendations. The answers become `docs/
 16. Onboarding: how does a new user get from sign-up to their first success?
     With empty-state guidance, sample data, or a checklist?
 
-Unknown answers take the defaults and are marked `provisional`. Nothing here is
-blocking, because the defaults are good.
+Unknown answers take the defaults and are marked `provisional`.
 
 ## `docs/requirements/ux.md` — the design brief
 
@@ -127,8 +125,7 @@ consistent **page header**: title, one-line description, primary action
 
 **Every data view has four states, designed rather than left to chance**:
 loading (skeletons shaped like the content, not spinners), empty, error (what
-happened, plus a retry), and the populated view. States are what a screenshot
-never shows.
+happened, plus a retry), and the populated view.
 
 **Effortless by default:**
 
@@ -164,16 +161,13 @@ an accessible name. Use form labels, never placeholders as labels.
 ## Traps
 
 - **Base UI, not Radix.** Choose Base UI when initialising shadcn, and add
-  components only from its Base UI variants. A Radix component mixed in brings
-  a second primitive library with different focus, portal and composition
-  rules. Base UI components compose with a `render` prop, not `asChild`. Known
-  gap (recipes, 2026-10): **⌘K (`command`) is built on cmdk, which pulls in
-  Radix's dialog**; take it with an ADR, or build ⌘K on Base UI's Combobox.
-  Where a component has no Base UI variant, write an ADR before reaching for
-  Radix.
-- **Tailwind v3 shorthand in generated components.** With an earlier shadcn,
-  `w-[--x]` was silently invalid under Tailwind v4 (`w-[var(--x)]` is the v4
-  form). It did not reproduce with shadcn 4.21.5 on Base UI
+  components only from its Base UI variants. Base UI components compose with a
+  `render` prop, not `asChild`. **⌘K (`command`) is built on cmdk, which pulls
+  in Radix's dialog** ([spike-2026-10.md](spike-2026-10.md) § _Addendum_); take
+  it with an ADR, or build ⌘K on Base UI's Combobox. Where a component has no
+  Base UI variant, write an ADR before reaching for Radix.
+- **Tailwind v3 shorthand in generated components** (`w-[--x]`; `w-[var(--x)]`
+  is the v4 form) did not reproduce with shadcn on Base UI
   ([spike-2026-10.md](spike-2026-10.md) § _Addendum_); the `ui` recipe's
   `src/kit/pattern-check.test.ts` still refuses the shorthand. `@source` paths
   resolve from the CSS file, not the package root. **After any `shadcn add`,
@@ -195,8 +189,7 @@ an accessible name. Use form labels, never placeholders as labels.
 
 Each persona group gets its own **shell**: a home that answers _what needs me
 now_, navigation showing only what that role can reach, and the shell's own
-vocabulary. A single interface for every role, with items hidden, reads as a
-maze to everyone.
+vocabulary.
 
 - **The backoffice is never the customer front with extra menu items.**
   Operators, support and product admins get their own shell, or their own app
@@ -230,8 +223,7 @@ can do is also reachable by hand.
 
 ## Design partners — Lovable, and Figma when necessary
 
-**Lovable is the design partner.** It turns the brief into clickable screens,
-and people react to screens better than to descriptions.
+**Lovable is the design partner.**
 
 - **When**: in `/kickoff` once the brief exists, for the effortless tasks and the
   main screen patterns. Later, in `/spec`, for any new screen that is
@@ -258,9 +250,6 @@ Dev Mode MCP server is current and how it is configured; check Figma's Dev
 Mode MCP server page before relying on it.
 Figma is not a gate for ordinary screens; the brief and the patterns are
 enough.
-
-Either way, **the brief wins** over a prototype or a mockup, and a change of
-direction goes back into the brief.
 
 ## Keeping it good
 

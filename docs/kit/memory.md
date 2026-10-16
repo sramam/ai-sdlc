@@ -62,7 +62,4 @@ A lesson that is not about this project's domain belongs to every project.
   project want this?** If so, it drafts the change, and a person opens it
   against the registry.
 - Projects take improvements with `pnpm sdlc diff <item>` and
-  `pnpm sdlc update <item>`, which apply an upstream change only to a file the
-  project has not changed, and show the upstream diff for the rest
-  ([registry.md](registry.md)). So a lesson learned once reaches every project
-  that wants it, and no project loses its own changes to it.
+  `pnpm sdlc update <item>` ([registry.md](registry.md)).

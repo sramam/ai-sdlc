@@ -65,25 +65,10 @@ A requirements skill imports a document by creating a **new** file under
 ## Personas are discovered, not assumed
 
 No persona carries over from one project to the next; what carries over is the
-**method**. `/kickoff` runs it in stage 2, BRD theme 2
-(`.agents/skills/kickoff/product.md`), and `/kickoff revisit product` repeats
-it when a request names an actor that is not in the registry.
-
-**Where candidates come from** (check every source; each tends to miss someone):
-every actor named in a requirement; the author's answers to who uses it, who
-pays for it and who would complain if it broke; every distinct role the
-permission model allows or refuses something; whoever _receives_ an email,
-report, invoice, notification or export; whoever configures, onboards others or
-administers it; the product's own support and operations staff; and people with
-no account (a visitor, an invitee, someone signing up).
-
-External systems (a payment provider, a scheduler, a webhook) are **actors, not
-personas**. Name them `system:<name>` in requirements and keep them out of the
-registry.
-
-**When are two candidates one persona?** Split them when they differ in **goals,
-permissions, or the journeys they walk**. Merge them when they differ only in
-job title.
+**method** (`.agents/skills/kickoff/discovery.md`). `/kickoff` runs it in stage
+2, BRD theme 2 (`.agents/skills/kickoff/product.md`), and
+`/kickoff revisit product` repeats it when a request names an actor that is not
+in the registry.
 
 **What `personas.md` declares for each persona:**
 
@@ -98,40 +83,12 @@ job title.
 `Q-` file that will settle it. `plan:check` lists provisional personas, so none
 stays provisional silently.
 
-**The registry grows by finding, not by assumption.** When `/kickoff` or
-`/spec` meets a request whose actor is not in `personas.md`, that is a finding.
-Either the request maps to an existing persona, or a new one is added through
-`/kickoff revisit product`.
-
 ## Tenancy and access are discovered, not assumed
 
-A project might be a single-customer deployment, a personal tool, a team
-workspace, a multi-tenant service, a marketplace with two sides, or a
-hierarchy. Tenancy decides the data model, the scoping layer, the tests and the
-auth flow, so it is **discovered from the product definition** in `/kickoff`
-stage 2, BRD theme 5 (`.agents/skills/kickoff/product.md`), and recorded
-before any schema is written.
-
-**The questions that reveal it** (ask them of the BRD and of the author): who
-owns the data (a person, a team, a company, the product itself); who must never
-see whose data, as a concrete pair ("company A must never see company B's
-invoices"); what the billing unit is (whoever pays is often the tenant); whether
-one person can belong to several, with a different role in each; whether there
-is a hierarchy (organization → team → project) and whether access inherits down
-it; what is shared or public; who works across tenants (the product's own staff
-are a separate axis, with audited, deliberate access); and whether residency or
-isolation is demanded per tenant.
-
-**The usual answers, and what each implies:**
-
-| model                                 | looks like                                   | implies                                                                                     |
-| ------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **single-tenant**                     | one customer, or one deployment per customer | no row scoping; isolation is the deployment's job                                           |
-| **per-user**                          | personal data only, with no sharing          | every row has an owner; scope = the caller                                                  |
-| **multi-tenant, shared schema**       | organizations or teams in one database       | every scoped row carries the tenant ID; a scoping layer on the data client; isolation tests |
-| **hierarchical**                      | org → team → project                         | scope at each level; decide whether access inherits downward                                |
-| **two-sided / marketplace**           | buyers and sellers, hosts and guests         | per-relationship visibility; neither side is "the" tenant                                   |
-| **database or deployment per tenant** | regulated customers, residency demands       | routing by tenant; migrations × N; no shared-schema scoping                                 |
+Tenancy decides the data model, the scoping layer, the tests and the auth flow,
+so it is **discovered from the product definition** in `/kickoff` stage 2, BRD
+theme 5 (`.agents/skills/kickoff/discovery.md`), and recorded before any schema
+is written.
 
 **What `docs/requirements/access-model.md` declares**, plus an ADR for the
 model chosen:
@@ -343,8 +300,7 @@ stage requires `ready-to-plan` or `ready-with-assumptions`.
 @scope/pkg-b`. A name mentioned only in prose does not count. Base's own
   tooling dependencies are listed by `ADR-000-starter-tooling`
 
-This is the same shape as every other pattern check here (principles.md §6): the
-checks a project board would have offered as views, made into failures.
+This is the same shape as every other pattern check here (principles.md §6).
 
 ## Reporting against the plan
 

@@ -1,9 +1,7 @@
 # Observability — OpenTelemetry from the first commit
 
-**OTel is a first principle** ([principles.md](principles.md) §16). It is not
-added later. A capability with no span is not done, in the same way that a
-capability with no test is not done. The first time you need a trace is during
-an incident, and an incident is too late to add one.
+**OTel is a first principle** ([principles.md](principles.md) §16). A
+capability with no span is not done.
 
 ## What is emitted
 
@@ -52,7 +50,7 @@ whatever you send it:
 - Retention in the backend is set to match the data classification, and written
   down.
 
-## On Cloudflare Workers (verified locally, [spike-2026-10.md](spike-2026-10.md) § 7)
+## On Cloudflare Workers (verified locally, [spike-2026-10-evidence.md](spike-2026-10-evidence.md) § 7)
 
 - **Workers traces the handler, outbound `fetch` and binding calls on its
   own**: locally `hyperdrive_connect` appeared as a span, individual queries

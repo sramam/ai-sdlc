@@ -7,7 +7,7 @@ import { workersTracer } from "../telemetry/workers-tracer";
 
 export const greetFn = createServerFn({ method: "GET" })
   // `.validator`, not `.inputValidator`: the current docs name the newer method,
-  // and @tanstack/react-start 1.169 has only this one (see spike-2026-10.md).
+  // and @tanstack/react-start 1.169 has only this one (see docs/kit/spike-2026-10-evidence.md).
   .validator(greetInput)
   .handler(async ({ data }) => {
     const caller = { userId: null, role: "anonymous" }; // resolve from the session in a real binding

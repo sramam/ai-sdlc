@@ -2,7 +2,7 @@
 
 - **Many connections share one Postgres session, serialised per exchange**
   (`src/socket.mts`). Interleaving per _message_ broke the unnamed portal
-  (`portal "" does not exist`, 9 of 30 in docs/kit/spike-2026-10.md; it also
+  (`portal "" does not exist`, 9 of 30 in docs/kit/spike-2026-10-evidence.md; it also
   shows up as `invalid input syntax for type bigint`). A connection holds the
   backend from its first message to the ReadyForQuery after `Sync`/`Query`, and
   through an open transaction — so **a long or idle transaction blocks everyone

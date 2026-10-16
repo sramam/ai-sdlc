@@ -1,8 +1,7 @@
 # Security — build for the highest threat model
 
 **We assume the strongest realistic adversary from the first commit**
-([principles.md](principles.md) §17). Security added later costs a rewrite;
-security designed in costs a few lines per feature. A vendor claim marked
+([principles.md](principles.md) §17). A vendor claim marked
 _Unverified as of <date>_ is checked against the vendor's page when it is
 adopted.
 
@@ -52,8 +51,7 @@ Whichever is chosen, these rules hold:
 - **No dual writes.** If relationships live in the engine and data in Postgres,
   write them together through an **outbox** (one DB transaction, relayed to the
   engine idempotently), or derive the engine's facts from the DB (Oso local
-  authorization). A relationship written without its row, or a row without its
-  relationship, is a silent hole.
+  authorization).
 - **Agents get an intersection, never an inheritance.** An agent's authority is
   the caller's permissions ∩ the agent's declared tool scope. Activating an
   agent requires holding every permission in that scope.
@@ -132,9 +130,8 @@ relationship in the database, never from a header, a query or a body.
 - **Three answers.** No valid credential is 401; authenticated but unable to act
   is 403; a key store or JWKS that cannot be asked is 503, never 401.
 - **Rate-limit per credential**, not per IP: per API key, per OAuth client and
-  user, per session user. Better Auth's api-key plugin has its own limiter with
-  a low default ([recipes/api-bindings/README.md](recipes/api-bindings/README.md));
-  set it on purpose or turn it off and limit in the binding.
+  user, per session user (the api-key plugin's own limiter:
+  [recipes/api-bindings/README.md](recipes/api-bindings/README.md)).
 - **Keys and tokens are secrets in the user's hands**: shown once, stored
   hashed, expiring, revocable from the app, and never logged or put in a span.
 

@@ -6,7 +6,7 @@
  * unnamed portal of the extended query protocol are per-session state, as is
  * the transaction, so connections cannot simply take turns **per message**:
  * one connection's Parse/Bind/Execute interleaved with another's fails as
- * `portal "" does not exist` (9 of 30 requests in docs/kit/spike-2026-10.md),
+ * `portal "" does not exist` (9 of 30 requests in docs/kit/spike-2026-10-evidence.md),
  * or worse, as a parameter bound to somebody else's statement.
  *
  * So the backend is held by one connection at a time, for a whole exchange:

@@ -6,7 +6,7 @@ never edits it in place.
 
 ## Commit trailers — the one grammar
 
-Every other document refers here. Each trailer is a single line, parsed with
+Each trailer is a single line, parsed with
 `git interpret-trailers --parse`, so prose that quotes a trailer is ignored.
 
 | trailer                  | form                                                | rule                                                                                                                                                                      |

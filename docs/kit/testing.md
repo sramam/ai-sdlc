@@ -14,17 +14,16 @@ The boundary between test tiers is **what each one can prove**.
 ## Rules that each cost something to learn
 
 **Never hand-write a database fake.** A fake is the ORM reimplemented from
-memory, so it hides product bugs and makes real code look broken. Mocking the
-DB module also substitutes away the **scoping extension**, which is the thing
-most worth testing. The commit-time code review checks the rule (project
+memory, so it hides product bugs and makes real code look broken. The
+commit-time code review checks the rule (project
 criteria 1); a project adds a pattern check that fails on a `vi.mock` factory
 answering queries with its test harness. A **spy** (`vi.fn()`, asserting what
 was written) is fine. A **fake** (returns made-up rows) is not.
 
 **PGlite specifics.**
 
-- About one second to boot with all migrations. Each call is an independent
-  database, so there is no truncation step to forget.
+- Each call is an independent database, so there is no truncation step to
+  forget.
 - Migrations are applied as SQL in filename order, so a hand-typed timestamp
   breaks it immediately.
 - The extension funnels every connection into one session, so set pool `max: 1`.
@@ -48,8 +47,8 @@ afterwards. `NOT_FOUND` returned while the update landed anyway is the worst
 outcome, and looks identical at the call site.
 
 **Smoke-test the production build early.** Every other tier runs under
-`NODE_ENV=test` or `development`, so a `production`-only defect (the
-`__Secure-` cookie prefix) reaches nothing else. Use a real browser, since the
+`NODE_ENV=test` or `development`, so a `production`-only defect reaches
+nothing else. Use a real browser, since the
 browser is what enforces cookie rules.
 
 **Record model responses; do not stub them.** A stub returns what someone
@@ -114,12 +113,9 @@ recording is reviewed in a pull request like code.
 
 ### The conditions that keep masks honest
 
-These conditions come with the machinery:
-
 - **A contended or cold run learns a permanently wrong mask.** A route compiling
   during pass 1, or a slow database pool, makes a step photograph a page that
-  has not settled. The union of masks only grows, so the error stays, looking
-  exactly like a real volatile region. So:
+  has not settled. So:
   - record in **one warm checkout**, one journey at a time, with the routes
     pre-warmed
   - make sure nothing else is recording: the load gate inside `journeys:learn`
@@ -127,8 +123,6 @@ These conditions come with the machinery:
     `JOURNEY_LOAD_OVERRIDE="<reason>"` overrides)
   - **discard a contended or abandoned recording** rather than committing it
   - after changing how the stack reaches its database, **relearn from scratch**
-- **Recording in parallel checkouts is slower, not faster.** Compilation
-  dominates the walking.
 - **Wait for the page to settle**, not for a timer: `aria-busy` clears, then the
   project's `settle.selectors` (journeys config), with DOM mutations watched
   during the shot.

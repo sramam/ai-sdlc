@@ -2,10 +2,8 @@
 
 An agent-driven SDLC, distilled.
 
-These notes were distilled from an earlier project where several people and
-many concurrent agent sessions worked in one repository; nothing here is
-specific to its domain. They are written to be **handed to an agent setting up
-a new repository**, and to the people who will work alongside it.
+These notes are written to be **handed to an agent setting up a new
+repository**, and to the people who will work alongside it.
 
 ## How to use this
 
@@ -17,13 +15,8 @@ agent one instruction:
 
 > Read `docs/kit/BOOTSTRAP.md` and follow it. Start with `/kickoff`.
 
-This kit lives in the registry (`ai-sdlc`) at `docs/kit/`, and every project
-gets a copy. It is both the registry's specification and its documentation.
-
 Every later request goes through `/spec`, and a new persona or product area
 through `/kickoff revisit product`; nothing else changes requirements.
-
-The other files are what the bootstrap points at.
 
 | file                                                                  | for                                  | read when                                                                                                                |
 | --------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |

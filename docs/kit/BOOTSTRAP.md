@@ -36,11 +36,8 @@ wrangler login
 gh repo create <owner>/<name> --private --source . --push
 ```
 
-`init` refuses a directory that is not empty and touches nothing on GitHub. The
-pre-push hook lets `main` into a repository with no branch at all, once; every
-later update of `main` goes through `pnpm promote:prod`. The project's
-`sdlc.lock.json` records the registry ref it came from, and `pnpm sdlc` runs the
-CLI at that ref.
+The pre-push hook lets `main` into a repository with no branch at all, once;
+every later update of `main` goes through `pnpm promote:prod`.
 
 **The agent**, in that checkout:
 
@@ -148,7 +145,6 @@ The guards, and how to trip each:
 
 Guards that need product code (seed refusal, capture transports, `promote`,
 the authorization pattern check) are tripped in the foundation items that create them.
-The commit that lands this phase carries `Closes: X-001`.
 
 ## Phase 3 — Plan
 
@@ -156,16 +152,16 @@ The commit that lands this phase carries `Closes: X-001`.
 `X-000` worktree once the first specs are approved. **Foundation first, as `X-`
 items**, in this order, each with its own acceptance and trip tests:
 
-| item                       | does                                                                                                                                                                                                                                                                                                                               |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| platform spike             | verifies each constraint in [tech-stack.md](tech-stack.md) § _Workers constraints to design for_ for the chosen stack: framework on Workers, ORM through Hyperdrive, auth library, OTel export, the authorization engine from a Worker and in tests, Base UI coverage. Findings become ADRs and package `agents.md` notes          |
-| apps and packages          | adds each app and package from kickoff topic 9 with `pnpm sdlc add <recipe>` (`pnpm sdlc list`), one commit each, then adapts it to the decisions (scope, names) with its tests passing. Where no recipe exists, it writes the package directly and offers it to the registry as one. Fills in the packages section of `AGENTS.md` |
-| infrastructure             | the agent writes `pnpm infra:provision`; **a person runs it** per environment; the agent writes `wrangler.jsonc` from its output; `/api/health` confirms                                                                                                                                                                           |
-| environments and promotion | env and binding schema, `.dev.vars.example` pattern check, `pnpm sdlc add promote seed localdb`, a seed framework that refuses production                                                                                                                                                                                          |
-| security baseline          | `@<scope>/authz` with the policy and a matrix-test generator (cells arrive with features), headers, CSP, rate limits, sessions                                                                                                                                                                                                     |
-| telemetry                  | `@<scope>/telemetry`, span conventions, test exporter, lint against `console.log`                                                                                                                                                                                                                                                  |
-| UI foundation              | tokens from the design brief, the shells, the patterns, ⌘K, the component viewer, the UI scan floor                                                                                                                                                                                                                                |
-| test harness               | `createTestDb()`, the database-fake pattern check, the smoke test against the built Worker, `pnpm sdlc add journeys journeys-adapter`, journey ports, capture transports                                                                                                                                                           |
+| item                       | does                                                                                                                                                                                                                                                                                                            |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| platform spike             | verifies each constraint in [tech-stack.md](tech-stack.md) § _Workers constraints to design for_ for the chosen stack; findings become ADRs and package `agents.md` notes                                                                                                                                       |
+| apps and packages          | adds each app and package from kickoff topic 9 with `pnpm sdlc add <recipe>`, one commit each, then adapts it to the decisions (scope, names) with its tests passing. Where no recipe exists, it writes the package directly and offers it to the registry as one. Fills in the packages section of `AGENTS.md` |
+| infrastructure             | the agent writes `pnpm infra:provision`; **a person runs it** per environment; the agent writes `wrangler.jsonc` from its output; `/api/health` confirms                                                                                                                                                        |
+| environments and promotion | `pnpm sdlc add env-schema promote seed localdb`; a seed framework that refuses production                                                                                                                                                                                                                       |
+| security baseline          | `@<scope>/authz` (`authz-oso` or `authz-spicedb`), headers, CSP, rate limits, sessions                                                                                                                                                                                                                          |
+| telemetry                  | `@<scope>/telemetry` (`telemetry`), lint against `console.log`                                                                                                                                                                                                                                                  |
+| UI foundation              | `ui`, with tokens from the design brief; the component viewer; the UI scan floor                                                                                                                                                                                                                                |
+| test harness               | `createTestDb()`, the database-fake pattern check, the smoke test against the built Worker, `pnpm sdlc add journeys journeys-adapter`                                                                                                                                                                           |
 
 Then **features, ordered by journey**: each milestone completes whole journeys,
 for every persona in them. Land it with `Closes: X-000`; `plan:check --stage

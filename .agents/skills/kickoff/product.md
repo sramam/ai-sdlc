@@ -53,11 +53,12 @@ until stage 3 has run.
 ### BRD themes, in order
 
 1. **Problem and why now**: who hurts, how, what they do today, and what it costs.
-2. **People**: **persona discovery** (`docs/kit/plan-and-requirements.md`).
+2. **People**: **persona discovery** ([discovery.md](discovery.md) § _Personas_).
 3. **Goals and success**: measurable outcomes with dates, and **how each will be
    measured** (a metric, a span, an analytics event).
 4. **Scope**: MVP in and out, the deadline, and what comes later.
-5. **Tenancy and access**: **tenancy discovery**. **Blocking** for the data model.
+5. **Tenancy and access**: **tenancy discovery** ([discovery.md](discovery.md)
+   § _Tenancy_). **Blocking** for the data model.
 6. **Business rules and policies**, each with its source.
 7. **Data and threats**: personal data, retention, compliance, regions, audit; the
    assets and adversaries (`docs/kit/security.md`); data that must never reach a model,

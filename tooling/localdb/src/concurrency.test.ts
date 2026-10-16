@@ -5,7 +5,7 @@
  * Before the session lock, 9 of 30 concurrent requests failed with
  * `portal "" does not exist`: the unnamed statement and portal of the extended
  * query protocol are per-session state, and interleaved Parse/Bind/Execute from
- * different connections clobbered each other (docs/kit/spike-2026-10.md).
+ * different connections clobbered each other (docs/kit/spike-2026-10-evidence.md).
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";

@@ -2,12 +2,13 @@
 
 **Four environments: local (per checkout), plus three deployed ones (dev,
 staging, production)**, declared as wrangler environments in one
-`wrangler.jsonc`. Two clarifications make them work.
+`wrangler.jsonc`.
 
 1. **"dev" means the shared integration deployment, not your laptop.** Local
    is not deployed, and each checkout runs against its own PGlite database
    (§ _Local_ below; how `wrangler dev` reaches it is in
-   [spike-2026-10.md](spike-2026-10.md) § 4), never the shared dev database.
+   [spike-2026-10-evidence.md](spike-2026-10-evidence.md) § 4), never the
+   shared dev database.
 2. **Previews are optional, and their database is the trap.** A version
    uploaded with a preview URL uses **that version's own bindings**, so a preview
    uploaded to `dev` reaches dev's database unless it is uploaded with its own
@@ -34,13 +35,12 @@ shared, so an agent can change a schema or wipe data and nobody else notices.
 Under `wrangler dev`, Hyperdrive reaches it through
 `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_<BINDING>`, which beats
 `localConnectionString` and must contain a password (PGlite ignores it;
-[spike-2026-10.md](spike-2026-10.md) § 4).
+[spike-2026-10-evidence.md](spike-2026-10-evidence.md) § 4).
 
 PGlite is one Postgres session, so the server holds it for one connection at a
 time for a whole protocol exchange (`SessionLock` in
-`tooling/localdb/src/socket.mts`; the spike's `portal "" does not exist`
-failures under concurrent requests are covered by
-`tooling/localdb/src/concurrency.test.ts`). The costs that remain: a long
+`tooling/localdb/src/socket.mts`, `tooling/localdb/src/concurrency.test.ts`).
+The costs that remain: a long
 transaction blocks every other connection, and named prepared statements,
 `SET`, temp tables and `LISTEN` are shared across connections, so a driver
 that prepares statements by name is told not to.
@@ -54,13 +54,11 @@ pnpm db:local reset            # empty, then migrate
 ```
 
 - **Revertible by construction**: every migration is preceded by an automatic
-  snapshot, and any state can be snapshotted by name. Reverting a schema
-  experiment is one command, and never touches another agent's data.
+  snapshot, and any state can be snapshotted by name.
 - **Databases are declared in `sdlc.config.json` (`localdb.databases`)**, each with
   the project's own `migrate` command, because the ORM is the project's choice.
   An app needs a database only if kickoff topic 9 says so.
-- **Removing the worktree removes its database.** Nothing outlives the branch
-  that made it.
+- **Removing the worktree removes its database.**
 - **Shared environments (dev, staging, production) are never reached from a
   worktree for experiments.** Migrations reach them only through promotion.
 

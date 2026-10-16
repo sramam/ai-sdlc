@@ -18,12 +18,8 @@ each kept only because it changes what an agent does here.
 | `.claude/skills/<name>`          | symlinks to `.agents/skills/<name>`, so Claude Code sees them; created by the CLI and `pnpm bootstrap`                        |
 | `.claude/agents/<name>.md`       | the personas `/ship` fans out to (code reviewer, security auditor, test engineer, web performance), wrapping upstream's       |
 
-`third-party.test.ts` (in the registry) holds both sides: every copied file is
-byte-for-byte upstream's, every upstream entry has exactly one wrapper whose
-description is upstream's, and every skill is linked. To take upstream's
-improvements: `pnpm 3rdparty sync <name>` re-copies the source, prints what
-changed upstream, and lists the wrappers whose upstream moved, to re-read
-against their amendments. Projects then take it with `pnpm sdlc update`.
+The checks on the copies and the sync are in [registry.md](registry.md)
+§ _Third-party skills_.
 
 ## The workflow (base)
 
@@ -53,11 +49,11 @@ replaces Claude Code's built-in command of that name inside a project.
 
 Referenced, not copied (install them yourself when the work calls for it):
 
-| skill           | install                                                                                                              | add it when                                                           | note                                                                     |
-| --------------- | -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| claude-security | declared in `.claude/settings.json`; `claude plugin install claude-security@claude-plugins-official --scope project` | always (base declares it)                                             | its license forbids redistribution, so each person installs it           |
-| OpenSEO         | `npx skills add every-app/open-seo` and its MCP server                                                               | SEO, keyword or AI-visibility research for a public site              | a paid OpenSEO account; its skills write to a remote project context     |
-| HyperFrames     | `npx skills add heygen-com/hyperframes`                                                                              | the project produces video (a launch video, a PR explainer, captions) | 18 MB; sends render feedback to a public channel unless telemetry is off |
+| skill           | install                                                                                                              | add it when                                                           | note                                                                 |
+| --------------- | -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| claude-security | declared in `.claude/settings.json`; `claude plugin install claude-security@claude-plugins-official --scope project` | always (base declares it)                                             | its license forbids redistribution, so each person installs it       |
+| OpenSEO         | `npx skills add every-app/open-seo` and its MCP server                                                               | SEO, keyword or AI-visibility research for a public site              | a paid OpenSEO account; its skills write to a remote project context |
+| HyperFrames     | `npx skills add heygen-com/hyperframes`                                                                              | the project produces video (a launch video, a PR explainer, captions) | sends render feedback to a public channel unless telemetry is off    |
 
 ## Writing skills well
 

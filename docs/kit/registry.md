@@ -18,9 +18,7 @@ pnpm sdlc update base                               # take upstream fixes; never
 Agents do most of the work in a project, so they should **own as much of the
 code as possible**: read it, change it to fit, and fix it where it breaks. Code
 in `node_modules`, or behind a "do not edit" rule, is code an agent works
-around instead. So every item arrives as plain files in the project's tree, with
-its tests, and is the project's from then on. `diff` and `update` bring upstream
-fixes in deliberately, file by file; nothing arrives by itself.
+around instead.
 
 ## Base and items
 
@@ -60,8 +58,7 @@ through items' merges.
 
 One root file rather than a manifest beside each item, because an item is not a
 directory: base gathers root configuration, the skills in `.agents/skills/`
-except the optional ones, the kit and five modules from all over the tree. In one file, "every file belongs to exactly one
-item" is a single pass, and nothing that exists only for the registry is copied.
+except the optional ones, the kit and five modules from all over the tree.
 
 **The registry's pattern check** (`scripts/registry/pattern-check.test.ts`, in
 `pnpm test`; `pnpm registry:patterns` prints its table) holds `registry.json` to
