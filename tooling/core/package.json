@@ -3,5 +3,5 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Shared: the sdlc.config.ts loader, the command runner, and the one git-command parser every guard uses."
+  "description": "Shared: the sdlc.config.json loader, the starter manifest, the command runner, and the one git-command parser every guard uses."
 }

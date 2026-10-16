@@ -90,7 +90,7 @@ Each path of each journey records, under `<journey>/<persona>/<path>/`:
 - **captured emails and PDFs**, rendered and compared the same way
 - `run.json`: the routes the run **visited**, which drift detection reads
 
-### Recording runs three times (`pnpm journey:record`)
+### Recording runs three times (`pnpm journeys:learn`)
 
 | pass            | does                                                                                  | its contract                                                                                                                                     |
 | --------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -98,13 +98,13 @@ Each path of each journey records, under `<journey>/<persona>/<path>/`:
 | **2. discover** | runs again on the **same build** and diffs against pass 1                             | whatever differs between two runs of identical code is data-volatile, and is added to that step's mask                                           |
 | **3. verify**   | runs a third time and applies the learned masks                                       | **the only pass that proves anything.** Red means the masks do not yet hold, and the run exits 1                                                 |
 
-Then `journey:delta` writes one report. For every step whose reference or mask
+Then `journeys:delta` writes one report, to `test-results/journey-reports/delta.md` (outside the evidence root). For every step whose reference or mask
 changed, it shows the old and new reference, the old and new mask, and the pixel
 diff under the new mask, beside pass 3's verdict. **Read it before committing a
 re-record.** A mask may only grow where its screenshot changed (the _spurious_
 rule), and a spurious mask fails the run.
 
-### Testing runs once (`pnpm journey:test`)
+### Testing runs once (`pnpm journeys:test`)
 
 One pass compares every step with the committed reference under the committed
 mask. Any unmasked pixel difference is a failure. Testing never learns, never
@@ -121,14 +121,16 @@ These are door_nexa's expensive lessons, and they come with the machinery:
   exactly like a real volatile region. So:
   - record in **one warm checkout**, one journey at a time, with the routes
     pre-warmed
-  - make sure nothing else is recording (one `pgrep`, inside the command, not a
-    check followed by an action)
+  - make sure nothing else is recording: the load gate inside `journeys:learn`
+    does this as a precondition (exit 75 means held;
+    `JOURNEY_LOAD_OVERRIDE="<reason>"` overrides)
   - **discard a contended or abandoned recording** rather than committing it
   - after changing how the stack reaches its database, **relearn from scratch**
 - **Recording in parallel checkouts is slower, not faster.** Compilation
   dominates: about 30 seconds of walking against minutes of compiling.
-- **Wait for the page to settle**, not for a timer: `aria-busy`, network idle,
-  and fonts and images loaded.
+- **Wait for the page to settle**, not for a timer: `aria-busy` clears, then the
+  project's `settle.selectors` (journeys config), with DOM mutations watched
+  during the shot.
 - **Deterministic data** (seed size `demo` or `dev`, fixed random seed, relative
   dates) is what keeps masks small. Every volatile region you can remove at the
   source is one the mask does not have to hide.
@@ -136,7 +138,8 @@ These are door_nexa's expensive lessons, and they come with the machinery:
 ### Organising it
 
 - **One spec file per persona**, with the persona in the name:
-  `j04-signing-in.organizer.spec.ts`, using your own persona IDs, and
+  `j04-signing-in.organizer.spec.ts` (which resolves to journey `J04`, so registry
+  IDs are spelled `J04`), using your own persona IDs, and
   `.common.spec.ts` for refusals that depend on nobody. A census checks the name
   against the persona registry.
 - **Indexes are generated from disk.** Never hand-merge a generated table;
@@ -146,9 +149,9 @@ These are door_nexa's expensive lessons, and they come with the machinery:
   every deployment.
 - **Ports are derived per checkout**, and the sweep kills only this checkout's
   listeners.
-- **Drift detection**: `journey:drift` maps the routes a PR changed to the
+- **Drift detection**: `journeys:drift` maps the routes a PR changed to the
   journeys whose recordings visited them, and requires a re-record or a
-  a `No-Rerecord: <journey> <reason>` commit trailer. It cannot see a shared component with no
+  a `No-Rerecord: J<nn> <reason>` commit trailer (one journey per trailer; the reason is required). It cannot see a shared component with no
   route, so nothing reported is not proof that nothing moved.
 - **Released to QA by a person.** `/journey-ready-for-qa` adds the sign-off.
   Green says the paths that exist pass; it cannot say the right paths were

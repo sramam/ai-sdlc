@@ -5,6 +5,16 @@ description: Discovery — turns an idea into requirements an agent can build fr
 
 # Idea
 
+**Checklist (read this first; details follow):**
+
+1. Claim the requirements lock; release it when done.
+2. Pick the mode: conversation, `<path>` import, `status`, `check`, `revisit`.
+3. Ask only what is open; one theme at a time; draft and show each section.
+4. BRD themes 1–12, then PRD steps 1–11, in order.
+5. **Record** decisions for kickoff (technology, authz engine, backoffice); never decide them.
+6. Run the three passes; write `Verdict:` in `review.md`.
+7. `pnpm plan:check --stage requirements` passes; print `/kickoff` next.
+
 _What_ we are building is decided here. _How_ we build it is `/kickoff`'s job.
 After discovery, new requirements come in through `/add-requirement`.
 
@@ -26,6 +36,12 @@ It releases the lock on finish (`rm .claude/requirements-session`). Each commit
 touching `docs/requirements/` carries a `Requirements: idea` trailer, which the
 `commit-msg` hook requires. Source documents (an imported BRD or a client spec)
 live in `docs/requirements/sources/` and are **never** edited, even under the lock.
+
+**Importing a document** (`/idea <path>`): create it under
+`docs/requirements/sources/` with `Write` (the lock allows creating a new file
+there, never changing one), then run `pnpm sources:add <path>` to record its
+hash in `sources/MANIFEST`, and commit with `Requirements: idea`. `ci:local`
+refuses a source whose hash has changed.
 
 ## Modes
 
@@ -193,9 +209,17 @@ documents alone?_ It cannot when:
 
 Each failure becomes a finding with a recommended answer.
 
-`review.md` ends with a verdict: **ready to plan**, **ready with assumptions**
-(each assumption listed, with how cheap it is to reverse), **ready, pending
-decisions** (only kickoff's decisions are outstanding), or **not ready**.
+`review.md` ends with **exactly one** machine-readable verdict line, which
+`plan:check` reads:
+
+```
+Verdict: ready-to-plan | ready-with-assumptions | ready-pending-decisions | not-ready
+```
+
+`ready-with-assumptions` lists each assumption with how cheap it is to
+reverse; `ready-pending-decisions` means only kickoff's decisions are
+outstanding. Write `Tenancy: <model>` (or `Tenancy: open`) in
+`access-model.md`, which `plan:check` also reads.
 
 ---
 

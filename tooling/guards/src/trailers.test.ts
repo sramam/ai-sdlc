@@ -9,7 +9,12 @@ import {
   write,
 } from "../../plan/src/__fixtures__/plan/temp-repo.ts";
 import {
+  checkAggregateRequirements,
   checkAttribution,
+  checkBranchItems,
+  checkNoItem,
+  isClaimCommit,
+  itemOfBranch,
   checkItemTrailers,
   checkRangeHasItem,
   checkRequirementsTrailer,
@@ -193,5 +198,145 @@ describe("--range against a real repository", () => {
     commit(d, "init");
     expect(await rangeMode(d, undefined, false)).toBe(1);
     expect(await rangeMode(d, undefined, true)).toBe(0);
+  });
+});
+
+const C = (subject: string, trailers: Array<{ key: string; value: string }>, extra = {}) => ({
+  commit: "abcdef1234",
+  time: 0,
+  subject,
+  trailers,
+  ...extra,
+});
+
+describe("assertions that must agree with one another", () => {
+  it("No-Item: needs a reason of three words, and cannot sit beside Closes:", () => {
+    expect(checkNoItem([T("No-Item", "bump")]).state).toBe("refused");
+    expect(checkNoItem([T("No-Item", "dependency bump only")]).state).toBe("ok");
+    expect(checkNoItem([T("No-Item", "a revert of abc"), T("Closes", "X-000")]).state).toBe(
+      "refused",
+    );
+    expect(checkNoItem([T("Progress", "X-000 y")]).state).toBe("ok");
+  });
+
+  it("reads the item a branch is named after, longest ID first", () => {
+    const ids = ["F01-001", "X-000", "F01-0011"];
+    expect(itemOfBranch("f01-001", ids)).toBe("F01-001");
+    expect(itemOfBranch("f01-001-login-form", ids)).toBe("F01-001");
+    expect(itemOfBranch("x-000", ids)).toBe("X-000");
+    expect(itemOfBranch("feat/f01-001", ids)).toBeNull();
+    expect(itemOfBranch("f01-0012", ids)).toBeNull();
+  });
+
+  it("a branch closes only its own item; Progress: elsewhere warns", () => {
+    const own = checkBranchItems("x-000-thing", "X-000", [C("a", [T("Closes", "x-000")])]);
+    expect(own.map((l) => l.state)).toEqual(["ok"]);
+    const other = checkBranchItems("x-000-thing", "X-000", [
+      C("a", [T("Closes", "F01-001"), T("Progress", "F01-002 half")]),
+    ]);
+    expect(other.map((l) => l.state)).toEqual(["refused", "warn"]);
+    expect(checkBranchItems("main", null, [])[0]?.state).toBe("ok");
+    expect(checkBranchItems(null, null, [])[0]?.text).toMatch(/detached/);
+  });
+
+  it("an aggregate requirements change no commit owns is refused", () => {
+    const owned = [{ ...C("a", []), paths: ["docs/requirements/brd.md"], merge: false }];
+    expect(
+      checkAggregateRequirements(["docs/requirements/brd.md"], owned, "docs/requirements").state,
+    ).toBe("ok");
+    expect(
+      checkAggregateRequirements(["docs/requirements/prd.md"], owned, "docs/requirements").state,
+    ).toBe("refused");
+  });
+
+  it("knows a Claim: commit by its subject", () => {
+    expect(isClaimCommit({ subject: "Claim: F03-012" })).toBe(true);
+    expect(isClaimCommit({ subject: "feat: Claim: nothing" })).toBe(false);
+  });
+});
+
+describe("--range reads every commit, not the range as a whole", () => {
+  it("refuses one requirements commit without a trailer even when another has one", async () => {
+    const d = repo();
+    sh(d, ["branch", "base"]);
+    write(d, "docs/requirements/brd.md", "a\n");
+    commit(d, "docs: brd\n\nProgress: X-000 brd\nRequirements: kickoff");
+    expect(await rangeMode(d, "base", false)).toBe(0);
+    write(d, "docs/requirements/brd.md", "b\n");
+    commit(d, "fix: tweak\n\nProgress: X-000 tweak");
+    expect(await rangeMode(d, "base", false)).toBe(1);
+  });
+
+  it("holds a merge to the paths it changed itself", async () => {
+    const d = repo();
+    sh(d, ["branch", "base"]);
+    sh(d, ["checkout", "-q", "-b", "side"]);
+    write(d, "docs/requirements/brd.md", "side\n");
+    commit(d, "docs: brd\n\nProgress: X-000 brd\nRequirements: idea");
+    sh(d, ["checkout", "-q", "dev"]);
+    write(d, "src/a.ts", "1\n");
+    commit(d, "feat: a\n\nProgress: X-000 a");
+    sh(d, ["merge", "-q", "--no-ff", "side", "-m", "merge side"]);
+    // The merge takes brd.md from side unchanged: side's commit answers for it.
+    expect(await rangeMode(d, "base", false)).toBe(0);
+
+    // An edit made while merging is the merge's own, and needs its own trailer.
+    sh(d, ["checkout", "-q", "-b", "side2", "base"]);
+    write(d, "src/b.ts", "1\n");
+    commit(d, "feat: b\n\nProgress: X-000 b");
+    sh(d, ["checkout", "-q", "dev"]);
+    sh(d, ["merge", "-q", "--no-ff", "--no-commit", "side2"]);
+    write(d, "docs/requirements/prd.md", "evil\n");
+    sh(d, ["add", "-A"]);
+    sh(d, ["commit", "-q", "-m", "merge side2"]);
+    expect(await rangeMode(d, "base", false)).toBe(1);
+  });
+
+  it("refuses a Closes: for another item on an item's branch", async () => {
+    const d = repo();
+    write(d, "docs/plan/items/F01-001-other.md", "---\nid: F01-001\ntitle: o\n---\n");
+    commit(d, "plan: add\n\nNo-Item: adding the plan item");
+    sh(d, ["branch", "base"]);
+    sh(d, ["checkout", "-q", "-b", "x-000-discovery"]);
+    commit(d, "feat: a\n\nProgress: X-000 a\nCloses: X-000");
+    expect(await rangeMode(d, "base", false)).toBe(0);
+    commit(d, "feat: b\n\nProgress: X-000 b\nCloses: F01-001");
+    expect(await rangeMode(d, "base", false)).toBe(1);
+  });
+
+  it("refuses a thin No-Item:", async () => {
+    const d = repo();
+    sh(d, ["branch", "base"]);
+    commit(d, "chore: bump\n\nNo-Item: bump");
+    expect(await rangeMode(d, "base", false)).toBe(1);
+  });
+
+  it("exempts Claim: commits, which carry no trailers", async () => {
+    const d = repo();
+    sh(d, ["branch", "base"]);
+    commit(d, "Claim: X-000");
+    expect(await rangeMode(d, "base", false)).toBe(0);
+    commit(d, "feat: a\n\nProgress: X-000 a");
+    expect(await rangeMode(d, "base", false)).toBe(0);
+  });
+});
+
+describe("--message during a merge", () => {
+  it("lets a merged head's requirements through, and holds the merge's own edit", async () => {
+    const d = repo();
+    sh(d, ["checkout", "-q", "-b", "side"]);
+    write(d, "docs/requirements/brd.md", "side\n");
+    commit(d, "docs: brd\n\nProgress: X-000 brd\nRequirements: idea");
+    sh(d, ["checkout", "-q", "dev"]);
+    write(d, "src/a.ts", "1\n");
+    commit(d, "feat: a\n\nProgress: X-000 a");
+    sh(d, ["merge", "-q", "--no-ff", "--no-commit", "side"]);
+    write(d, "msg", "Merge side\n");
+    expect(await messageMode(d, join(d, "msg"))).toBe(0);
+    write(d, "docs/requirements/brd.md", "changed while merging\n");
+    sh(d, ["add", "-A"]);
+    expect(await messageMode(d, join(d, "msg"))).toBe(1);
+    write(d, "msg", "Merge side\n\nRequirements: add-requirement\n");
+    expect(await messageMode(d, join(d, "msg"))).toBe(0);
   });
 });

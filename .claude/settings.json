@@ -21,7 +21,19 @@
       "Edit(**/.dev.vars)",
       "Read(~/.wrangler/**)",
       "Read(~/.config/gh/**)",
-      "Read(~/.ssh/**)"
+      "Read(~/.ssh/**)",
+      "Bash(gh pr merge:*)",
+      "Bash(git push origin dev:*)",
+      "Bash(git push origin HEAD:dev:*)",
+      "Bash(git push --no-verify:*)",
+      "Bash(git push * --no-verify:*)",
+      "Bash(git commit --no-verify:*)",
+      "Bash(git commit * --no-verify:*)",
+      "Bash(git commit -n:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push * --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push * -f:*)"
     ]
   },
   "hooks": {

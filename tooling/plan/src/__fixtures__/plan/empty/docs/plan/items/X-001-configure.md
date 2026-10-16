@@ -11,7 +11,7 @@ estimate: unknown
 
 ## Acceptance
 
-- `sdlc.config.ts` filled in: branches, accounts (from kickoff's decisions),
+- `sdlc.config.json` filled in: branches, accounts (from kickoff's decisions),
   cadence, `claimStaleDays`.
 - Root `AGENTS.md` written from `docs/kit/AGENTS.template.md`.
 - `pnpm accounts:check` prints a line per account, none _could not ask_.

@@ -7,15 +7,29 @@
  *
  *   dropped      `dropped:` in the frontmatter — the one stored state
  *   done         a commit reachable from origin/<integration> with `Closes: <ID>`
- *   in progress  a live remote branch named `<id>-…` (lower case), or a
- *                `Progress: <ID>` on origin/<integration> within claimStaleDays
- *                and no `Closes:` (partial PRs land, and /land deletes the
- *                branch only on the PR that closes the item)
- *   stale claim  a claim, but no commit on the branch — and no Progress: on the
- *                integration branch — for claimStaleDays
+ *   in progress  a claim: a remote branch named exactly the item ID
+ *                (`f03-012`, matched case-insensitively; `pnpm claim` makes
+ *                one atomically), or a `Progress: <ID>` on origin/<integration>
+ *                within claimStaleDays and no `Closes:` (partial PRs land, and
+ *                /land deletes the branch only on the PR that closes the item)
+ *   stale claim  a claim older than claimStaleDays with no commit newer than
+ *                claimStaleDays — on the branch or as a Progress: on the
+ *                integration branch
  *   blocked      a `depends:` item not done, or an open question listing it
  *   ready        none of the above
  *   unknown      the integration branch could not be read at all
+ *
+ * When a claim was made is read, not guessed: the `Claimed-At:` trailer of the
+ * claim commit (`Claim: <ID>`, found by walking first-parent from the branch
+ * tip), else the committer time of the branch's oldest commit not on the
+ * integration branch. A branch with neither — pushed straight off the
+ * integration tip, say — has an unknown claim time and is never reported
+ * stale on that account: the branch tip's date is the integration branch's
+ * date, not the claimant's, and reading it made a fresh claim off an old tip
+ * look abandoned.
+ *
+ * A branch named `<id>-<slug>` is not a claim (claims are canonical, so a
+ * second claim is the same ref and is refused); it is listed in the notes.
  *
  * Choices where the spec leaves room:
  * - A claim outranks blocked: the item reads "in progress" with its blockers
@@ -51,10 +65,17 @@ import type { CommitTrailers, Dirs, Item, Journey, Question } from "./plan-lib.m
 export type Status =
   "done" | "in progress" | "stale claim" | "blocked" | "dropped" | "ready" | "unknown";
 
-export interface Branch {
-  name: string;
+/** A claim branch: named exactly an item ID. */
+export interface Claim {
+  /** The item ID, upper case. */
+  id: string;
+  branch: string;
   /** Unix seconds of the branch tip's commit. */
-  time: number;
+  tip: number;
+  /** Unix seconds the claim was made; null when it cannot be told. */
+  claimedAt: number | null;
+  claimedBy: string | null;
+  source: "claim commit" | "oldest unique commit" | "unknown";
 }
 
 export interface GitFacts {
@@ -64,7 +85,7 @@ export interface GitFacts {
   closes: Map<string, { commit: string; time: number }>;
   /** Latest Progress: time per item on the integration ref. */
   progress: Map<string, number>;
-  branches: Branch[];
+  claims: Claim[];
   /** Unix seconds. */
   now: number;
 }
@@ -118,22 +139,37 @@ export function deriveStatuses(
     }
     for (const q of open) if (q.blocks.includes(item.id)) reasons.push(`waits on ${q.id}`);
 
-    const prefix = `${item.id.toLowerCase()}-`;
-    const branches = facts.branches.filter((b) => b.name.toLowerCase().startsWith(prefix));
+    const days = (t: number) => `${Math.floor((facts.now - t) / 86400)}d ago`;
+    const claims = facts.claims
+      .filter((c) => c.id === item.id)
+      .sort((a, b) => (a.claimedAt ?? Infinity) - (b.claimedAt ?? Infinity));
     const lastProgress = facts.progress.get(item.id);
-    const latest = Math.max(0, ...branches.map((b) => b.time), lastProgress ?? 0);
-    const claimed = branches.length > 0 || lastProgress !== undefined;
-    if (claimed) {
-      const via = [
-        ...branches.map((b) => `branch ${b.name}`),
-        ...(lastProgress !== undefined ? [`Progress: on ${facts.ref}`] : []),
-      ];
-      const ageDays = Math.floor((facts.now - latest) / 86400);
-      const stale = facts.now - latest > staleAfter;
+    const claim = claims[0];
+    if (claim) {
+      const latest = Math.max(claim.tip, claim.claimedAt ?? 0, lastProgress ?? 0);
+      const idle = facts.now - latest > staleAfter;
+      const old = claim.claimedAt !== null && facts.now - claim.claimedAt > staleAfter;
+      const when =
+        claim.claimedAt === null
+          ? "claim time unknown (no Claim: commit and no commit of its own)"
+          : `claimed ${days(claim.claimedAt)}${claim.claimedBy ? ` by ${claim.claimedBy}` : ""}${claim.source === "claim commit" ? "" : ` (from its ${claim.source})`}`;
+      const also = claims.slice(1).map((c) => `also claimed as ${c.branch}`);
+      return {
+        item,
+        status: idle && old ? "stale claim" : "in progress",
+        reasons: [
+          `branch ${claim.branch}, ${when}; last commit ${days(latest)}`,
+          ...also,
+          ...reasons,
+        ],
+      };
+    }
+    if (lastProgress !== undefined) {
+      const stale = facts.now - lastProgress > staleAfter;
       return {
         item,
         status: stale ? "stale claim" : "in progress",
-        reasons: [`${via.join(", ")}; last commit ${ageDays}d ago`, ...reasons],
+        reasons: [`Progress: on ${facts.ref}, last ${days(lastProgress)}`, ...reasons],
       };
     }
     if (reasons.length) return { item, status: "blocked", reasons };
@@ -173,6 +209,42 @@ export function rankQuestions(
 
 // ─── Gathering ────────────────────────────────────────────────────────────────
 
+const CLAIM_BRANCH = /^(f\d+-\d+|x-\d+)$/i;
+const SLUGGED_BRANCH = /^(f\d+-\d+|x-\d+)-/i;
+
+/** When and by whom `ref` (a claim branch for `id`) was claimed. */
+export function readClaim(
+  root: string,
+  ref: string,
+  id: string,
+  integration: string,
+): Pick<Claim, "claimedAt" | "claimedBy" | "source"> {
+  const log = git(root, [
+    "log",
+    "--first-parent",
+    "-i",
+    `--grep=^Claim: ${id}$`,
+    "--format=%ct%x1f%s%x1f%(trailers:key=Claimed-At,valueonly,unfold)%x1f%(trailers:key=Claimed-By,valueonly,unfold)%x1e",
+    ref,
+    "--",
+  ]);
+  if (log.ok)
+    for (const rec of log.stdout.split("\x1e")) {
+      const [ct = "", subject = "", at = "", by = ""] = rec.replace(/^\n+/, "").split("\x1f");
+      if (subject.trim().toLowerCase() !== `claim: ${id.toLowerCase()}`) continue;
+      const parsed = Date.parse(at.trim());
+      return {
+        claimedAt: Number.isNaN(parsed) ? Number(ct) : Math.floor(parsed / 1000),
+        claimedBy: by.trim() || null,
+        source: "claim commit",
+      };
+    }
+  const own = git(root, ["log", "--first-parent", "--format=%ct", ref, `^${integration}`, "--"]);
+  const oldest = own.ok ? own.stdout.trim().split("\n").filter(Boolean).pop() : undefined;
+  if (oldest) return { claimedAt: Number(oldest), claimedBy: null, source: "oldest unique commit" };
+  return { claimedAt: null, claimedBy: null, source: "unknown" };
+}
+
 export function gatherFacts(
   root: string,
   integration: string,
@@ -186,36 +258,46 @@ export function gatherFacts(
       ref: null,
       notes: [`could not ask git: ${probe.reason}`],
       ...empty,
-      branches: [],
+      claims: [],
       now,
     };
   const ref = integrationRef(root, integration);
   if (ref.note) notes.push(ref.note);
-  if (ref.ref === null) return { ref: null, notes, ...empty, branches: [], now };
+  if (ref.ref === null) return { ref: null, notes, ...empty, claims: [], now };
   const log = logTrailers(root, [ref.ref]);
   if (!log.ok)
     return {
       ref: null,
       notes: [...notes, `could not read ${ref.ref}: ${log.reason}`],
       ...empty,
-      branches: [],
+      claims: [],
       now,
     };
   const remote = ref.ref.startsWith("origin/");
   const ns = remote ? "refs/remotes/origin/" : "refs/heads/";
   const refs = git(root, ["for-each-ref", "--format=%(refname)%09%(committerdate:unix)", ns]);
-  const branches: Branch[] = [];
+  const claims: Claim[] = [];
   if (refs.ok)
     for (const line of refs.stdout.split("\n")) {
       const [name = "", time = "0"] = line.split("\t");
       if (!name) continue;
       const short = name.slice(ns.length);
-      if (short === "HEAD") continue;
-      branches.push({ name: short, time: Number(time) });
+      if (CLAIM_BRANCH.test(short)) {
+        const id = short.toUpperCase();
+        claims.push({
+          id,
+          branch: short,
+          tip: Number(time),
+          ...readClaim(root, name, id, ref.ref),
+        });
+      } else if (SLUGGED_BRANCH.test(short))
+        notes.push(
+          `branch ${short} is not a claim: a claim branch is named exactly the item ID (${short.replace(/^((?:f\d+|x)-\d+)-.*$/i, "$1").toLowerCase()})`,
+        );
     }
   else notes.push(`could not list branches: ${refs.reason}`);
   if (!remote) notes.push("claims read from local branches");
-  return { ref: ref.ref, notes, ...factsFromCommits(log.commits), branches, now };
+  return { ref: ref.ref, notes, ...factsFromCommits(log.commits), claims, now };
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
@@ -385,7 +467,7 @@ ${groups}
 export async function main(argv: string[]): Promise<number> {
   const root = findRoot();
   if (!root) {
-    console.error("plan:status: could not find sdlc.config.ts above the current directory");
+    console.error("plan:status: could not find sdlc.config.json above the current directory");
     return 2;
   }
   let dirs: Dirs = DEFAULT_DIRS;
@@ -398,7 +480,7 @@ export async function main(argv: string[]): Promise<number> {
     stale = cfg.claimStaleDays;
   } catch (e) {
     console.error(
-      `plan:status: could not load sdlc.config.ts (${(e as Error).message}); using defaults`,
+      `plan:status: could not load sdlc.config.json (${(e as Error).message}); using defaults`,
     );
   }
   const model = loadModel(root, dirs);

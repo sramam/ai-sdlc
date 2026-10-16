@@ -11,12 +11,12 @@ afterEach(() => {
 describe("pathsNamed", () => {
   it("finds paths and skips commands, URLs and prose slashes", () => {
     const text =
-      "Touches `apps/web/src/a.ts`, docs/kit/hooks.md and `packages/db/`.\nRun `pnpm plan:check --stage plan`. See https://x.dev/a/b.md and/or `sdlc.config.ts`.";
-    expect(pathsNamed(text, (p) => p === "sdlc.config.ts")).toEqual([
+      "Touches `apps/web/src/a.ts`, docs/kit/hooks.md and `packages/db/`.\nRun `pnpm plan:check --stage plan`. See https://x.dev/a/b.md and/or `sdlc.config.json`.";
+    expect(pathsNamed(text, (p) => p === "sdlc.config.json")).toEqual([
       "apps/web/src/a.ts",
       "docs/kit/hooks.md",
       "packages/db/",
-      "sdlc.config.ts",
+      "sdlc.config.json",
     ]);
   });
 });
@@ -41,6 +41,24 @@ describe("itemCheck", () => {
     const out = lines.join("\n");
     expect(out).toMatch(/MOVED\s+1\s+src\/a\.ts/);
     expect(out).toMatch(/steady\s+src\/b\.ts/);
+  });
+  it("follows topology, not dates: a backdated commit after the item still counts", () => {
+    const { d, lines, run } = setup("Changes `src/a.ts` and `src/b.ts`.");
+    write(d, "src/b.ts", "2");
+    commit(d, "change b, dated a year before the item", 1_670_000_000);
+    expect(run()).toBe(0);
+    expect(lines.join("\n")).toMatch(/MOVED\s+1\s+src\/b\.ts/);
+  });
+  it("does not count commits before the item, even when dated after it", () => {
+    const d = initRepo(tempDir());
+    dirs.push(d);
+    write(d, "src/a.ts", "1");
+    commit(d, "a, dated in the future", 1_900_000_000);
+    write(d, "docs/plan/items/F01-001-x.md", "---\nid: F01-001\ntitle: x\n---\n`src/a.ts`\n");
+    commit(d, "plan", 1_700_000_100);
+    const lines: string[] = [];
+    expect(itemCheck(d, DEFAULT_DIRS, "F01-001", (l) => lines.push(l))).toBe(0);
+    expect(lines.join("\n")).toMatch(/steady\s+src\/a\.ts/);
   });
   it("could not ask when the item names no path", () => {
     const { lines, run } = setup("Nothing concrete.");

@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, realpathSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -11,8 +11,10 @@ import {
   invokesGit,
   mainCheckout,
   parseWorktreeAdd,
+  segmentsOf,
   shellLiteral,
   subcommandArgs,
+  unquote,
 } from "./git-command.mts";
 
 /** The real command that walked past two of door_nexa's three parsers. */
@@ -223,6 +225,12 @@ describe("asking git", () => {
     expect(checkoutRoot(join(main, "x.md"))).toBe(main);
   });
 
+  it("finds the checkout root of a file that exists", () => {
+    const file = join(worktree, "exists.md");
+    writeFileSync(file, "x");
+    expect(checkoutRoot(file)).toBe(worktree);
+  });
+
   it("could not ask outside a repository: null, never a guess", () => {
     const outside = mkdtempSync(join(tmpdir(), "sdlc-norepo-"));
     expect(mainCheckout(outside)).toBeNull();
@@ -235,5 +243,96 @@ describe("asking git", () => {
     expect(canonical(join(dir, "a", "missing", "f.md"))).toBe(
       join(realpathSync(dir), "a", "missing", "f.md"),
     );
+  });
+});
+
+/**
+ * Ways an agent writes a git command that the first parser read as something
+ * else. A guardrail against accidents, so each is a shape seen in ordinary use.
+ */
+describe("git reached through a wrapper, a nested shell or a substitution", () => {
+  const commits = (command: string) => gitSegment(command, "commit") !== null;
+
+  it.each([
+    "pnpm exec git commit -m x",
+    "pnpm --filter web exec git commit -m x",
+    "pnpm dlx git commit -m x",
+    "npx git commit -m x",
+    "npx --yes git commit -m x",
+    "npx -c 'git commit -m x'",
+    "command git commit -m x",
+    "exec git commit -m x",
+    "nice git commit -m x",
+    "nice -n 10 git commit -m x",
+    "nohup git commit -m x",
+    "time git commit -m x",
+    "timeout 30 git commit -m x",
+    "sudo -u me git commit -m x",
+    "echo x | xargs git commit -m",
+    "echo x | xargs -I {} git commit -m {}",
+    "env -i PATH=/usr/bin git commit -m x",
+    "env -S 'git commit -m x'",
+    "/usr/bin/git commit -m x",
+    "/opt/homebrew/bin/git commit -m x",
+    '"git" commit -m x',
+    "\\git commit -m x",
+    "git 'commit' -m x",
+    "bash -c 'git commit -m x'",
+    'sh -c "cd /repo && git commit -m x"',
+    "bash -lc 'git add . && git commit -m x'",
+    "bash -e -c 'git commit -m x'",
+    "xargs sh -c 'git commit -m x'",
+    "sh -c \"bash -c 'git commit -m x'\"",
+    "eval git commit -m x",
+    "eval 'git commit -m x'",
+    "echo $(git commit -m x)",
+    'echo "$(git commit -m x)"',
+    "echo `git commit -m x`",
+    "cat <(git commit -m x)",
+    "x=$(cd /repo; git commit -m x)",
+    "bash <<EOF\ngit commit -m x\nEOF",
+    "{ git commit -m x; }",
+    "if true; then git commit -m x; fi",
+    "true & git commit -m x",
+    "false || git commit -m x",
+    "git status |& git commit -m x",
+    "echo a \\\n && git commit -m x",
+  ])("finds the commit in: %s", (command) => {
+    expect(commits(command)).toBe(true);
+  });
+
+  it.each([
+    "git log --grep 'a; git commit -m x'",
+    'gh pr create --body "run git commit && git push"',
+    "echo git commit -m x",
+    "echo 'git commit -m x'",
+    'echo "git commit; git commit"',
+    "printf '%s' '$(git commit -m x)'",
+    "grep -r 'git commit' docs",
+    "command -v git",
+    "pnpm test -- git commit",
+    "git notes add -m 'git commit -m x'",
+    "cat <<'EOF'\ngit commit -m x\nEOF",
+    "git tag -m \"$(cat <<'EOF'\ngit commit, and don't (really)\nEOF\n)\" v1",
+    "ls # git commit -m x",
+    "bash script.sh",
+  ])("does not read a commit in: %s", (command) => {
+    expect(commits(command)).toBe(false);
+  });
+
+  it("reads where a nested commit acts", () => {
+    const seg = gitSegment("bash -c 'git -C /repo commit -m x'", "commit");
+    expect(seg && gitWorkingDir(seg, "/elsewhere", resolve)).toBe("/repo");
+    const sub = gitSegment('echo "$(git -C "/repo" commit -m x)"', "commit");
+    expect(sub && gitWorkingDir(sub, "/elsewhere", resolve)).toBe("/repo");
+  });
+
+  it("does not split on separators inside quotes", () => {
+    expect(segmentsOf("git commit -m 'a && b; c | d'")).toEqual(["git commit -m 'a && b; c | d'"]);
+    expect(segmentsOf('a "x;y" && b')).toEqual(['a "x;y" ', " b"]);
+  });
+
+  it("strips quoting the way the shell does", () => {
+    expect(unquote(`'a b'"c\\"d"\\e`)).toBe('a bc"de');
   });
 });

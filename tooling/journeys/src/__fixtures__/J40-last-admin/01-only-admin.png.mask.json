@@ -1,0 +1,41 @@
+{
+  "version": 3,
+  "boxes": [
+    {
+      "x": 911,
+      "y": 289,
+      "width": 85,
+      "height": 25,
+      "from": "span.tabular-nums[0]",
+      "provenance": "learned",
+      "exercised": "2026-10-02"
+    },
+    {
+      "x": 900,
+      "y": 293,
+      "width": 92,
+      "height": 17,
+      "from": "declared:span[data-volatile-date][0]",
+      "provenance": "declared",
+      "exercised": "2026-10-02"
+    },
+    {
+      "x": 911,
+      "y": 338,
+      "width": 85,
+      "height": 25,
+      "from": "span.tabular-nums[1]",
+      "provenance": "learned",
+      "exercised": "2026-10-02"
+    },
+    {
+      "x": 900,
+      "y": 342,
+      "width": 92,
+      "height": 17,
+      "from": "declared:span[data-volatile-date][1]",
+      "provenance": "declared",
+      "exercised": "2026-10-02"
+    }
+  ]
+}

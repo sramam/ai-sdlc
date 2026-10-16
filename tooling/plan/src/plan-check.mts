@@ -1,5 +1,5 @@
 /**
- * `pnpm plan:check [--stage requirements|plan|build] [--allow-unknown]`
+ * `pnpm plan:check [--stage pre-discovery|requirements|plan|build] [--allow-unknown]`
  *
  * The census over the requirements and the plan
  * (docs/kit/plan-and-requirements.md § The census). Each stage includes the
@@ -7,15 +7,32 @@
  * a failure, and on a check that *could not ask* (git unavailable, say) unless
  * `--allow-unknown` is given.
  *
- * The stage defaults to the highest the repository has reached:
- *   requirements  until docs/plan/README.md holds a written plan (plan-lib.mts
- *                 § planWritten: a `##` heading and no `<!-- plan:placeholder -->`)
- *   plan          until apps/ holds an app (a directory with a package.json)
- *   build         after that
+ * The stage defaults to the highest the repository has reached (plan-lib.mts §
+ * detectStage):
+ *   pre-discovery  no discovery output exists — the starter as shipped. Passes,
+ *                  and says "discovery not started" in a row of its own, so it
+ *                  can never be mistaken for finished discovery
+ *   requirements   any discovery output exists (or `--stage requirements`).
+ *                  From here the whole REQUIRED_DISCOVERY set must exist:
+ *                  brd, prd, personas (≥1), features (≥1 with ≥1 requirement),
+ *                  journeys (≥1), glossary, access-model (tenancy declared and
+ *                  not open), domain-model, ux, technology, and review.md with
+ *                  a `Verdict:` of ready-pending-decisions or better
+ *   plan           docs/plan/README.md holds a written plan; the verdict must
+ *                  now be ready-to-plan or ready-with-assumptions
+ *   build          a workspace package outside tooling/ exists (apps/*,
+ *                  packages/*), or docs/plan/README.md declares `Stage: build`
+ *
+ * Missing is not vacuous. A required document that does not exist fails
+ * `discovery-outputs`; checks that relate one required thing to another (every
+ * requirement served by a journey, …) then report "nothing to check" and point
+ * at that failure rather than failing a second time. `vacuous` is kept for
+ * checks whose subject is genuinely optional: no withdrawn requirement, no
+ * technology trigger, no lifecycle event.
  *
  * Choices where the spec leaves room, each deliberate:
- * - A check with nothing to look at reports `vacuous`, which passes. On the
- *   empty starter every requirements check is vacuous and says so.
+ * - `unique-ids` and `references` run at every stage, pre-discovery included:
+ *   the plan's own items (X-000, X-001) carry IDs from day one.
  * - Provisional personas are *reported* (warn) when they link an existing open
  *   `Q-`; a provisional persona linking no `Q-` fails, because "uncertain is
  *   allowed, if it is said" and the `Q-` is how it is said.
@@ -29,9 +46,13 @@
  * - The build-stage trailer check reads every commit reachable from HEAD:
  *   items are dropped, never deleted, so an ID a trailer ever named must keep
  *   existing.
- * - The dependency check accepts a package named anywhere in docs/adr/*.md or
- *   docs/architecture.md; workspace packages (by name or `workspace:`) are not
- *   third-party and need no entry.
+ * - The dependency check reads `dependencies`, `devDependencies`,
+ *   `peerDependencies` and `optionalDependencies` of the root package.json and
+ *   every workspace package (tooling/ included). A third-party package is
+ *   accounted for only by a `Dependencies:` line in docs/adr/*.md or
+ *   docs/architecture.md (plan-lib.mts header for the exact form); a mention in
+ *   prose does not count. Workspace links (`workspace:` specs, or the name of a
+ *   workspace package) are not third-party and need no entry.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -40,24 +61,32 @@ import { isEntry } from "../../core/src/exec.mts";
 import {
   ARCHITECTURE_FILE,
   DEFAULT_DIRS,
+  REQUIRED_DISCOVERY,
   STAGES,
+  VERDICTS,
   detectStage,
   extractIds,
   git,
   hasHead,
-  hasRequirements,
   isRepo,
   logTrailers,
   normPersona,
+  parseDependencyLines,
+  reached,
   stripComments,
   stripFences,
   trailerItemId,
   trailerValues,
+  workspacePackages,
 } from "./plan-lib.mts";
 import type { CommitTrailers, Dirs, Doc, Model, Stage } from "./plan-lib.mts";
 import { loadModel } from "./plan-lib.mts";
 
-export type CheckState = "pass" | "fail" | "warn" | "vacuous" | "unknown";
+/**
+ * `not started` is pre-discovery's own answer: it passes, and it is never the
+ * word `pass`, so "discovery not started" cannot be read as "discovery done".
+ */
+export type CheckState = "pass" | "fail" | "warn" | "vacuous" | "not started" | "unknown";
 
 export interface CheckResult {
   stage: Stage;
@@ -87,6 +116,9 @@ function result(
   if (vacuous !== null) return { stage, name, state: "vacuous", summary: vacuous, details: [] };
   return { stage, name, state: "pass", summary: okSummary, details: [] };
 }
+
+/** The summary of a check whose subject is required but absent: discovery-outputs owns the failure. */
+const missing = (what: string) => `nothing to check: ${what} (discovery-outputs reports it)`;
 
 // ─── Indexes ──────────────────────────────────────────────────────────────────
 
@@ -157,13 +189,11 @@ export function checkUniqueIds(m: Model): CheckResult {
     m.personas.length + m.features.length + m.requirements.length + m.journeys.length;
   const planCount = m.items.length + m.questions.length;
   return result(
-    "requirements",
+    "pre-discovery",
     "unique-ids",
     problems,
-    `${reqCount + planCount} IDs, none duplicated`,
-    hasRequirements(m)
-      ? null
-      : `no requirements yet; ${planCount} plan ID(s) checked, none duplicated`,
+    `${reqCount + planCount} ID(s) (${reqCount} requirements, ${planCount} plan), none duplicated`,
+    reqCount + planCount ? null : "no IDs yet",
   );
 }
 
@@ -225,13 +255,11 @@ export function checkReferences(m: Model): CheckResult {
     problems.push(`${r.where} names ${r.id}, which does not exist`);
   }
   return result(
-    "requirements",
+    "pre-discovery",
     "references",
     problems,
     `${refs.length} reference(s), all resolve`,
-    hasRequirements(m)
-      ? null
-      : `no requirements yet; ${refs.length} reference(s) in the plan, all resolve`,
+    refs.length ? null : "no references yet",
   );
 }
 
@@ -270,7 +298,11 @@ export function checkRequirementJourneys(m: Model): CheckResult {
     "requirement-journeys",
     problems,
     `${live.length} requirement(s), each served by a journey`,
-    live.length ? null : "no requirements yet",
+    live.length
+      ? null
+      : m.requirements.length
+        ? "every requirement is withdrawn or out of scope"
+        : missing("no requirements"),
   );
 }
 
@@ -287,7 +319,7 @@ export function checkJourneySteps(m: Model): CheckResult {
     "journey-steps",
     problems,
     `${m.journeys.length} journey(s), every step cites a requirement`,
-    m.journeys.length ? null : "no journeys yet",
+    m.journeys.length ? null : missing("no journeys"),
   );
 }
 
@@ -303,7 +335,7 @@ export function checkJourneyPersona(m: Model): CheckResult {
     "journey-persona",
     problems,
     `${m.journeys.length} journey(s), one persona each`,
-    m.journeys.length ? null : "no journeys yet",
+    m.journeys.length ? null : missing("no journeys"),
   );
 }
 
@@ -316,7 +348,7 @@ export function checkFeaturePersonas(m: Model): CheckResult {
     "feature-personas",
     problems,
     `${m.features.length} feature(s), each names a persona`,
-    m.features.length ? null : "no features yet",
+    m.features.length ? null : missing("no features"),
   );
 }
 
@@ -330,7 +362,7 @@ export function checkPersonaJourneys(m: Model): CheckResult {
     "persona-journeys",
     problems,
     `${m.personas.length} persona(s), each with a journey`,
-    m.personas.length ? null : "no personas yet",
+    m.personas.length ? null : missing("no personas"),
   );
 }
 
@@ -400,7 +432,7 @@ export function checkProvisional(m: Model): CheckResult {
     "provisional-personas",
     [],
     "no provisional persona",
-    m.personas.length ? null : "no personas yet",
+    m.personas.length ? null : missing("no personas"),
   );
 }
 
@@ -478,13 +510,120 @@ export function checkTriggers(m: Model): CheckResult {
 
 export function checkAccessModel(m: Model): CheckResult {
   if (!m.accessModel.exists)
-    return result("requirements", "access-model", [], "", "no access-model.md yet");
+    return result("requirements", "access-model", [], "", missing("no access-model.md"));
   const open = m.accessModel.open;
+  const t = m.accessModel.tenancy;
+  const problems = open
+    ? [`${at(open)}: tenancy is open, which blocks the data model`]
+    : t
+      ? []
+      : [
+          `${m.dirs.requirements}/access-model.md declares no tenancy: write a "Tenancy: <model>" line (docs/kit/plan-and-requirements.md § Tenancy)`,
+        ];
+  return result("requirements", "access-model", problems, `tenancy: ${t?.value ?? ""}`, null);
+}
+
+// ─── Discovery ────────────────────────────────────────────────────────────────
+
+/** Pre-discovery's one row: passes, and says plainly that nothing has been discovered. */
+export function checkDiscoveryNotStarted(m: Model): CheckResult {
+  return {
+    stage: "pre-discovery",
+    name: "discovery",
+    state: "not started",
+    summary: `discovery not started: ${m.dirs.requirements} holds none of ${REQUIRED_DISCOVERY.join(", ")} (run /idea, docs/kit/BOOTSTRAP.md Phase 1)`,
+    details: [],
+  };
+}
+
+function blank(text: string): boolean {
+  return stripComments(stripFences(text)).trim().length === 0;
+}
+
+/** Every required discovery output exists, with the minimum it must hold. */
+export function checkDiscoveryOutputs(m: Model): CheckResult {
+  const dir = m.dirs.requirements;
+  const problems: string[] = [];
+  for (const name of REQUIRED_DISCOVERY) {
+    if (name === "features/") {
+      if (!m.features.length)
+        problems.push(`${dir}/features/ holds no feature file (F<nn>-<slug>.md)`);
+      else if (!m.requirements.length)
+        problems.push(`${dir}/features/ defines no requirement (a "### F<nn>-R<nn> …" heading)`);
+      continue;
+    }
+    const text = m.discovery[name];
+    if (text === null || text === undefined) {
+      problems.push(`${dir}/${name} is missing`);
+      continue;
+    }
+    if (blank(text)) problems.push(`${dir}/${name} is empty`);
+    else if (name === "personas.md" && !m.personas.length)
+      problems.push(`${dir}/personas.md defines no persona (a "## @slug" heading)`);
+    else if (name === "journeys.md" && !m.journeys.length)
+      problems.push(`${dir}/journeys.md defines no journey (a "## J<nn>" heading)`);
+  }
   return result(
     "requirements",
-    "access-model",
-    open ? [`${at(open)}: tenancy is open, which blocks the data model`] : [],
-    "tenancy is settled",
+    "discovery-outputs",
+    problems,
+    `all ${REQUIRED_DISCOVERY.length} present: ${m.personas.length} persona(s), ${m.features.length} feature(s), ${m.requirements.length} requirement(s), ${m.journeys.length} journey(s)`,
+    null,
+  );
+}
+
+/** The single well-formed verdict of review.md, or the problems that stop one being read. */
+function readVerdict(m: Model): { value: (typeof VERDICTS)[number] } | { problems: string[] } {
+  const r = m.review;
+  const file = `${m.dirs.requirements}/review.md`;
+  if (!r.exists) return { problems: [] };
+  const problems = r.malformed.map(
+    (x) => `${at(x)}: "${x.text}" is not a verdict; write "Verdict: <${VERDICTS.join(" | ")}>"`,
+  );
+  if (r.verdicts.length > 1)
+    problems.push(
+      `${file} has ${r.verdicts.length} Verdict: lines (${r.verdicts.map(at).join(", ")}); keep one`,
+    );
+  if (!r.verdicts.length && !r.malformed.length)
+    problems.push(`${file} has no "Verdict: <${VERDICTS.join(" | ")}>" line`);
+  const only = r.verdicts[0];
+  return problems.length || !only ? { problems } : { value: only.value };
+}
+
+/** Requirements stage: the verdict is ready-pending-decisions or better. */
+export function checkReviewVerdict(m: Model): CheckResult {
+  if (!m.review.exists)
+    return result("requirements", "review-verdict", [], "", missing("no review.md"));
+  const v = readVerdict(m);
+  if ("problems" in v) return result("requirements", "review-verdict", v.problems, "", null);
+  const problems =
+    v.value === "not-ready"
+      ? [`${m.dirs.requirements}/review.md: Verdict: not-ready — discovery is not done`]
+      : [];
+  return result("requirements", "review-verdict", problems, `Verdict: ${v.value}`, null);
+}
+
+/** Plan stage: /plan needs ready-to-plan or ready-with-assumptions. */
+export function checkPlanReadiness(m: Model): CheckResult {
+  const v = readVerdict(m);
+  if (!m.review.exists || "problems" in v)
+    return result(
+      "plan",
+      "plan-readiness",
+      [],
+      "",
+      "nothing to check: no readable verdict (review-verdict reports it)",
+    );
+  const ok = v.value === "ready-to-plan" || v.value === "ready-with-assumptions";
+  return result(
+    "plan",
+    "plan-readiness",
+    ok
+      ? []
+      : [
+          `${m.dirs.requirements}/review.md: Verdict: ${v.value}; a plan needs ready-to-plan or ready-with-assumptions`,
+        ],
+    `Verdict: ${v.value}`,
     null,
   );
 }
@@ -598,17 +737,24 @@ export type TrailerFacts =
   | { state: "none"; reason: string }
   | { state: "unknown"; reason: string };
 
+export const DEPENDENCY_FIELDS = [
+  "dependencies",
+  "devDependencies",
+  "peerDependencies",
+  "optionalDependencies",
+] as const;
+
 export interface Manifest {
   file: string;
   name: string | null;
-  deps: Array<{ name: string; spec: string }>;
+  deps: Array<{ name: string; spec: string; field: (typeof DEPENDENCY_FIELDS)[number] }>;
 }
 
 export interface BuildFacts {
   trailers: TrailerFacts;
   manifests: Manifest[];
-  /** ADR and architecture texts that may account for a dependency. */
-  accounting: Doc[];
+  /** The packages `Dependencies:` lines in the ADRs and architecture account for. */
+  accounted: Array<{ name: string; file: string; line: number }>;
 }
 
 export function checkTrailerItems(m: Model, facts: TrailerFacts): CheckResult {
@@ -650,31 +796,26 @@ export function checkTrailerItems(m: Model, facts: TrailerFacts): CheckResult {
   );
 }
 
-function mentions(text: string, name: string): boolean {
-  const esc = name.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
-  return new RegExp(`(?<![\\w@/.-])${esc}(?![\\w/-])`, "i").test(text);
-}
-
 export function checkDependencies(facts: BuildFacts): CheckResult {
   const internal = new Set(facts.manifests.map((mf) => mf.name).filter((x): x is string => !!x));
-  const text = facts.accounting.map((d) => stripFences(d.text)).join("\n");
+  const accounted = new Set(facts.accounted.map((a) => a.name));
   const problems: string[] = [];
-  let n = 0;
+  const seen = new Set<string>();
   for (const mf of facts.manifests)
     for (const d of mf.deps) {
       if (internal.has(d.name) || d.spec.startsWith("workspace:")) continue;
-      n++;
-      if (!mentions(text, d.name))
+      seen.add(d.name);
+      if (!accounted.has(d.name))
         problems.push(
-          `${mf.file}: ${d.name} is accounted for by no ADR or ${ARCHITECTURE_FILE} entry`,
+          `${mf.file} ${d.field}: ${d.name} is accounted for by no "Dependencies:" line in an ADR or ${ARCHITECTURE_FILE}`,
         );
     }
   return result(
     "build",
     "dependencies",
     problems,
-    `${n} third-party dependenc(ies), all accounted for`,
-    n ? null : "no third-party dependency",
+    `${seen.size} third-party package(s), each named on a Dependencies: line`,
+    seen.size ? null : "no third-party dependency",
   );
 }
 
@@ -693,37 +834,9 @@ export function gatherTrailers(root: string): TrailerFacts {
   return r.ok ? { state: "ok", commits: r.commits } : { state: "unknown", reason: r.reason };
 }
 
-function workspaceGlobs(root: string): string[] {
-  try {
-    const text = readFileSync(join(root, "pnpm-workspace.yaml"), "utf8");
-    const out: string[] = [];
-    let inPackages = false;
-    for (const line of text.split("\n")) {
-      if (/^packages\s*:/.test(line)) inPackages = true;
-      else if (/^\S/.test(line)) inPackages = false;
-      else if (inPackages) {
-        const m = /^\s*-\s*["']?([^"'#]+?)["']?\s*(#.*)?$/.exec(line);
-        if (m && m[1]) out.push(m[1].trim());
-      }
-    }
-    return out;
-  } catch {
-    return ["apps/*", "packages/*"];
-  }
-}
-
+/** The root package.json and every workspace package's, tooling/ included. */
 export function readManifests(root: string): Manifest[] {
-  const files = ["package.json"];
-  for (const g of workspaceGlobs(root)) {
-    if (g.startsWith("!")) continue;
-    if (g.endsWith("/*")) {
-      const dir = join(root, g.slice(0, -2));
-      if (!existsSync(dir)) continue;
-      for (const n of readdirSync(dir).sort())
-        if (existsSync(join(dir, n, "package.json")))
-          files.push(`${g.slice(0, -2)}/${n}/package.json`);
-    } else if (existsSync(join(root, g, "package.json"))) files.push(`${g}/package.json`);
-  }
+  const files = ["package.json", ...workspacePackages(root).map((d) => `${d}/package.json`)];
   const out: Manifest[] = [];
   for (const f of files) {
     let pkg: Record<string, unknown>;
@@ -733,18 +846,19 @@ export function readManifests(root: string): Manifest[] {
       continue;
     }
     const deps: Manifest["deps"] = [];
-    for (const field of ["dependencies", "devDependencies", "optionalDependencies"]) {
+    for (const field of DEPENDENCY_FIELDS) {
       const block = pkg[field];
       if (block && typeof block === "object")
         for (const [name, spec] of Object.entries(block as Record<string, unknown>))
-          deps.push({ name, spec: String(spec) });
+          deps.push({ name, spec: String(spec), field });
     }
     out.push({ file: f, name: typeof pkg.name === "string" ? pkg.name : null, deps });
   }
   return out;
 }
 
-export function readAccounting(root: string, dirs: Dirs): Doc[] {
+/** Every `Dependencies:` entry in docs/adr/*.md and docs/architecture.md. */
+export function readAccounted(root: string, dirs: Dirs): BuildFacts["accounted"] {
   const docs: Doc[] = [];
   const adrDir = join(root, dirs.adr);
   if (existsSync(adrDir))
@@ -753,46 +867,50 @@ export function readAccounting(root: string, dirs: Dirs): Doc[] {
         docs.push({ file: `${dirs.adr}/${n}`, text: readFileSync(join(adrDir, n), "utf8") });
   const arch = join(root, ARCHITECTURE_FILE);
   if (existsSync(arch)) docs.push({ file: ARCHITECTURE_FILE, text: readFileSync(arch, "utf8") });
-  return docs;
+  return docs.flatMap((d) => parseDependencyLines(d.text, d.file));
 }
 
 export function gatherBuildFacts(root: string, dirs: Dirs): BuildFacts {
   return {
     trailers: gatherTrailers(root),
     manifests: readManifests(root),
-    accounting: readAccounting(root, dirs),
+    accounted: readAccounted(root, dirs),
   };
 }
 
 // ─── The census ───────────────────────────────────────────────────────────────
 
 export function runCensus(m: Model, stage: Stage, build?: BuildFacts): CheckResult[] {
-  const upto = STAGES.indexOf(stage);
-  const out: CheckResult[] = [
-    checkUniqueIds(m),
-    checkReferences(m),
-    checkWithdrawn(m),
-    checkRequirementJourneys(m),
-    checkJourneySteps(m),
-    checkJourneyPersona(m),
-    checkFeaturePersonas(m),
-    checkPersonaJourneys(m),
-    checkActors(m),
-    checkProvisional(m),
-    checkEntities(m),
-    checkSenders(m),
-    checkTriggers(m),
-    checkAccessModel(m),
-  ];
-  if (upto >= 1)
+  const out: CheckResult[] = [checkUniqueIds(m), checkReferences(m)];
+  if (stage === "pre-discovery") out.push(checkDiscoveryNotStarted(m));
+  if (reached(stage, "requirements"))
     out.push(
+      checkDiscoveryOutputs(m),
+      checkReviewVerdict(m),
+      checkWithdrawn(m),
+      checkRequirementJourneys(m),
+      checkJourneySteps(m),
+      checkJourneyPersona(m),
+      checkFeaturePersonas(m),
+      checkPersonaJourneys(m),
+      checkActors(m),
+      checkProvisional(m),
+      checkEntities(m),
+      checkSenders(m),
+      checkTriggers(m),
+      checkAccessModel(m),
+    );
+  if (reached(stage, "plan"))
+    out.push(
+      checkPlanReadiness(m),
       checkItemsCite(m),
       checkMvpCoverage(m),
       checkDependsCycle(m),
       checkPendingBlocks(m),
       checkArchitecture(m),
     );
-  if (upto >= 2 && build) out.push(checkTrailerItems(m, build.trailers), checkDependencies(build));
+  if (reached(stage, "build") && build)
+    out.push(checkTrailerItems(m, build.trailers), checkDependencies(build));
   return out;
 }
 
@@ -810,6 +928,7 @@ const LABEL: Record<CheckState, string> = {
   fail: "FAIL",
   warn: "warn",
   vacuous: "vacuous",
+  "not started": "NOT STARTED",
   unknown: "COULD NOT ASK",
 };
 
@@ -841,7 +960,7 @@ export async function main(argv: string[]): Promise<number> {
   }
   const root = findRoot();
   if (!root) {
-    console.error("plan:check: could not find sdlc.config.ts above the current directory");
+    console.error("plan:check: could not find sdlc.config.json above the current directory");
     return 2;
   }
   let dirs: Dirs = DEFAULT_DIRS;
@@ -850,7 +969,7 @@ export async function main(argv: string[]): Promise<number> {
     dirs = { requirements: cfg.dirs.requirements, plan: cfg.dirs.plan, adr: cfg.dirs.adr };
   } catch (e) {
     console.log(
-      `plan:check: could not load sdlc.config.ts (${(e as Error).message}); using the default directories`,
+      `plan:check: could not load sdlc.config.json (${(e as Error).message}); using the default directories`,
     );
   }
   const detected = detectStage(root, dirs);
@@ -864,7 +983,8 @@ export async function main(argv: string[]): Promise<number> {
   const vac = results.filter((r) => r.state === "vacuous").length;
   if (v.ok) {
     const extra = v.unknown ? `; ${v.unknown} could not ask (allowed by --allow-unknown)` : "";
-    console.log(`plan:check: passed (${results.length} checks, ${vac} vacuous${extra})`);
+    const lead = stage === "pre-discovery" ? "passed — discovery NOT STARTED" : "passed";
+    console.log(`plan:check: ${lead} (${results.length} checks, ${vac} vacuous${extra})`);
     return 0;
   }
   const why = [

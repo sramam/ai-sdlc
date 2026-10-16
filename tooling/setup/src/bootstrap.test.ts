@@ -109,7 +109,7 @@ describe("runBootstrap", () => {
     expect(lstatSync(join(tree, ".dev.vars")).isSymbolicLink()).toBe(true);
   });
 
-  it("fails on missing git-lfs and node_modules; reports could-not-ask outside a repository", async () => {
+  it("fails on missing node_modules, warns on missing git-lfs and gh; could-not-ask outside a repository", async () => {
     const exec = scriptedExec([
       ["pnpm --version", result(0, "10.28.2\n")],
       ["git --version", result(0, "git version 2.50.0\n")],
@@ -126,15 +126,15 @@ describe("runBootstrap", () => {
     expect(exit).toBe(1);
     const by = Object.fromEntries(checks.map((c) => [c.name, c.state]));
     expect(by).toMatchObject({
-      "git-lfs": "fail",
-      gh: "fail",
+      "git-lfs": "warn",
+      gh: "warn",
       node_modules: "fail",
       checkout: "could-not-ask",
       node: "n/a",
     });
   });
 
-  it("could-not-ask alone does not exit 1", async () => {
+  it("a required check that could not ask exits 2, never 0", async () => {
     mkdirSync(join(main, "node_modules"));
     const exec = scriptedExec([
       ["pnpm --version", result(0, "10.28.2\n")],
@@ -145,6 +145,47 @@ describe("runBootstrap", () => {
     ]);
     expect(
       (await runBootstrap({ exec, root: main, nodeVersion: "v24.0.0", log: () => {} })).exit,
-    ).toBe(0);
+    ).toBe(2);
+  });
+
+  it("missing gh and git-lfs alone are warnings: exit 0", async () => {
+    mkdirSync(join(main, "node_modules"));
+    const exec = scriptedExec([
+      ["pnpm --version", result(0, "10.28.2\n")],
+      ["git --version", result(0, "git version 2.50.0\n")],
+      ["git lfs version", result(1, "", "git: 'lfs' is not a git command.")],
+      ["gh --version", result(127)],
+      [/--git-dir$/, result(0, `${join(main, ".git")}\n`)],
+      [/--git-common-dir$/, result(0, `${join(main, ".git")}\n`)],
+    ]);
+    const lines: string[] = [];
+    const out = await runBootstrap({
+      exec,
+      root: main,
+      nodeVersion: "v24.0.0",
+      log: (l) => lines.push(l),
+    });
+    expect(out.exit).toBe(0);
+    expect(lines.at(-1)).toMatch(/2 warning/);
+  });
+
+  it("git itself is required: missing git fails, git timing out exits 2", async () => {
+    mkdirSync(join(main, "node_modules"));
+    const base: Array<[RegExp | string, ReturnType<typeof result>]> = [
+      ["pnpm --version", result(0, "10.28.2\n")],
+      ["git lfs version", result(0, "git-lfs/3.7.0\n")],
+      ["gh --version", result(0, "gh\n")],
+      [/--git-dir$/, result(0, `${join(main, ".git")}\n`)],
+      [/--git-common-dir$/, result(0, `${join(main, ".git")}\n`)],
+    ];
+    const missing = scriptedExec([["git --version", result(127)], ...base]);
+    expect(
+      (await runBootstrap({ exec: missing, root: main, nodeVersion: "v24.0.0", log: () => {} }))
+        .exit,
+    ).toBe(1);
+    const slow = scriptedExec([["git --version", { ...result(null), timedOut: true }], ...base]);
+    expect(
+      (await runBootstrap({ exec: slow, root: main, nodeVersion: "v24.0.0", log: () => {} })).exit,
+    ).toBe(2);
   });
 });

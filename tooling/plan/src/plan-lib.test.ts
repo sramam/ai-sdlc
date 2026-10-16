@@ -15,7 +15,11 @@ import {
   fmList,
   loadModel,
   logTrailers,
+  STAGES,
   parseAccessModel,
+  parseDependencyLines,
+  parseTenancy,
+  parseVerdict,
   parseFrontmatter,
   parseJourneys,
   parsePersonas,
@@ -157,13 +161,51 @@ describe("document parsers", () => {
   });
 });
 
+describe("verdict, tenancy and Dependencies: lines", () => {
+  it("reads exactly the documented verdict form", () => {
+    const r = parseVerdict(
+      "# Review\n\nVerdict: ready-to-plan\n**Verdict:** not-ready\nVerdict: ready to plan\n<!-- Verdict: not-ready -->\n",
+      "r.md",
+    );
+    expect(r.verdicts.map((v) => [v.value, v.line])).toEqual([
+      ["ready-to-plan", 3],
+      ["not-ready", 4],
+    ]);
+    expect(r.malformed.map((m) => m.line)).toEqual([5]);
+    expect(parseVerdict(null, "r.md").exists).toBe(false);
+  });
+  it("reads the declared tenancy", () => {
+    expect(parseTenancy("Tenancy: per-user\n", "a.md")?.value).toBe("per-user");
+    expect(parseTenancy("<!-- idea: section=tenancy state=decided -->\n", "a.md")?.value).toBe(
+      "decided",
+    );
+    expect(parseTenancy("Roles: admin\n", "a.md")).toBeNull();
+  });
+  it("reads Dependencies: lines and nothing else", () => {
+    expect(
+      parseDependencyLines(
+        "Uses typescript.\nDependencies: `@types/node`, eslint,\n- Dependencies: vitest\n```\nDependencies: pg\n```\n",
+        "adr.md",
+      ).map((d) => d.name),
+    ).toEqual(["@types/node", "eslint", "vitest"]);
+  });
+});
+
 describe("stage", () => {
   it("treats the starter's README as no plan yet", () => {
     expect(planWritten("# Plan\n\nWritten by `/plan`.\n")).toBe(false);
     expect(planWritten("# Plan\n\n## Milestones\n")).toBe(true);
     expect(planWritten("<!-- plan:placeholder -->\n## Milestones\n")).toBe(false);
-    expect(detectStage(join(FIXTURES, "empty")).stage).toBe("requirements");
+    expect(detectStage(join(FIXTURES, "empty")).stage).toBe("pre-discovery");
     expect(detectStage(join(FIXTURES, "good")).stage).toBe("plan");
+  });
+  it("is pre-discovery until a discovery output exists", () => {
+    expect(STAGES[0]).toBe("pre-discovery");
+    const d = tempDir();
+    dirs.push(d);
+    expect(detectStage(d).stage).toBe("pre-discovery");
+    write(d, "docs/requirements/review.md", "Verdict: not-ready\n");
+    expect(detectStage(d).stage).toBe("requirements");
   });
   it("is build once apps/ holds an app", () => {
     const d = tempDir();

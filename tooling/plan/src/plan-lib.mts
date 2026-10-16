@@ -64,9 +64,38 @@
  *   in the row/section.
  *
  * access-model.md
- *   Open when a line reads `Tenancy: open` (also `**Tenancy:** open`), or an
- *   `idea` marker for its tenancy section says `state=open`
- *   (`<!-- idea: section=tenancy state=open -->`).
+ *   Tenancy is declared by a `Tenancy: <model>` field (also `**Tenancy:** …`),
+ *   or by an `idea` marker for its tenancy section
+ *   (`<!-- idea: section=tenancy state=decided -->`). It is open when that
+ *   field reads `open` or the marker says `state=open`, and undeclared when
+ *   neither exists — which the requirements stage treats as a failure too.
+ *
+ * review.md — the readiness verdict
+ *   Exactly one line, outside fenced code and HTML comments, of the form
+ *
+ *     Verdict: ready-to-plan
+ *
+ *   with one of four values, best first: `ready-to-plan`,
+ *   `ready-with-assumptions`, `ready-pending-decisions`, `not-ready`. Leading
+ *   `- ` and `**Verdict:**` bold are tolerated; nothing may follow the value.
+ *   A `Verdict:` line with any other value is reported, never guessed at.
+ *
+ * Discovery outputs (REQUIRED_DISCOVERY)
+ *   brd.md, prd.md, personas.md, features/, journeys.md, glossary.md,
+ *   access-model.md, domain-model.md, ux.md, technology.md, review.md — under
+ *   the requirements directory. Any one of them existing means discovery has
+ *   started; the starter ships none. `README.md`, `project-brief.md` (kickoff's
+ *   first pass) and `sources/` are not discovery outputs.
+ *
+ * `Dependencies:` lines — what an ADR accounts for
+ *   In docs/adr/*.md and docs/architecture.md, a line (outside fenced code and
+ *   HTML comments) beginning `Dependencies:` lists third-party packages,
+ *   comma-separated, backticks optional:
+ *
+ *     Dependencies: typescript, `@types/node`, @scope/pkg
+ *
+ *   Several such lines in one file accumulate. Nothing else in the file counts:
+ *   a package named only in prose is not accounted for.
  *
  * docs/architecture.md
  *   Components are the level-3 headings under a `## Components` heading; with
@@ -80,7 +109,9 @@
  * docs/plan/README.md
  *   Holds a written plan when it has at least one `##` heading and no
  *   `<!-- plan:placeholder -->` marker. The starter's README has no `##`
- *   heading, so it reads as "no plan yet".
+ *   heading, so it reads as "no plan yet". A line `Stage: build` (outside
+ *   fenced code and comments) declares the build stage before any workspace
+ *   package exists — for a project whose first code is not a package.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -508,7 +539,10 @@ export interface Model {
   domainModelExists: boolean;
   triggers: Trigger[];
   technologyExists: boolean;
-  accessModel: { exists: boolean; open: Loc | null };
+  accessModel: { exists: boolean; open: Loc | null; tenancy: Tenancy | null };
+  /** The text of each required discovery document (null when absent), by file name. */
+  discovery: Record<string, string | null>;
+  review: ReviewVerdict;
   components: Component[];
   architectureExists: boolean;
   items: Item[];
@@ -808,6 +842,73 @@ export function parseTechnology(text: string, file: string): Trigger[] {
   return out;
 }
 
+export interface Tenancy extends Loc {
+  value: string;
+}
+
+/** The declared tenancy: a `Tenancy:` field, else an `idea` tenancy marker's state. */
+export function parseTenancy(text: string, file: string): Tenancy | null {
+  const lines = stripFences(text).split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const f = fieldsOf(stripComments(lines[i] ?? "")).find((x) => x.label === "tenancy");
+    if (f && f.value.trim()) return { value: f.value.trim(), file, line: i + 1 };
+  }
+  for (let i = 0; i < lines.length; i++) {
+    const m = /<!--\s*idea:[^>]*section=tenancy[^>]*state=([\w-]+)/i.exec(lines[i] ?? "");
+    if (m && m[1]) return { value: m[1], file, line: i + 1 };
+  }
+  return null;
+}
+
+export const VERDICTS = [
+  "ready-to-plan",
+  "ready-with-assumptions",
+  "ready-pending-decisions",
+  "not-ready",
+] as const;
+export type Verdict = (typeof VERDICTS)[number];
+
+export interface ReviewVerdict {
+  exists: boolean;
+  /** Every well-formed `Verdict:` line. */
+  verdicts: Array<{ value: Verdict } & Loc>;
+  /** `Verdict:` lines whose value is not one of VERDICTS. */
+  malformed: Array<{ text: string } & Loc>;
+}
+
+/** The `Verdict:` lines of review.md (see the header for the exact form). */
+export function parseVerdict(text: string | null, file: string): ReviewVerdict {
+  if (text === null) return { exists: false, verdicts: [], malformed: [] };
+  const out: ReviewVerdict = { exists: true, verdicts: [], malformed: [] };
+  stripComments(stripFences(text))
+    .split("\n")
+    .forEach((line, i) => {
+      const m = /^\s*(?:[-*+]\s+)?\**Verdict:\**\s*(.*?)\s*$/i.exec(line);
+      if (!m) return;
+      const v = (m[1] ?? "").replace(/^\*+|\*+$/g, "").trim();
+      if ((VERDICTS as readonly string[]).includes(v))
+        out.verdicts.push({ value: v as Verdict, file, line: i + 1 });
+      else out.malformed.push({ text: line.trim(), file, line: i + 1 });
+    });
+  return out;
+}
+
+/** The packages a document's `Dependencies:` lines account for. */
+export function parseDependencyLines(text: string, file: string): Array<{ name: string } & Loc> {
+  const out: Array<{ name: string } & Loc> = [];
+  stripComments(stripFences(text))
+    .split("\n")
+    .forEach((line, i) => {
+      const m = /^\s*(?:[-*+]\s+)?\**Dependencies:\**\s*(.*)$/.exec(line);
+      if (!m) return;
+      for (const raw of (m[1] ?? "").split(",")) {
+        const name = raw.replace(/`/g, "").trim().replace(/[.;]$/, "");
+        if (name) out.push({ name, file, line: i + 1 });
+      }
+    });
+  return out;
+}
+
 export function parseAccessModel(text: string, file: string): Loc | null {
   const lines = stripFences(text).split("\n");
   for (let i = 0; i < lines.length; i++) {
@@ -965,6 +1066,11 @@ export function loadModel(root: string, dirs: Dirs = DEFAULT_DIRS): Model {
   const techText = read(join(req, "technology.md"));
   const triggers = techText ? parseTechnology(techText, rel(join(req, "technology.md"))) : [];
   const amText = read(join(req, "access-model.md"));
+  const discovery: Record<string, string | null> = {};
+  for (const name of REQUIRED_DISCOVERY)
+    if (name !== "features/") {
+      discovery[name] = readText(join(req, name));
+    }
   const archText = read(join(root, ARCHITECTURE_FILE));
   const components = archText ? parseArchitecture(archText, ARCHITECTURE_FILE) : [];
 
@@ -1000,7 +1106,10 @@ export function loadModel(root: string, dirs: Dirs = DEFAULT_DIRS): Model {
     accessModel: {
       exists: amText !== null,
       open: amText ? parseAccessModel(amText, rel(join(req, "access-model.md"))) : null,
+      tenancy: amText ? parseTenancy(amText, rel(join(req, "access-model.md"))) : null,
     },
+    discovery,
+    review: parseVerdict(discovery["review.md"] ?? null, rel(join(req, "review.md"))),
     components,
     architectureExists: archText !== null,
     items,
@@ -1011,47 +1120,114 @@ export function loadModel(root: string, dirs: Dirs = DEFAULT_DIRS): Model {
   };
 }
 
-/** True when docs/requirements holds anything beyond the starter's README and sources/. */
-export function hasRequirements(m: Model): boolean {
-  return (
-    m.personas.length > 0 ||
-    m.features.length > 0 ||
-    m.journeys.length > 0 ||
-    m.entities.length > 0 ||
-    m.triggers.length > 0 ||
-    m.accessModel.exists
+// ─── Stage ────────────────────────────────────────────────────────────────────
+
+export type Stage = "pre-discovery" | "requirements" | "plan" | "build";
+export const STAGES: Stage[] = ["pre-discovery", "requirements", "plan", "build"];
+
+/** True when stage `s` includes stage `of` (each stage includes the ones before it). */
+export function reached(s: Stage, of: Stage): boolean {
+  return STAGES.indexOf(s) >= STAGES.indexOf(of);
+}
+
+/** What discovery (`/idea`) must leave in the requirements directory. */
+export const REQUIRED_DISCOVERY = [
+  "brd.md",
+  "prd.md",
+  "personas.md",
+  "features/",
+  "journeys.md",
+  "glossary.md",
+  "access-model.md",
+  "domain-model.md",
+  "ux.md",
+  "technology.md",
+  "review.md",
+] as const;
+
+/** The required discovery outputs present (`features/` counts when it holds a `.md`). */
+export function discoveryOutputs(root: string, dirs: Dirs = DEFAULT_DIRS): string[] {
+  const req = join(root, dirs.requirements);
+  return REQUIRED_DISCOVERY.filter((n) =>
+    n === "features/" ? mdFiles(join(req, "features")).length > 0 : existsSync(join(req, n)),
   );
 }
 
-// ─── Stage ────────────────────────────────────────────────────────────────────
-
-export type Stage = "requirements" | "plan" | "build";
-export const STAGES: Stage[] = ["requirements", "plan", "build"];
-
-/** An app is a directory under apps/ holding a package.json. */
-export function appsPresent(root: string): string[] {
-  const dir = join(root, "apps");
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir)
-    .filter((n) => existsSync(join(dir, n, "package.json")))
-    .sort();
+/** The `packages:` globs of pnpm-workspace.yaml (apps/* and packages/* when unreadable). */
+export function workspaceGlobs(root: string): string[] {
+  try {
+    const text = readFileSync(join(root, "pnpm-workspace.yaml"), "utf8");
+    const out: string[] = [];
+    let inPackages = false;
+    for (const line of text.split("\n")) {
+      if (/^packages\s*:/.test(line)) inPackages = true;
+      else if (/^\S/.test(line)) inPackages = false;
+      else if (inPackages) {
+        const m = /^\s*-\s*["']?([^"'#]+?)["']?\s*(#.*)?$/.exec(line);
+        if (m && m[1]) out.push(m[1].trim());
+      }
+    }
+    return out;
+  } catch {
+    return ["apps/*", "packages/*"];
+  }
 }
 
+/** Directories (relative to the root) of every workspace package that has a package.json. */
+export function workspacePackages(root: string): string[] {
+  const out: string[] = [];
+  for (const g of workspaceGlobs(root)) {
+    if (g.startsWith("!")) continue;
+    if (g.endsWith("/*")) {
+      const base = g.slice(0, -2);
+      const dir = join(root, base);
+      if (!existsSync(dir)) continue;
+      for (const n of readdirSync(dir).sort())
+        if (existsSync(join(dir, n, "package.json"))) out.push(`${base}/${n}`);
+    } else if (existsSync(join(root, g, "package.json"))) out.push(g.replace(/\/$/, ""));
+  }
+  return [...new Set(out)];
+}
+
+/** The product's workspace packages: every one outside tooling/ (the starter's own). */
+export function productPackages(root: string): string[] {
+  return workspacePackages(root).filter((p) => !/^tooling(\/|$)/.test(p));
+}
+
+/** True when docs/plan/README.md declares `Stage: build` on a line of its own. */
+export function declaresBuild(readme: string): boolean {
+  return /^\s*(?:[-*+]\s+)?\**Stage:\**\s*build\s*$/im.test(stripComments(stripFences(readme)));
+}
+
+/**
+ * The highest stage the repository has reached:
+ *   build          a workspace package outside tooling/ exists, or the plan
+ *                  README declares `Stage: build`
+ *   plan           docs/plan/README.md holds a written plan
+ *   requirements   any required discovery output exists
+ *   pre-discovery  none does — the starter as shipped
+ */
 export function detectStage(
   root: string,
   dirs: Dirs = DEFAULT_DIRS,
 ): { stage: Stage; reason: string } {
-  const apps = appsPresent(root);
-  if (apps.length) return { stage: "build", reason: `apps/ holds ${apps.join(", ")}` };
+  const pkgs = productPackages(root);
+  if (pkgs.length) return { stage: "build", reason: `workspace package(s) ${pkgs.join(", ")}` };
   const readme = readText(join(root, dirs.plan, "README.md"));
-  if (readme === null)
-    return { stage: "requirements", reason: `${dirs.plan}/README.md does not exist` };
-  if (!planWritten(readme))
+  if (readme !== null && declaresBuild(readme))
+    return { stage: "build", reason: `${dirs.plan}/README.md declares "Stage: build"` };
+  if (readme !== null && planWritten(readme))
+    return { stage: "plan", reason: `${dirs.plan}/README.md holds a written plan` };
+  const found = discoveryOutputs(root, dirs);
+  if (found.length)
     return {
       stage: "requirements",
-      reason: `${dirs.plan}/README.md holds no written plan yet (no "##" heading, or ${PLAN_PLACEHOLDER_MARKER})`,
+      reason: `discovery has started (${dirs.requirements} holds ${found.join(", ")}); no written plan yet`,
     };
-  return { stage: "plan", reason: `${dirs.plan}/README.md holds a plan and apps/ holds no app` };
+  return {
+    stage: "pre-discovery",
+    reason: `${dirs.requirements} holds no discovery output (${REQUIRED_DISCOVERY.join(", ")})`,
+  };
 }
 
 // ─── Git ──────────────────────────────────────────────────────────────────────

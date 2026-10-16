@@ -14,6 +14,12 @@
  * dev, not that it is current. Local `dev` lags every merge since somebody last
  * fast-forwarded it, so the messages say `origin/dev`.
  *
+ * A claim branch is the other accepted base. `pnpm claim <ID>` pushes a branch
+ * named exactly the lowercased item ID (`f03-012`, `x-000`) on top of
+ * origin/dev, and the work worktree forks from it — so `origin/<id>` (or `<id>`)
+ * is allowed when `<id>` has the item-ID shape. It checks the *shape*, not that
+ * the claim exists: a typo'd ID fails at `git worktree add` itself.
+ *
  * Not covered: a subagent with `isolation: "worktree"` (the harness creates it
  * without a tool call).
  *
@@ -23,7 +29,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { findRoot, loadConfig } from "../../core/src/config.mts";
+import { CONFIG_FILE, findRoot, loadConfig } from "../../core/src/config.mts";
 import { checkoutRoot, parseWorktreeAdd } from "../../core/src/git-command.mts";
 
 const OVERRIDE = /#\s*worktree-base:\s*\S/;
@@ -48,6 +54,15 @@ export function acceptedBases(integration: string): Set<string> {
     `refs/heads/${integration}`,
     `refs/remotes/origin/${integration}`,
   ]);
+}
+
+/** The item-ID shape of a claim branch: `f03-012`, `x-000` (case-insensitive). */
+export const CLAIM_BRANCH = /^(?:[a-z]+\d*-\d{3}|x-\d{3})$/i;
+
+/** `origin/<id>`, `<id>` and their refs/ spellings, where `<id>` is a claim branch. */
+export function isClaimBase(base: string): boolean {
+  const name = base.replace(/^refs\/(?:heads|remotes\/origin)\//, "").replace(/^origin\//, "");
+  return CLAIM_BRANCH.test(name);
 }
 
 export function verdict(input: HookInput, integration = DEFAULT_INTEGRATION): Verdict {
@@ -91,12 +106,13 @@ export function verdict(input: HookInput, integration = DEFAULT_INTEGRATION): Ve
     );
   }
 
-  if (!acceptedBases(integration).has(add.base)) {
+  if (!acceptedBases(integration).has(add.base) && !isClaimBase(add.base)) {
     return deny(
       `This worktree would fork from \`${add.base}\`, not \`origin/${integration}\`. A worktree ` +
         `forks from the integration branch and merges back into it; one cut from elsewhere ` +
         "starts behind and its first act is catching up.\n\n" +
         create +
+        `\n…or the item's claim branch (\`origin/<item-id>\`, from \`pnpm claim <ID>\`)` +
         `\n…or, if \`${add.base}\` is genuinely required:  # worktree-base: <reason>`,
     );
   }
@@ -105,14 +121,14 @@ export function verdict(input: HookInput, integration = DEFAULT_INTEGRATION): Ve
 }
 
 /**
- * The integration branch from `sdlc.config.ts`. Could not ask (no repository,
+ * The integration branch from `sdlc.config.json`. Could not ask (no repository,
  * no config, a config that will not load) → the default, since a guard that
  * cannot start must not block every worktree.
  */
 export async function integrationBranch(cwd: string): Promise<string> {
   try {
     const root = checkoutRoot(cwd) ?? findRoot(cwd);
-    if (!root || !existsSync(join(root, "sdlc.config.ts"))) return DEFAULT_INTEGRATION;
+    if (!root || !existsSync(join(root, CONFIG_FILE))) return DEFAULT_INTEGRATION;
     return (await loadConfig(root)).branches?.integration || DEFAULT_INTEGRATION;
   } catch {
     return DEFAULT_INTEGRATION;

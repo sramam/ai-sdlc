@@ -19,16 +19,27 @@ refuse its violation.**
 
 ## 2. A hook and a gate are a pair, not a redundancy
 
-|                                                                        | catches it                               | role               |
-| ---------------------------------------------------------------------- | ---------------------------------------- | ------------------ |
-| commit hook                                                            | in seconds, before the commit exists     | makes failure rare |
-| merge gate (`ci:local` verdict as a commit status, checked by `/land`) | before it reaches the integration branch | **the authority**  |
+|                                                                            | catches it                               | role               |
+| -------------------------------------------------------------------------- | ---------------------------------------- | ------------------ |
+| commit hook                                                                | in seconds, before the commit exists     | makes failure rare |
+| merge gate (`ci:local` verdict as a commit status, checked by `pnpm land`) | before it reaches the integration branch | **the authority**  |
 
 A hook can be skipped with `--no-verify`, may not run in a cloud session, and
 only sees staged files. A gate with no hook beside it is one people only meet at
 the end. The gate does not have to be hosted CI. What makes it a gate is that
 its verdict is **recorded against the exact SHA**, and that the merge step
 **refuses without it**.
+
+**Where the gate is enforced, honestly:**
+
+| layer         | enforces                                                                                                                                                                                  | for whom                                                                                                                                                                  |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **localhost** | `pnpm land` is the only merge path: it checks, merges, and stamps the merge commit. `.claude/settings.json` denies agents `gh pr merge`, pushing to `dev`, `--no-verify` and force-pushes | **agents**. A person can still bypass it deliberately                                                                                                                     |
+| **GitHub**    | a ruleset on `dev`: pull request required, `local-ci` status required. Applied by `sdlc:init`                                                                                             | **everyone**, but only where GitHub offers rulesets: a public repo, or a paid plan for a private one. On a free private repo `sdlc:init` reports the layer as unavailable |
+
+Neither layer uses GitHub Actions. Guards in either layer are **guardrails
+against accidents, not a security boundary**: a determined agent with shell
+access can route around a parsed command.
 
 ## 3. Prove a guard by tripping it
 

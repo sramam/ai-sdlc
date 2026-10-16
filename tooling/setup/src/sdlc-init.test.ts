@@ -1,14 +1,22 @@
 import { describe, expect, it } from "vitest";
 import type { SdlcConfig } from "../../core/src/config.mts";
 import { result, scriptedExec } from "../../core/src/exec.mts";
-import type { ExecResult } from "../../core/src/exec.mts";
-import { REPO_SETTINGS, runInit } from "./sdlc-init.mts";
+import type { ExecResult, ScriptedCall } from "../../core/src/exec.mts";
+import { readFileSync } from "node:fs";
+import {
+  REPO_SETTINGS,
+  RULESET_NAME,
+  RULESET_UNAVAILABLE,
+  covers,
+  integrationRuleset,
+  runInit,
+} from "./sdlc-init.mts";
 
 const config = {
   branches: { integration: "dev", staging: "staging", production: "main" },
 } as SdlcConfig;
 const MAIN = "f".repeat(40);
-type Rule = [RegExp | string, ExecResult];
+type Rule = [RegExp | string, ExecResult | ((call: ScriptedCall) => ExecResult)];
 
 const fresh: Rule[] = [
   [
@@ -25,11 +33,13 @@ const fresh: Rule[] = [
     ),
   ],
   [/^gh api repos\/acme\/app\/actions\/permissions$/, result(0, JSON.stringify({ enabled: true }))],
+  [/^gh api repos\/acme\/app\/rulesets$/, result(0, "[]")],
   [/^gh api (-X|repos\/acme\/app\/git\/refs)/, result(0, "{}")],
   ["git fetch --prune origin", result(0)],
   ["git lfs version", result(0, "git-lfs/3.7.0")],
   [/^git config --local --get filter.lfs.clean/, result(1)],
   ["git lfs install --local", result(0)],
+  [/^git check-attr filter -- /, result(0, "docs/journeys/x.png: filter: lfs\n")],
   [/^node .*bootstrap\.mts$/, result(0, "  ok node")],
   [/^node .*ci-local\.mts --no-status$/, result(0, "  verdict: pass")],
 ];
@@ -46,6 +56,23 @@ const configured: Rule[] = [
     result(0, JSON.stringify({ enabled: false })),
   ],
   [/^git config --local --get filter.lfs.clean/, result(0, "git-lfs clean -- %f")],
+  [
+    /^gh api repos\/acme\/app\/rulesets$/,
+    result(0, JSON.stringify([{ id: 7, name: RULESET_NAME }])),
+  ],
+  [
+    /^gh api repos\/acme\/app\/rulesets\/7$/,
+    // GitHub answers with more than was sent; only what was asked for is compared.
+    result(
+      0,
+      JSON.stringify({
+        id: 7,
+        ...integrationRuleset("dev"),
+        source: "acme/app",
+        bypass_actors: [],
+      }),
+    ),
+  ],
   ...fresh.filter(([p]) => !String(p).includes("gh ")),
 ];
 
@@ -69,6 +96,8 @@ describe("sdlc:init", () => {
       actions: "done",
       fetch: "done",
       "git-lfs": "done",
+      "lfs patterns": "already",
+      ruleset: "done",
       bootstrap: "done",
       "ci:local": "done",
     });
@@ -92,6 +121,7 @@ describe("sdlc:init", () => {
       settings: "already",
       actions: "already",
       "git-lfs": "already",
+      ruleset: "already",
     });
     expect(exec.calls.some((c) => c.args.includes("-X") || c.args.includes("install"))).toBe(false);
   });
@@ -149,5 +179,106 @@ describe("sdlc:init", () => {
       ...configured,
     ]);
     expect(state["git-lfs"]).toBe("failed");
+  });
+
+  it("verifies .gitattributes routes journey evidence to LFS, not only that git-lfs exists", async () => {
+    const { state, exit, steps } = await run([
+      [/^git check-attr filter -- /, result(0, "docs/journeys/x.png: filter: unspecified\n")],
+      ...configured,
+    ]);
+    expect(state["git-lfs"]).toBe("already");
+    expect(state["lfs patterns"]).toBe("failed");
+    expect(steps.find((s) => s.name === "lfs patterns")?.detail).toMatch(/filter=lfs/);
+    expect(exit).toBe(1);
+  });
+});
+
+describe("the integration ruleset", () => {
+  const rulesetCalls = (exec: { calls: Array<{ args: string[] }> }) =>
+    exec.calls.filter((c) => c.args.some((a) => a.includes("rulesets"))).map((c) => c.args);
+
+  it("creates it with a pull request and the local-ci check, through --input", async () => {
+    let body: unknown = null;
+    const { state, exec } = await run([
+      [
+        /^gh api -X POST repos\/acme\/app\/rulesets --input /,
+        (call) => {
+          body = JSON.parse(readFileSync(call.args.at(-1)!, "utf8"));
+          return result(0, "{}");
+        },
+      ],
+      ...fresh,
+    ]);
+    expect(state.ruleset).toBe("done");
+    expect(body).toEqual(integrationRuleset("dev"));
+    expect(JSON.stringify(body)).toContain('"context":"local-ci"');
+    expect(JSON.stringify(body)).toContain("refs/heads/dev");
+    expect(rulesetCalls(exec).map((a) => a.slice(0, 4).join(" "))).toEqual([
+      "api repos/acme/app/rulesets",
+      "api -X POST repos/acme/app/rulesets",
+    ]);
+  });
+
+  it("is already present when one by that name covers what is asked", async () => {
+    const { state, exec } = await run(configured);
+    expect(state.ruleset).toBe("already");
+    expect(rulesetCalls(exec).some((a) => a.includes("-X"))).toBe(false);
+  });
+
+  it("updates one by that name that has drifted", async () => {
+    const drifted = { id: 7, ...integrationRuleset("dev"), rules: [] };
+    const { state, exec } = await run([
+      [/^gh api repos\/acme\/app\/rulesets\/7$/, result(0, JSON.stringify(drifted))],
+      [/^gh api -X PUT repos\/acme\/app\/rulesets\/7 --input /, result(0, "{}")],
+      ...configured,
+    ]);
+    expect(state.ruleset).toBe("done");
+    expect(rulesetCalls(exec).some((a) => a.includes("PUT"))).toBe(true);
+  });
+
+  it("is unavailable, not failed, when the plan refuses (403 or 404)", async () => {
+    for (const rules of [
+      [
+        [
+          /^gh api repos\/acme\/app\/rulesets$/,
+          result(
+            1,
+            "",
+            "gh: Upgrade to GitHub Pro or make this repository public to enable this feature. (HTTP 403)",
+          ),
+        ],
+      ],
+      [[/^gh api -X POST repos\/acme\/app\/rulesets/, result(1, "", "gh: Not Found (HTTP 404)")]],
+    ] as Rule[][]) {
+      const { state, steps, exit } = await run([...rules, ...fresh]);
+      expect(state.ruleset).toBe("unavailable");
+      expect(steps.find((s) => s.name === "ruleset")?.detail).toBe(RULESET_UNAVAILABLE);
+      expect(exit).toBe(0);
+    }
+  });
+
+  it("fails on any other refusal", async () => {
+    const { state, exit } = await run([
+      [
+        /^gh api -X POST repos\/acme\/app\/rulesets/,
+        result(1, "", "gh: Validation Failed (HTTP 422)"),
+      ],
+      ...fresh,
+    ]);
+    expect(state.ruleset).toBe("failed");
+    expect(exit).toBe(1);
+  });
+
+  it("--dry-run reads the rulesets and says what it would do", async () => {
+    const { state, exec } = await run(fresh, true);
+    expect(state.ruleset).toBe("would");
+    expect(rulesetCalls(exec).every((a) => !a.includes("-X"))).toBe(true);
+  });
+
+  it("covers ignores GitHub's extra fields but not a missing or different one", () => {
+    const want = integrationRuleset("dev");
+    expect(covers({ ...want, id: 1, extra: true }, want)).toBe(true);
+    expect(covers({ ...want, enforcement: "evaluate" }, want)).toBe(false);
+    expect(covers({ ...want, rules: want.rules }, { ...want, name: "other" })).toBe(false);
   });
 });

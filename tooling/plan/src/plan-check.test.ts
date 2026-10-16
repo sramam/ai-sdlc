@@ -22,7 +22,8 @@ import {
   verdict,
 } from "./plan-check.mts";
 import type { CheckResult } from "./plan-check.mts";
-import { DEFAULT_DIRS, loadModel } from "./plan-lib.mts";
+import type { Stage } from "./plan-lib.mts";
+import { DEFAULT_DIRS, detectStage, loadModel } from "./plan-lib.mts";
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -42,7 +43,7 @@ function mutated(edits: Record<string, string | ((t: string) => string) | null>)
   return d;
 }
 
-function check(root: string, name: string, stage: "requirements" | "plan" = "plan"): CheckResult {
+function check(root: string, name: string, stage: Stage = "plan"): CheckResult {
   const r = runCensus(loadModel(root), stage).find((x) => x.name === name);
   if (!r) throw new Error(`no check ${name}`);
   return r;
@@ -53,26 +54,132 @@ const J = "docs/requirements/journeys.md";
 const P = "docs/requirements/personas.md";
 
 describe("the good fixture", () => {
-  it("passes every requirements and plan check", () => {
+  it("passes every check up to the plan stage", () => {
     const results = runCensus(loadModel(join(FIXTURES, "good")), "plan");
     expect(results.filter((r) => r.state !== "pass")).toEqual([]);
-    expect(results).toHaveLength(19);
+    expect(results).toHaveLength(22);
+  });
+  it("is detected at the plan stage", () => {
+    expect(detectStage(join(FIXTURES, "good")).stage).toBe("plan");
   });
 });
 
 describe("the empty starter", () => {
-  it("passes vacuously, with a line per check saying so", () => {
-    const results = runCensus(loadModel(join(FIXTURES, "empty")), "requirements");
-    expect(results).toHaveLength(14);
-    expect(results.every((r) => r.state === "vacuous")).toBe(true);
+  it("is pre-discovery, and says discovery has not started rather than passing vacuously", () => {
+    const root = join(FIXTURES, "empty");
+    expect(detectStage(root)).toMatchObject({ stage: "pre-discovery" });
+    const results = runCensus(loadModel(root), "pre-discovery");
+    expect(results.map((r) => [r.name, r.state])).toEqual([
+      ["unique-ids", "pass"],
+      ["references", "pass"],
+      ["discovery", "not started"],
+    ]);
     expect(verdict(results, false).ok).toBe(true);
-    const table = formatTable(results, "requirements");
-    expect(table.filter((l) => l.includes("vacuous"))).toHaveLength(14);
-    expect(table.some((l) => l.includes("not run"))).toBe(true);
+    const table = formatTable(results, "pre-discovery");
+    expect(
+      table.some((l) => l.includes("NOT STARTED") && l.includes("discovery not started")),
+    ).toBe(true);
+    expect(table.filter((l) => l.includes("not run"))).toHaveLength(3);
   });
-  it("also passes the plan stage", () => {
+  it("fails the requirements stage, naming every missing discovery output", () => {
+    const results = runCensus(loadModel(join(FIXTURES, "empty")), "requirements");
+    expect(verdict(results, false).ok).toBe(false);
+    const outputs = results.find((r) => r.name === "discovery-outputs");
+    expect(outputs?.state).toBe("fail");
+    for (const f of ["brd.md", "prd.md", "personas.md", "journeys.md", "glossary.md", "review.md"])
+      expect(outputs?.details.join("\n")).toContain(`docs/requirements/${f} is missing`);
+    expect(outputs?.details.join("\n")).toContain("features/ holds no feature file");
+    expect(results.find((r) => r.state === "not started")).toBeUndefined();
+  });
+  it("fails the plan stage too", () => {
     const results = runCensus(loadModel(join(FIXTURES, "empty")), "plan");
-    expect(verdict(results, false).ok).toBe(true);
+    expect(verdict(results, false).ok).toBe(false);
+  });
+});
+
+describe("stage detection", () => {
+  const empty = () => {
+    const d = copyFixture("empty");
+    dirs.push(d);
+    return d;
+  };
+  it("any one discovery output moves the starter to the requirements stage", () => {
+    const d = empty();
+    write(d, "docs/requirements/glossary.md", "# Glossary\n");
+    expect(detectStage(d)).toMatchObject({ stage: "requirements" });
+    const f = empty();
+    write(f, "docs/requirements/features/F01-x.md", "# F01 X\n");
+    expect(detectStage(f).stage).toBe("requirements");
+  });
+  it("project-brief.md and sources/ are not discovery outputs", () => {
+    const d = empty();
+    write(d, "docs/requirements/project-brief.md", "# Brief\n");
+    write(d, "docs/requirements/sources/notes.md", "imported\n");
+    expect(detectStage(d).stage).toBe("pre-discovery");
+  });
+  it("a package-only project reaches the build stage", () => {
+    const d = empty();
+    write(d, "pnpm-workspace.yaml", 'packages:\n  - "tooling/*"\n  - "apps/*"\n  - "packages/*"\n');
+    write(d, "tooling/plan/package.json", "{}");
+    expect(detectStage(d).stage).toBe("pre-discovery");
+    write(d, "packages/core/package.json", JSON.stringify({ name: "@acme/core" }));
+    expect(detectStage(d)).toMatchObject({ stage: "build" });
+    expect(detectStage(d).reason).toContain("packages/core");
+  });
+  it("docs/plan/README.md can declare the build stage", () => {
+    const d = empty();
+    write(d, "docs/plan/README.md", "# Plan\n\nStage: build\n");
+    expect(detectStage(d).stage).toBe("build");
+    write(d, "docs/plan/README.md", "# Plan\n\n```\nStage: build\n```\n");
+    expect(detectStage(d).stage).toBe("pre-discovery");
+  });
+});
+
+describe("discovery outputs and the verdict", () => {
+  const R = "docs/requirements/review.md";
+  it("discovery-outputs: a missing glossary, an empty BRD, a personas.md with no persona", () => {
+    const d = mutated({
+      "docs/requirements/glossary.md": null,
+      "docs/requirements/brd.md": "<!-- todo -->\n",
+      [P]: "# Personas\n\nNobody yet.\n",
+    });
+    const r = check(d, "discovery-outputs", "requirements");
+    expect(r.state).toBe("fail");
+    const text = r.details.join("\n");
+    expect(text).toContain("glossary.md is missing");
+    expect(text).toContain("brd.md is empty");
+    expect(text).toContain("personas.md defines no persona");
+  });
+  it("discovery-outputs: features with no requirement", () => {
+    const d = mutated({
+      [F02]: null,
+      "docs/requirements/features/F01-sessions.md": "# F01 Sessions\n\nPersonas: @organizer\n",
+    });
+    expect(check(d, "discovery-outputs", "requirements").details.join()).toContain(
+      "defines no requirement",
+    );
+  });
+  it("review-verdict: absent, malformed, or doubled fails", () => {
+    const none = mutated({ [R]: "# Review\n\nLooks fine.\n" });
+    expect(check(none, "review-verdict", "requirements").details.join()).toContain('no "Verdict:');
+    const bad = mutated({ [R]: "# Review\n\nVerdict: ready to plan\n" });
+    expect(check(bad, "review-verdict", "requirements").details.join()).toContain(
+      "is not a verdict",
+    );
+    const two = mutated({ [R]: "Verdict: ready-to-plan\n\nVerdict: not-ready\n" });
+    expect(check(two, "review-verdict", "requirements").details.join()).toContain("keep one");
+    const fenced = mutated({ [R]: "```\nVerdict: ready-to-plan\n```\n" });
+    expect(check(fenced, "review-verdict", "requirements").state).toBe("fail");
+  });
+  it("review-verdict: not-ready fails; ready-pending-decisions passes requirements but not plan", () => {
+    const notReady = mutated({ [R]: "Verdict: not-ready\n" });
+    expect(check(notReady, "review-verdict", "requirements").state).toBe("fail");
+    const pending = mutated({ [R]: "- **Verdict:** ready-pending-decisions\n" });
+    expect(check(pending, "review-verdict", "requirements").state).toBe("pass");
+    expect(verdict(runCensus(loadModel(pending), "requirements"), false).ok).toBe(true);
+    expect(check(pending, "plan-readiness").state).toBe("fail");
+    const assumed = mutated({ [R]: "Verdict: ready-with-assumptions\n" });
+    expect(check(assumed, "plan-readiness").state).toBe("pass");
   });
 });
 
@@ -192,11 +299,19 @@ describe("requirements stage, each check tripped", () => {
     expect(check(d, "technology-triggers", "requirements").state).toBe("pass");
     expect(check(d, "pending-triggers-block").state).toBe("fail");
   });
-  it("access-model: tenancy open is blocking; absent is vacuous", () => {
+  it("access-model: tenancy open or undeclared fails; absent fails discovery-outputs", () => {
     const d = mutated({ "docs/requirements/access-model.md": "# Access\n\nTenancy: open\n" });
     expect(check(d, "access-model").state).toBe("fail");
+    const silent = mutated({ "docs/requirements/access-model.md": "# Access\n\nRoles: admin\n" });
+    expect(check(silent, "access-model").details.join()).toContain("declares no tenancy");
+    const marker = mutated({
+      "docs/requirements/access-model.md":
+        "# Access\n<!-- idea: section=tenancy state=decided -->\n",
+    });
+    expect(check(marker, "access-model").state).toBe("pass");
     const gone = mutated({ "docs/requirements/access-model.md": null });
-    expect(check(gone, "access-model").state).toBe("vacuous");
+    expect(check(gone, "discovery-outputs").details.join()).toContain("access-model.md is missing");
+    expect(verdict(runCensus(loadModel(gone), "requirements"), false).ok).toBe(false);
   });
 });
 
@@ -275,22 +390,47 @@ describe("build stage", () => {
     dirs.push(plain);
     expect(gatherTrailers(plain).state).toBe("unknown");
   });
-  it("dependencies: one no ADR accounts for; workspace packages are exempt", () => {
+  it("dependencies: only a Dependencies: line accounts; every field and workspace package is read", () => {
     const d = mutated({
       "package.json": JSON.stringify({
         devDependencies: { typescript: "^5", vitest: "^3", "left-pad": "^1" },
       }),
-      "pnpm-workspace.yaml": 'packages:\n  - "apps/*"\n',
+      "pnpm-workspace.yaml": 'packages:\n  - "tooling/*"\n  - "apps/*"\n',
+      "tooling/plan/package.json": JSON.stringify({
+        name: "@ai-sdlc/plan",
+        dependencies: { "@ai-sdlc/core": "workspace:*" },
+      }),
+      "tooling/core/package.json": JSON.stringify({ name: "@ai-sdlc/core" }),
       "apps/web/package.json": JSON.stringify({
         name: "@acme/web",
-        dependencies: { "@acme/db": "workspace:*", eslint: "^9" },
+        dependencies: { "@acme/db": "workspace:*", eslint: "^9", "@ai-sdlc/plan": "0.1.0" },
+        peerDependencies: { react: "^19" },
+        optionalDependencies: { fsevents: "^2" },
       }),
     });
-    expect(readManifests(d).map((m) => m.file)).toEqual(["package.json", "apps/web/package.json"]);
+    expect(readManifests(d).map((m) => m.file)).toEqual([
+      "package.json",
+      "tooling/core/package.json",
+      "tooling/plan/package.json",
+      "apps/web/package.json",
+    ]);
     const r = checkDependencies(gatherBuildFacts(d, DEFAULT_DIRS));
     expect(r.state).toBe("fail");
     expect(r.details).toEqual([
-      "package.json: left-pad is accounted for by no ADR or docs/architecture.md entry",
+      'package.json devDependencies: left-pad is accounted for by no "Dependencies:" line in an ADR or docs/architecture.md',
+      'apps/web/package.json peerDependencies: react is accounted for by no "Dependencies:" line in an ADR or docs/architecture.md',
+      'apps/web/package.json optionalDependencies: fsevents is accounted for by no "Dependencies:" line in an ADR or docs/architecture.md',
+    ]);
+  });
+  it("dependencies: a Dependencies: line in an ADR or the architecture accounts; a fenced one does not", () => {
+    const d = mutated({
+      "package.json": JSON.stringify({ dependencies: { "@scope/pkg": "^1", zod: "^4", pg: "^8" } }),
+      "docs/adr/ADR-002-data.md":
+        "# ADR-002\n\nDependencies: `@scope/pkg`\n\n```\nDependencies: pg\n```\n",
+      "docs/architecture.md": (t) => `${t}\nDependencies: zod\n`,
+    });
+    expect(checkDependencies(gatherBuildFacts(d, DEFAULT_DIRS)).details).toEqual([
+      'package.json dependencies: pg is accounted for by no "Dependencies:" line in an ADR or docs/architecture.md',
     ]);
   });
 });

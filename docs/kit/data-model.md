@@ -82,6 +82,23 @@ Unsure objects are marked `provisional`, with a `Q-` file.
 
 ## Seed and demo data — deterministic
 
+**Mock data is opt-in, per application.** A project may have several apps, and
+only some need seeded data (a marketing site does not; an operator console
+does). Kickoff topic 9 decides which. Each one is declared in `sdlc.config.json`
+(`seeds`), with the command that seeds it and the local database it targets,
+and `pnpm seed [app] --size <size>` runs it through the `@ai-sdlc/seed`
+runner. The runner gives every app the same contract:
+
+- **Determinism inputs** in the environment: `SEED_SIZE`, `SEED_RANDOM` (a
+  fixed seed for the PRNG) and `SEED_TODAY` (the base for relative dates).
+- **Shared helpers** (`@ai-sdlc/seed` helpers: a seeded PRNG, `days(n)`,
+  `stableId()`, captured-fixture lookup), so every app is deterministic the
+  same way.
+- **Capture transports forced**: email, storage and model calls never leave the
+  machine during a seed.
+- **An allow-list of targets**: the worktree's own database, dev or staging.
+  Production, or any target not declared, is refused.
+
 Seeds exist at three sizes, and they are the same code at every size:
 
 | seed   | for                            | size                                                          |

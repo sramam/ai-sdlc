@@ -3,7 +3,7 @@
  *
  * Both files are gitignored, so they exist in the main checkout and nowhere
  * else unless `pnpm bootstrap` has linked them. A worktree has its own
- * `sdlc.config.ts`, so a loader that only walks up stops there, finds nothing,
+ * `sdlc.config.json`, so a loader that only walks up stops there, finds nothing,
  * and every script reports "X is not set" — which reads as a missing variable
  * rather than a loader looking in the wrong place (door_nexa lost a seed run and
  * an integration run to that). So the main checkout is the fallback.

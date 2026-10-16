@@ -9,7 +9,7 @@ document assumes its tooling.
 | ---------------------------------- | ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------ |
 | 0. create the project              | a person, then the agent      | none (no item can exist before the repo) | a GitHub repo from the starter, `dev` as default, settings applied |
 | 1. discovery                       | agent with the author         | `X-000`                                  | requirements, project brief, architecture, decisions               |
-| 2. configure and prove the tooling | agent (in parallel with 1)    | `X-001`                                  | `sdlc.config.ts`, `AGENTS.md`, every guard tripped                 |
+| 2. configure and prove the tooling | agent (in parallel with 1)    | `X-001`                                  | `sdlc.config.json`, `AGENTS.md`, every guard tripped               |
 | 3. plan                            | agent, approved by the author | `X-000` (its last PR)                    | `docs/plan/`: foundation items first, then features by journey     |
 | 4. work the plan                   | agents                        | one item each                            | the product                                                        |
 
@@ -64,10 +64,13 @@ main checkout is read-only to agents (`worktree-required`), apart from
 
 ## Phase 1 — Discovery (`X-000`)
 
-Propose the worktree name (`x-000-discovery`; the user may change the slug):
+Claim the item, then propose the worktree name (`x-000-discovery`; the user
+may change it):
 
 ```bash
-git worktree add .claude/worktrees/x-000-discovery -b x-000-discovery origin/dev
+pnpm claim X-000                      # atomic: creates the branch x-000 on GitHub
+git fetch origin x-000
+git worktree add .claude/worktrees/x-000-discovery x-000 # worktree-base: claim branch
 cd .claude/worktrees/x-000-discovery && pnpm install && pnpm bootstrap
 # then EnterWorktree({ path: ".claude/worktrees/x-000-discovery" })
 ```
@@ -99,12 +102,18 @@ several as sections settle.
 
 ## Phase 2 — Configure and prove the tooling (`X-001`)
 
-None of this depends on the product, so it runs **in parallel with Phase 1**,
-in another session and worktree (`x-001-configure`, created the same way). The
-starter ships the tooling; this phase **configures and proves** it, and builds
-nothing.
+It runs **in parallel with Phase 1**, in another session and worktree
+(`x-001-configure`), in two parts. The starter ships the tooling; this phase
+**configures and proves** it, and builds nothing.
 
-- Fill in `sdlc.config.ts`: branch names, ID prefixes, `claimStaleDays`. The
+- **Part 1, independent of discovery:** trip every guard (the table below),
+  set branch names and `claimStaleDays`. Land it.
+- **Part 2, after kickoff's first pass has landed** (merge `origin/dev` into
+  the branch first): copy the accounts list and the reporting cadence from the
+  project brief into `sdlc.config.json`, and run `pnpm accounts:check`. Land it
+  with `Closes: X-001`.
+
+- Fill in `sdlc.config.json`: branch names, ID prefixes, `claimStaleDays`. The
   accounts list and the reporting cadence come from the project brief once
   kickoff's first pass has decided them; coverage floors stay unset until there
   is code.
@@ -155,7 +164,7 @@ item, proposes a worktree name (the item ID; the user may change the slug),
 creates the worktree and branch, and pushes the claim. Long-running scripts run
 in the background ([multi-agent.md](multi-agent.md)). Build, commit with `Progress:` and `Closes:`,
 then `/land`. Every new ask goes through `/add-requirement`. Reports follow the
-cadence in `sdlc.config.ts`, and `/pickup` says when one is due.
+cadence in `sdlc.config.json`, and `/pickup` says when one is due.
 
 ## Defaults kickoff confirms rather than asks
 

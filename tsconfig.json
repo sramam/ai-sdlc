@@ -16,12 +16,6 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": [
-    "tooling/**/*.mts",
-    "tooling/**/*.ts",
-    "scripts/**/*.mts",
-    "scripts/**/*.ts",
-    "sdlc.config.ts"
-  ],
+  "include": ["tooling/**/*.mts", "tooling/**/*.ts", "scripts/**/*.mts", "scripts/**/*.ts"],
   "exclude": ["node_modules", "scripts/one-of/**", ".claude/worktrees/**"]
 }

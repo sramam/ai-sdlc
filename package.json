@@ -21,10 +21,22 @@
     "plan:status": "node tooling/plan/src/plan-status.mts",
     "item-check": "node tooling/plan/src/item-check.mts",
     "worktrees": "node tooling/guards/src/worktrees.mts",
+    "db:local": "node tooling/localdb/src/cli.mts",
+    "seed": "node tooling/seed/src/seed.mts",
     "accounts:check": "node tooling/setup/src/accounts-check.mts",
     "bootstrap": "node tooling/setup/src/bootstrap.mts",
     "sdlc:init": "node tooling/setup/src/sdlc-init.mts",
-    "sdlc:update": "node tooling/setup/src/sdlc-update.mts"
+    "sdlc:update": "node tooling/setup/src/sdlc-update.mts",
+    "land": "node tooling/ci/src/land.mts",
+    "claim": "node tooling/plan/src/claim.mts",
+    "sources:add": "node tooling/guards/src/sources-manifest.mts --add",
+    "sources:check": "node tooling/guards/src/sources-manifest.mts --check",
+    "journeys:learn": "node tooling/journeys/src/cli/learn.mts",
+    "journeys:test": "node tooling/journeys/src/cli/run.mts",
+    "journeys:delta": "node tooling/journeys/src/cli/delta.mts",
+    "journeys:drift": "node tooling/journeys/src/cli/drift.mts",
+    "journeys:index": "node tooling/journeys/src/cli/index.mts",
+    "journeys:timing": "node tooling/journeys/src/cli/timing.mts"
   },
   "lint-staged": {
     "*.{ts,mts,tsx,js,mjs}": [

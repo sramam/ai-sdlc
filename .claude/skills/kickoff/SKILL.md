@@ -5,6 +5,15 @@ description: Orients the original author to a new project — interviews them to
 
 # Kickoff
 
+**Checklist (read this first; details follow):**
+
+1. Claim the requirements lock; release it when done.
+2. First pass (before `/idea`): topics 2, 4, 5, 6, 8. Mark the rest `waiting`; print `/idea`.
+3. Second pass (after `/idea`): decide topics 3, 7, 9–12, running the technology dialog for every recorded trigger; the user decides.
+4. Write `docs/architecture.md`; every component cites a requirement or ADR.
+5. Ask only what is open; never overwrite an answer (`revisit` keeps history).
+6. Done when a re-run asks nothing; print `/idea status`, then `/plan`.
+
 Named `kickoff` rather than `init` because Claude Code ships a built-in `/init`
 (which writes a CLAUDE.md), and a project skill of the same name would collide
 with it.
@@ -147,8 +156,8 @@ Kickoff decides **how** the project will be built. **What** is built belongs to
    - who reviews code
    - who does QA, and what QA tests
    - who holds credentials and accounts
-3. **Stack**: the settled choices in `docs/kit/tech-stack.md` are **confirmed,
-   not asked**: TanStack Start on Cloudflare Workers, OTel, OpenRouter, shadcn/ui.
+3. **Stack**: present the **preferred stack** in `docs/kit/tech-stack.md`,
+   one choice at a time; the user **keeps or changes** each (a change is an ADR): TanStack Start on Cloudflare Workers, OTel, OpenRouter, shadcn/ui.
    **Decide** the rest using its criteria:
    - database (Postgres through Hyperdrive, or D1) and ORM
    - auth provider
@@ -186,7 +195,7 @@ Kickoff decides **how** the project will be built. **What** is built belongs to
    covers the always-needed ones, and the second adds the rest. These are
    the commonest blocker, so start them on day one. **Prefer each vendor's CLI**
    for login and provisioning (`docs/kit/tech-stack.md` § _CLIs first_). A
-   person logs in once per machine; the CLIs go into `sdlc.config.ts`, and
+   person logs in once per machine; the CLIs go into `sdlc.config.json`, and
    `pnpm accounts:check` confirms each one, and anything
    with no CLI gets a documented manual step with a check.
 7. **Delivery risks**: technical unknowns, and the spike that retires each.
@@ -203,6 +212,9 @@ Kickoff decides **how** the project will be built. **What** is built belongs to
    Derive the surfaces from the personas and journeys, for example: one web app
    with role-based areas, or a separate admin app, a public marketing site, a
    public API, a mobile app, a background-worker app, a design-system viewer.
+   **For each app, decide whether it needs a database and whether it needs seeded
+   mock data** (a marketing site may need neither; an operator console both).
+   These become `localdb.databases` and `seeds` in `sdlc.config.json`.
    Each app and each initial package (`api`, `db`, `ui`, `telemetry`, `authz`,
    `llm`, one per decided vendor) **cites the requirements or ADR that need
    it**. Also decide the **package scope** (`@<scope>/…`). Start with the fewest. A second app needs a reason it cannot be a

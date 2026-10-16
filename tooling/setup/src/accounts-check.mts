@@ -87,7 +87,7 @@ export async function runAccountsCheck(
     const how = cmd?.cli ? `${cmd.cli} ${cmd.check.join(" ")}` : "";
     deps.log(`  ${r.name.padEnd(14)} ${LABEL[r.state]} (${r.detail})${how ? `  [${how}]` : ""}`);
   }
-  if (accounts.length === 0) deps.log("  no accounts configured in sdlc.config.ts");
+  if (accounts.length === 0) deps.log("  no accounts configured in sdlc.config.json");
   const hard = results.some((r) => r.state === "not-logged-in" || r.state === "not-installed");
   const unknown = results.some((r) => r.state === "could-not-ask");
   if (unknown && deps.allowUnknown)
@@ -106,7 +106,7 @@ async function main(): Promise<void> {
   }
   const root = findRoot();
   if (!root) {
-    console.error("accounts:check: no sdlc.config.ts above this directory");
+    console.error("accounts:check: no sdlc.config.json above this directory");
     process.exit(1);
   }
   const config = await loadConfig(root);

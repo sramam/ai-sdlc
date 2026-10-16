@@ -23,12 +23,13 @@ Then ask your agent: _"Read `docs/kit/BOOTSTRAP.md` and follow it. Start with
 | `docs/kit/`        | the kit: how this way of working is meant to run, and why ([README](docs/kit/README.md))                    |
 | `.claude/skills/`  | `kickoff`, `idea`, `add-requirement`, `plan`, `land`, `handoff`, `pickup`, `progress-report`, the reviewers |
 | `tooling/`         | the tooling, one replaceable package per module: `core`, `guards`, `plan`, `ci`, `setup`                    |
-| `sdlc.config.ts`   | the only file a project edits to configure the tooling                                                      |
+| `sdlc.config.json` | the only file a project edits to configure the tooling                                                      |
 | `docs/plan/items/` | `X-000` (discovery) and `X-001` (configure), which every project starts with                                |
 
 ## Status
 
-Built: the skeleton, hooks, settings, skills, docs, and the `core`, `guards`,
-`plan`, `ci` and `setup` modules with tests. Not yet: the `journeys` module, the
-later modules (coverage, promote, playground), and the recipes
-(`docs/kit/recipes/`).
+**Not ready to publish.** Built: the skeleton, hooks, settings, skills, docs,
+and the `core`, `guards`, `plan`, `ci` and `setup` modules with tests. In
+progress: `journeys`, `localdb`, `seed`. Not yet: coverage, promote, the
+`/security-review` and `/release` skills, and the recipes (`docs/kit/recipes/`).
+Where the kit describes something not yet built, it says _planned_.

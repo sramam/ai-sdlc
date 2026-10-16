@@ -1,12 +1,19 @@
 # Tech stack
 
-**Settled** means kickoff confirms it rather than asking about it. **Decide
-per project** means kickoff asks, using the criteria given here. Items marked
+This is the **preferred stack**: the default each project starts from.
+Kickoff presents it, and the user **keeps or changes each choice**; a change is
+an ADR, and the kit's docs that assume a default (Cloudflare, OpenRouter, Oso or
+SpiceDB, Lovable, visual journeys) then apply only where the choice was kept.
+The SDLC engine (worktrees, the plan, the requirements lock, local CI,
+`pnpm land`, reports) does not depend on any of it.
+
+**Preferred** means kickoff proposes it and the user confirms or changes it.
+**Decide per project** means kickoff asks, using the criteria given here. Items marked
 _verify_ are expectations rather than door_nexa experience. Check them against
 current docs in the first spike, and record what you find in the relevant
 `agents.md`.
 
-## Settled
+## Preferred (kickoff confirms or changes each)
 
 |                     | choice                                                                             | notes                                                                                     |
 | ------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |

@@ -1,7 +1,7 @@
 # Hooks, trailers and guards
 
 Everything here ships in the starter (`.husky/`, `tooling/guards/`,
-`.claude/settings.json`). A project configures it through `sdlc.config.ts` and
+`.claude/settings.json`). A project configures it through `sdlc.config.json` and
 never edits it in place.
 
 ## Commit trailers — the one grammar
@@ -19,6 +19,12 @@ Every other document refers here. Each trailer is a single line, parsed with
 | `No-Rerecord:`           | `No-Rerecord: J<nn> <reason>`                       | a route change that deliberately does not re-record a journey that visits it                                                                                              |
 | `Co-Authored-By:`        | exactly `attribution.commit` from settings          | no model name                                                                                                                                                             |
 | `Worktree:` / `Session:` | added by `prepare-commit-msg`                       | provenance                                                                                                                                                                |
+
+**A trailer is an assertion, not proof.** `Requirements: idea` says a
+requirements skill made the change; nothing proves which skill ran. The checks
+keep the assertions consistent (every requirements commit carries one, every
+item ID exists, a branch closes only its own item), which is what makes them
+useful for reporting, not for security.
 
 ## Git hooks (husky)
 

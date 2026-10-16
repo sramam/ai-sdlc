@@ -97,7 +97,7 @@ transports over it.
 
 ## 5. The pull request
 
-- Into `dev`, always, from the item's branch. Use `/land`:
+- Into `dev`, always, from the item's branch. Use `/land`, which runs `pnpm land`:
   - make sure `origin/dev` is an ancestor (merge it in if not)
   - push
   - run `pnpm ci:local`, which also runs `plan:check` and posts a `local-ci`

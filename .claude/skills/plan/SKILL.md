@@ -66,17 +66,17 @@ The structure, IDs and `plan:check` stages are in
    worktree per session.
 4. **Unclear item? Stop here**, before any worktree, and print `/add-requirement
 <item>` as the next step. Skills do not call each other.
-5. **Propose the name, then claim it.** The proposal is the item, in lowercase
-   (`f03-012-<slug>`). Ask once, with the proposal first and "keep it" as the
-   default; the user may change the slug. The branch keeps the item ID as its
-   prefix, because the claim is read from that prefix:
+5. **Claim it, then name the worktree.** `pnpm claim <ID>` creates the branch
+   named exactly the lowercased ID on GitHub, atomically. Exit 3 means someone
+   else holds it: say who, and pick again. Then propose the worktree name
+   (`f03-012-<slug>`; ask once, "keep it" as the default) and create it from the
+   claim branch:
    ```bash
-   git worktree add .claude/worktrees/f03-012-<slug> -b f03-012-<slug> origin/dev
-   git -C .claude/worktrees/f03-012-<slug> push -u origin HEAD
+   git fetch origin f03-012
+   git worktree add .claude/worktrees/f03-012-<slug> f03-012
    ```
    Then, in the new worktree: `pnpm install && pnpm bootstrap`, and
-   `EnterWorktree({ path })`. Re-fetch. If another live branch carries the same
-   ID, the earlier push wins, so delete yours and pick again.
+   `EnterWorktree({ path })`.
 6. If the item is a defect, reproduce it first. Never guess.
 7. Report: the item, why this one, and the first command.
 
@@ -88,7 +88,7 @@ work. Then, in order:
 - quality work: coverage, censuses, docs
 - print `/idea check` for the next milestone's features, as a suggestion
 
-## `/plan sync` — reconcile, on the cadence in `sdlc.config.ts`
+## `/plan sync` — reconcile, on the cadence in `sdlc.config.json`
 
 - **Discovered work** becomes new items. Each is placed in a milestone, or
   marked `dropped:` with a reason. New _requirements_ go through
@@ -96,7 +96,7 @@ work. Then, in order:
 - **Answered questions**: write the answer into the `Q-` file, and unblock what
   it blocked. Write an ADR if the answer shapes the system.
 - **Stale claims**: a claimed branch with no commit for `claimStaleDays` (from
-  `sdlc.config.ts`) is reported. Ask its session, or the author, before
+  `sdlc.config.json`) is reported. Ask its session, or the author, before
   releasing it.
 - Re-derive the critical path. Write any slipped milestone into the README's
   change log; never edit old dates away.

@@ -24,7 +24,7 @@ disagreement is the finding**: something happened that nobody recorded.
 3. **Ask of every inherited warning:** is it still true, **and** is it still
    worth carrying? Propose dropping any warning that nobody has acted on across
    several handoffs.
-4. **Is anything due?** Using the cadence in `sdlc.config.ts`, check whether a
+4. **Is anything due?** Using the cadence in `sdlc.config.json`, check whether a
    progress report or a `/plan sync` is due, and whether any claims are stale.
    Say so.
 5. **Report before doing anything**: per handoff, _confirmed_, _changed since_

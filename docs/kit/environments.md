@@ -27,6 +27,31 @@ Each environment has **its own** R2 buckets, Queues, Hyperdrive config, KV and
 Durable Object namespaces, secrets and OTel resource attributes
 (`deployment.environment`). Nothing is shared across environments.
 
+## Local: a PGlite database per worktree
+
+Every worktree has **its own** Postgres (PGlite, served on a port derived from
+the checkout), under `.localdb/<db>/` in that worktree. Nothing local is
+shared, so an agent can change a schema or wipe data and nobody else notices:
+
+```bash
+pnpm db:local start            # one server per configured database; prints DATABASE_URL
+pnpm db:local migrate          # snapshots first (pre-migrate-<time>), then runs the project's migrate command
+pnpm db:local snapshot before-x
+pnpm db:local restore before-x # undo whatever happened since
+pnpm db:local reset            # empty, then migrate
+```
+
+- **Revertible by construction**: every migration is preceded by an automatic
+  snapshot, and any state can be snapshotted by name. Reverting a schema
+  experiment is one command, and never touches another agent's data.
+- **Databases are declared in `sdlc.config.json` (`localdb.databases`)**, each with
+  the project's own `migrate` command, because the ORM is the project's choice.
+  An app needs a database only if kickoff topic 9 says so.
+- **Removing the worktree removes its database.** Nothing outlives the branch
+  that made it.
+- **Shared environments (dev, staging, production) are never reached from a
+  worktree for experiments.** Migrations reach them only through promotion.
+
 ## Deploying, with no hosted CI
 
 - **Promotion is fast-forward only**: `dev → staging → main`, done by

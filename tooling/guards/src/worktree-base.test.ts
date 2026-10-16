@@ -3,6 +3,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { exampleConfigJson } from "../../core/src/config.test-helper.mts";
 import { integrationBranch, verdict } from "./worktree-base.mts";
 
 const bash = (command: string, integration?: string) =>
@@ -17,6 +18,30 @@ describe("git worktree add", () => {
   it("allows the integration branch, by any of its spellings", () => {
     for (const ref of ["dev", "origin/dev", "refs/heads/dev", "refs/remotes/origin/dev"]) {
       expect(bash(`${ADD} ${ref}`).decision, ref).toBe("allow");
+    }
+  });
+
+  it("allows the item's claim branch, which pnpm claim pushes on top of origin/dev", () => {
+    for (const ref of [
+      "origin/f03-012",
+      "f03-012",
+      "origin/x-000",
+      "origin/F03-012",
+      "refs/remotes/origin/x-001",
+    ]) {
+      expect(bash(`${ADD} ${ref}`).decision, ref).toBe("allow");
+    }
+  });
+
+  it("refuses a branch that only resembles a claim", () => {
+    for (const ref of [
+      "origin/f03-012-login",
+      "origin/f03-12",
+      "origin/main",
+      "upstream/f03-012",
+      "f03-0123",
+    ]) {
+      expect(bash(`${ADD} ${ref}`).decision, ref).toBe("deny");
     }
   });
 
@@ -102,22 +127,22 @@ it("has no opinion about any other tool", () => {
   expect(verdict({}).decision).toBe("allow");
 });
 
-describe("the integration branch, from sdlc.config.ts", () => {
+describe("the integration branch, from sdlc.config.json", () => {
   it("is read from the checkout's config", async () => {
     const root = mkdtempSync(join(tmpdir(), "sdlc-base-"));
     execFileSync("git", ["init", "-q"], { cwd: root });
     writeFileSync(
-      join(root, "sdlc.config.ts"),
-      'export default { branches: { integration: "trunk" } };\n',
+      join(root, "sdlc.config.json"),
+      exampleConfigJson((c) => (c.branches.integration = "trunk")),
     );
     expect(await integrationBranch(root)).toBe("trunk");
   });
 
-  it("could not ask (no config, or one that throws): the default", async () => {
+  it("could not ask (no config, or an invalid one): the default", async () => {
     const bare = mkdtempSync(join(tmpdir(), "sdlc-base-none-"));
     expect(await integrationBranch(bare)).toBe("dev");
     const broken = mkdtempSync(join(tmpdir(), "sdlc-base-broken-"));
-    writeFileSync(join(broken, "sdlc.config.ts"), 'throw new Error("nope");\n');
+    writeFileSync(join(broken, "sdlc.config.json"), '{ "branches": { "integration": 7 } }');
     expect(await integrationBranch(broken)).toBe("dev");
   });
 });

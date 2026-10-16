@@ -229,29 +229,41 @@ estimate: 3            # or "unknown". Never a guess
 **There is no `status:` field.** Status is derived from git, because a stored
 status drifts (principles.md §14):
 
-| status          | derived from                                                                                  |
-| --------------- | --------------------------------------------------------------------------------------------- |
-| **done**        | a commit on `origin/dev` with the trailer `Closes: F03-012`                                   |
-| **in progress** | a remote branch whose name starts with the ID (`f03-012-stop-reminders`)                      |
-| **blocked**     | a `depends:` item not done, or an open question listing this item                             |
-| **ready**       | none of the above                                                                             |
-| **dropped**     | `dropped: <date> <reason>` in the frontmatter, the one stored state, because it is a decision |
+| status          | derived from                                                                                                         |
+| --------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **done**        | a commit on `origin/dev` with the trailer `Closes: F03-012`                                                          |
+| **in progress** | a **claim**: a remote branch named exactly the item ID (`f03-012`), or a recent `Progress:` on dev without `Closes:` |
+| **blocked**     | a `depends:` item not done, or an open question listing this item                                                    |
+| **ready**       | none of the above                                                                                                    |
+| **dropped**     | `dropped: <date> <reason>` in the frontmatter, the one stored state, because it is a decision                        |
 
-Pushing the branch is the **claim**: another agent sees it on `git fetch`.
-Claim before starting real work, then re-fetch to check nobody claimed it first.
+**A claim is atomic.** `pnpm claim <ID>` creates, through the GitHub API, a
+branch named **exactly** the lowercased item ID on top of `origin/dev`, whose
+first commit records who and when:
 
-- **Branch and worktree names are lowercase** (`f03-012-<slug>`), and IDs are
-  matched **case-insensitively** everywhere. Files and trailers use the
-  uppercase form.
+```
+Claim: F03-012
+
+Claimed-By: <session id or user email>
+Claimed-At: <ISO time>
+```
+
+A second claim of the same item is the same ref, so GitHub refuses it ("already
+held by …"); there is no race to resolve. The work happens on that branch, in a
+worktree created from `origin/<id>`; the worktree's directory name may carry a
+slug the user chooses, but the branch is the ID.
+
+- **IDs are matched case-insensitively** everywhere. Branches are lowercase;
+  files and trailers use the uppercase form.
 - **A branch is deleted when its item closes** (`/land` deletes it on the PR
   carrying `Closes:`). An item is also _in progress_ while `origin/dev` carries a
   recent `Progress: <ID>` and no `Closes: <ID>`, so a partial PR never makes it
   look free.
-- **A claim goes stale** after `claimStaleDays` (in `sdlc.config.ts`) with no
-  commit. `plan:status` flags it, and `/plan sync` asks its owner, or the
+- **A claim goes stale** when its `Claimed-At` is older than `claimStaleDays`
+  (in `sdlc.config.json`) and no commit, including a `Progress:` on dev, is newer. `plan:status` flags it, and `/plan sync` asks its owner, or the
   author, before it is released.
-- Requirements work uses `req-<slug>` branches, and the bootstrap uses
-  `x-000-…` and `x-001-…`.
+- Requirements work uses `req-<slug>` branches (not claims). The bootstrap items
+  are claimed like any other: `x-000`, `x-001`.
 
 **`plan/questions/Q-<nnn>-<slug>.md`**: for anything only a person can answer.
 
@@ -275,9 +287,29 @@ A question with no `answered` date is open. Answering it may produce an ADR.
 
 `pnpm plan:check` prints its table on success. It runs in **stages**, because
 what must hold grows as the project does. Each stage includes the ones before
-it. `ci:local` uses the highest stage the repository has reached: _requirements_
-until `docs/plan/README.md` exists, _plan_ until `apps/` holds an app, and
-_build_ after that. `--stage` overrides it.
+it, and the highest stage the repository has reached is used (`--stage`
+overrides it):
+
+| stage             | reached when                                                                                                    | says                                         |
+| ----------------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| **pre-discovery** | no discovery output exists yet (the starter)                                                                    | `NOT STARTED`, never a plain pass            |
+| **requirements**  | any discovery output exists                                                                                     | every mandatory output present and non-empty |
+| **plan**          | `docs/plan/README.md` holds a written plan                                                                      |                                              |
+| **build**         | a workspace package with a `package.json` exists outside `tooling/`, or the plan README declares `Stage: build` |                                              |
+
+**requirements** also requires the full set: `brd.md`, `prd.md`, `glossary.md`,
+`ux.md`, `domain-model.md`, `technology.md`, `review.md`, `personas.md` with at
+least one persona, `features/` with at least one requirement, `journeys.md` with
+at least one journey, and `access-model.md` declaring its tenancy (`Tenancy:
+<model>`, not `open`). `review.md` carries exactly one machine-readable verdict
+line:
+
+```
+Verdict: ready-to-plan | ready-with-assumptions | ready-pending-decisions | not-ready
+```
+
+The requirements stage passes at `ready-pending-decisions` or better; the plan
+stage requires `ready-to-plan` or `ready-with-assumptions`.
 
 **requirements** (the end of `/idea`):
 
@@ -305,9 +337,10 @@ _build_ after that. `--stage` overrides it.
 **build** (once code exists):
 
 - a `Progress:` or `Closes:` trailer naming an item that does not exist
-- a `package.json` dependency that no ADR or architecture entry accounts for.
-  The starter's own tooling dependencies are accounted for by the ADR it ships
-  (`ADR-000-starter-tooling`)
+- a dependency (in any field of any `package.json`) that no ADR or
+  `docs/architecture.md` lists on a structured line: `Dependencies: pkg-a,
+@scope/pkg-b`. A name mentioned only in prose does not count. The starter's
+  own tooling dependencies are listed by `ADR-000-starter-tooling`
 
 This is the same pattern as every other census here (principles.md §6): the
 checks a project board would have offered as views, made into failures.

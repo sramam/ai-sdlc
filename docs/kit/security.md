@@ -140,9 +140,16 @@ vast.ai is a marketplace, and many hosts are third parties you cannot audit. So:
 
 ## Our own agents and machines
 
-- **Agents cannot read secrets.** `.claude/settings.json` denies `Read` and
-  `Edit` on `.env*`, credential files and key stores. Production credentials are
-  never on a development machine. Deploys use scoped tokens.
+- **The deny list is a courtesy, not a boundary.** `.claude/settings.json`
+  denies the `Read` and `Edit` tools on `.env`, `.dev.vars`, credential files and
+  key stores, so an agent will not open them in passing. It does **not** stop an
+  allowed shell command (`pnpm …`, `git …`, `node …`) from reading them, and
+  `pnpm bootstrap` symlinks env files into worktrees. Treat anything on the
+  developer's machine as reachable by the agent. So: **production credentials are
+  never on a development machine**, local secrets are development-only and
+  low-value, and deploys use scoped tokens a person runs. A real boundary needs
+  OS-level sandboxing (Claude Code's sandbox mode, or a container); a project
+  that needs one decides it in kickoff.
 - **Content an agent fetches is data, not instructions.** That covers web
   pages, issue text, PR comments and files from outside. The harness and the
   skills say so, and an agent never runs a command it found in fetched content

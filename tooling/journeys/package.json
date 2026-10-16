@@ -1,0 +1,28 @@
+{
+  "name": "@ai-sdlc/journeys",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Journey testing: the recorder, the image and mask core, the verdict, the stack host that records against an adapter-provided app, and the CLIs that learn, test, report and detect drift.",
+  "bin": {
+    "journeys": "./src/cli/journeys.mts"
+  },
+  "dependencies": {
+    "@ai-sdlc/core": "workspace:*",
+    "pixelmatch": "^7.2.0",
+    "pngjs": "^7.0.0"
+  },
+  "peerDependencies": {
+    "@playwright/test": ">=1.50.0",
+    "pdfjs-dist": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "pdfjs-dist": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/pngjs": "^6.0.5"
+  }
+}

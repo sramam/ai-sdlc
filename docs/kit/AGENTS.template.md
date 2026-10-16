@@ -95,7 +95,7 @@ Packages (each has its own `agents.md`):
   status on the exact head SHA.** Do not add workflows without asking.
 - **Merge with a merge commit, never squash.** Squashing destroys trailers and
   `Progress:` granularity.
-- **Use `/land`** to take a committed branch to `dev`. It runs `ci:local` and
+- **Use `/land`** (it runs `pnpm land`, the only merge path agents have) to take a committed branch to `dev`. It runs `ci:local` and
   refuses to merge without it.
 - **Write a `/handoff` before a session ends. `/pickup` reads it.** Check every
   claim in it against `git` before acting on it.

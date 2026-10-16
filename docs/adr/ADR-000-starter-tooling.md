@@ -15,6 +15,23 @@ These root `devDependencies` are accounted for by this ADR: `typescript`,
 `prettier`, `husky`, `lint-staged`, `vitest`. They exist to run the SDLC
 tooling, linting, formatting and tests.
 
+The `tooling/localdb` package depends on `@electric-sql/pglite` and
+`@electric-sql/pglite-socket`: Postgres compiled to WebAssembly, served over the
+wire protocol, so each checkout gets its own database with no install and no
+shared server (docs/kit/multi-agent.md, docs/kit/testing.md).
+
+The `tooling/journeys` package depends on `pngjs` and `pixelmatch` (and the
+dev-only `@types/pngjs`): decoding journey screenshots and diffing two of them
+pixel by pixel, which is how a mask is learned and a step is compared. It
+peer-depends on `@playwright/test` (also a pinned dev dependency, so its own
+tests drive a real browser): the recorder, the fixtures and the Playwright
+config are written against it. `pdfjs-dist` is an **optional** peer, resolved
+from the project, for journeys that capture a PDF: rendered in the browser page
+by page so a document is gated like a screenshot, and never installed by a
+project that captures none.
+
+Dependencies: @eslint/js, @types/node, eslint, globals, husky, lint-staged, prettier, typescript, typescript-eslint, vitest, pixelmatch, pngjs, @types/pngjs, @playwright/test, pdfjs-dist, @electric-sql/pglite, @electric-sql/pglite-socket
+
 ## Consequences
 
 Any other dependency needs its own ADR or an entry in `docs/architecture.md`.

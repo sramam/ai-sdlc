@@ -10,8 +10,11 @@
  * token with a `/` whose last segment has an extension, ends in `/`, or exists
  * on disk; or a single `name.ext` that exists. URLs are skipped.
  *
- * "Since" is the committer date of the item file's first commit
- * (`git log --since`), excluding that commit, over HEAD's history.
+ * "Since" is topological, never a date: the range `<intro>..HEAD`, where
+ * `<intro>` is the commit that added the item file. A date filter
+ * (`--since`) would miss a commit whose date is earlier than the item's — a
+ * skewed clock, a rebase that kept old author dates, or a deliberately
+ * backdated commit — even though it landed afterwards.
  *
  * Exit: 0 with a report; 1 when it could not ask (git unavailable, the item
  * file not committed, or the item names no path); 2 for an unknown item or bad
@@ -64,7 +67,7 @@ export async function main(argv: string[]): Promise<number> {
   }
   const root = findRoot();
   if (!root) {
-    console.error("item-check: could not find sdlc.config.ts above the current directory");
+    console.error("item-check: could not find sdlc.config.json above the current directory");
     return 2;
   }
   let dirs: Dirs = DEFAULT_DIRS;
@@ -95,7 +98,7 @@ export function itemCheck(
     "log",
     "--diff-filter=A",
     "--follow",
-    "--format=%H%x09%cI",
+    "--format=%H%x09%h %as",
     "--",
     item.file,
   ]);
@@ -108,23 +111,16 @@ export function itemCheck(
     log(`  COULD NOT ASK  ${item.file} has never been committed, so there is no "since"`);
     return 1;
   }
-  const [firstSha = "", since = ""] = first.split("\t");
+  const [firstSha = "", firstLabel = ""] = first.split("\t");
   const paths = pathsNamed(item.raw, (p) => existsSync(join(root, p)));
   if (!paths.length) {
     log("  COULD NOT ASK  the item names no path, so nothing can be checked");
     return 1;
   }
-  log(`  since ${since} (${firstSha.slice(0, 10)}, the item's first commit)`);
+  log(`  since ${firstLabel} (the item's first commit): ${firstSha.slice(0, 10)}..HEAD`);
   let moved = 0;
   for (const p of paths) {
-    const hist = git(root, [
-      "log",
-      `--since=${since}`,
-      "--format=%H%x09%h %as %s",
-      "HEAD",
-      "--",
-      p,
-    ]);
+    const hist = git(root, ["log", "--format=%H%x09%h %as %s", `${firstSha}..HEAD`, "--", p]);
     if (!hist.ok) {
       log(`  COULD NOT ASK  ${p}: ${hist.reason}`);
       continue;
@@ -132,7 +128,6 @@ export function itemCheck(
     const commits = hist.stdout
       .split("\n")
       .filter(Boolean)
-      .filter((l) => !l.startsWith(firstSha))
       .map((l) => l.split("\t")[1] ?? l);
     if (!commits.length) {
       log(`  steady         ${p}`);

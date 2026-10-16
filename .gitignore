@@ -2,6 +2,8 @@ node_modules/
 coverage/
 dist/
 .ci-local/
+test-results/
+.localdb/
 
 # Secrets. The *.example files are committed and kept in step by a census.
 .env

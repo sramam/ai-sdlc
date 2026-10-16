@@ -23,7 +23,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
-import { loadConfig } from "../../core/src/config.mts";
+import { CONFIG_FILE, loadConfig } from "../../core/src/config.mts";
 import { canonical, gitSegment, gitWorkingDir, mainCheckout } from "../../core/src/git-command.mts";
 import { DEFAULT_INTEGRATION, denyOutput } from "./worktree-base.mts";
 
@@ -189,7 +189,7 @@ export function readExemption(root: string): Facts["exemption"] {
 
 async function configFacts(root: string): Promise<Pick<Facts, "exemptPaths" | "integration">> {
   try {
-    if (!existsSync(join(root, "sdlc.config.ts"))) return {};
+    if (!existsSync(join(root, CONFIG_FILE))) return {};
     const config = await loadConfig(root);
     const handoffs = config.dirs?.handoffs?.replace(/\/*$/, "/");
     return {

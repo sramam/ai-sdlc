@@ -4,17 +4,43 @@
  *   node tooling/guards/src/trailers.mts --message <file>       commit-msg hook
  *   node tooling/guards/src/trailers.mts --range [<base>] [--allow-unknown]   ci:local
  *
+ * **A trailer is an assertion, not proof.** `Requirements: idea` says a
+ * requirements skill made the change; nothing here can tell which skill ran,
+ * or whether any did. What these checks buy is consistency — every
+ * requirements change asserts one, every named item exists, a branch closes
+ * only its own item — which is what reporting reads. They are not security.
+ *
  * `--message` refuses (exit 1) when:
- *   - the staged change touches docs/requirements/ without
- *     `Requirements: kickoff|idea|add-requirement`
+ *   - the change touches docs/requirements/ without
+ *     `Requirements: kickoff|idea|add-requirement`. During a merge (MERGE_HEAD
+ *     present) only the merge's **own** changes count — staged paths that also
+ *     differ from every merged head (a conflict resolution, an edit made while
+ *     merging); what a merged head brings landed with its own trailer
  *   - a `Progress:` or `Closes:` names an item not in docs/plan/items — the
  *     items git's index holds, so an item staged in this commit counts
+ *   - a `No-Item:` gives no real reason (under three words), or sits beside a
+ *     `Closes:` — a commit cannot both finish an item and have none
  *   - a `Co-Authored-By:` differs from `.claude/settings.json` attribution.commit
  * and warns when an upstream-owned path is staged. One line per check.
  *
  * `--range` checks base..HEAD (default origin/<integration>..HEAD, falling back
- * to the local integration branch and saying so): at least one `Progress:` or
- * `No-Item:` across the range, and every Progress/Closes ID names an item.
+ * to the local integration branch and saying so), **every commit and the
+ * aggregate diff**:
+ *   - at least one `Progress:` or `No-Item:` across the range
+ *   - every Progress/Closes ID names an item; every No-Item: is well formed
+ *   - every commit touching docs/requirements/ carries `Requirements:`. A
+ *     merge commit is held to its own diff: paths that differ from its first
+ *     parent **and** from every other parent (`git diff-tree -c`). A path a
+ *     merge takes unchanged from a parent is that parent's, and that parent's
+ *     commits are either in the range (checked) or on the base (landed)
+ *   - every requirements path in the aggregate `base...HEAD` diff is owned by
+ *     some commit in the range — a backstop for history the per-commit walk
+ *     cannot attribute
+ *   - on a branch named after an item (`<id>` lowercased, optionally
+ *     `-<slug>`), every `Closes:` names that item; a `Progress:` naming another
+ *     item warns
+ *   - `Claim: <ID>` commits are exempt: `pnpm claim` creates them through the
+ *     GitHub API, so they carry no trailers
  *
  * Choices where the spec leaves room:
  * - Trailers are parsed by git (`interpret-trailers --parse`, `%(trailers)`),
@@ -25,16 +51,16 @@
  *   AI's, e.g. noreply@anthropic.com) must match it exactly, so a model-named
  *   variant is refused while a human co-author with their own address is
  *   allowed. An absent or unreadable setting allows, and says so.
- * - During a merge (MERGE_HEAD present) the requirements check is skipped: the
- *   staged diff then carries the other branch's changes, which landed with
- *   their own trailer. Said on the line.
  * - On `--amend` only the newly staged diff is seen (git gives the hook no
- *   other); a requirements change already in the amended commit is not re-read.
+ *   other); a requirements change already in the amended commit is not
+ *   re-read. `--range` reads it.
  * - `--range` with no commits ahead of the base passes vacuously.
- */
+ * */
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { findRoot, loadConfig, upstreamPaths } from "../../core/src/config.mts";
+import { loadManifest } from "../../core/src/manifest.mts";
+import type { StarterManifest } from "../../core/src/manifest.mts";
 import { exec, isEntry } from "../../core/src/exec.mts";
 import {
   DEFAULT_DIRS,
@@ -63,6 +89,10 @@ export const REQUIREMENTS_SKILLS = ["kickoff", "idea", "add-requirement"];
 
 export const UPSTREAM_PATHS = upstreamPaths();
 
+/**
+ * `paths` are the change's own paths. For a merge (`merging`), the caller has
+ * already reduced them to what the merge itself introduced; the line says so.
+ */
 export function checkRequirementsTrailer(
   staged: string[],
   trailers: Trailer[],
@@ -75,14 +105,9 @@ export function checkRequirementsTrailer(
   const housekeeping = (p: string): boolean =>
     p === `${prefix}README.md` || p.endsWith("/.gitkeep");
   const touched = staged.filter((p) => p.startsWith(prefix) && !housekeeping(p));
+  const own = merging ? " this merge's own" : "";
   if (!touched.length)
-    return { name: "requirements", state: "ok", text: `no staged path under ${prefix}` };
-  if (merging)
-    return {
-      name: "requirements",
-      state: "ok",
-      text: `${touched.length} path(s) under ${prefix}, but this is a merge: not checked`,
-    };
+    return { name: "requirements", state: "ok", text: `no${own} path under ${prefix}` };
   const values = trailerValues(trailers, "Requirements").map(
     (v) => v.trim().split(/\s+/)[0]?.toLowerCase() ?? "",
   );
@@ -90,13 +115,13 @@ export function checkRequirementsTrailer(
     return {
       name: "requirements",
       state: "ok",
-      text: `${touched.length} path(s) under ${prefix}, Requirements: ${values.join(", ")}`,
+      text: `${touched.length}${own} path(s) under ${prefix}, Requirements: ${values.join(", ")}`,
     };
   const got = values.length ? ` (got "${values.join(", ")}")` : "";
   return {
     name: "requirements",
     state: "refused",
-    text: `this commit changes ${prefix} (${touched.slice(0, 3).join(", ")}${touched.length > 3 ? ", …" : ""}) and has no Requirements: ${REQUIREMENTS_SKILLS.join("|")} trailer${got}. Only /kickoff, /idea and /add-requirement write there`,
+    text: `this ${merging ? "merge itself" : "commit"} changes ${prefix} (${touched.slice(0, 3).join(", ")}${touched.length > 3 ? ", …" : ""}) and has no Requirements: ${REQUIREMENTS_SKILLS.join("|")} trailer${got}. Only /kickoff, /idea and /add-requirement write there`,
   };
 }
 
@@ -217,6 +242,156 @@ export function checkRangeItems(commits: CommitTrailers[], itemIds: Set<string>)
   return { name: "items", state: "ok", text: `${n} Progress/Closes trailer(s), all name items` };
 }
 
+/** `pnpm claim` makes these through the GitHub API; they carry no trailers. */
+export function isClaimCommit(c: Pick<CommitTrailers, "subject">): boolean {
+  return /^Claim:\s+\S+/.test(c.subject);
+}
+
+export const NO_ITEM_MIN_WORDS = 3;
+
+/** `No-Item:` needs a reason a reader can act on, and cannot sit beside `Closes:`. */
+export function checkNoItem(trailers: Trailer[], name = "no-item"): CheckLine {
+  const reasons = trailerValues(trailers, "No-Item");
+  if (!reasons.length) return { name, state: "ok", text: "no No-Item: trailer" };
+  const closes = trailerValues(trailers, "Closes");
+  if (closes.length)
+    return {
+      name,
+      state: "refused",
+      text: `No-Item: beside Closes: ${closes.join(", ")} — a commit that finishes an item has one. Drop the No-Item:`,
+    };
+  const thin = reasons.filter(
+    (r) => r.trim().split(/\s+/).filter(Boolean).length < NO_ITEM_MIN_WORDS,
+  );
+  if (thin.length)
+    return {
+      name,
+      state: "refused",
+      text: `No-Item: ${thin.map((r) => `"${r}"`).join(", ")} — give a reason of at least ${NO_ITEM_MIN_WORDS} words (a revert of X, a dependency bump, a progress report)`,
+    };
+  return { name, state: "ok", text: `No-Item: ${reasons.join("; ")}` };
+}
+
+export function checkRangeNoItem(commits: CommitTrailers[]): CheckLine {
+  const bad = commits
+    .map((c) => ({ c, r: checkNoItem(c.trailers) }))
+    .filter(({ r }) => r.state === "refused")
+    .map(({ c, r }) => `${c.commit.slice(0, 10)} "${c.subject}": ${r.text}`);
+  if (bad.length) return { name: "no-item", state: "refused", text: bad.join("\n      ") };
+  const n = commits.filter((c) => trailerValues(c.trailers, "No-Item").length).length;
+  return { name: "no-item", state: "ok", text: `${n} commit(s) carry a well-formed No-Item:` };
+}
+
+/** A commit with the paths it is answerable for (its own diff; see the header). */
+export interface CommitPaths extends CommitTrailers {
+  paths: string[];
+  merge: boolean;
+}
+
+export function checkRangeRequirements(commits: CommitPaths[], reqDir: string): CheckLine {
+  const bad: string[] = [];
+  let touching = 0;
+  for (const c of commits) {
+    const r = checkRequirementsTrailer(c.paths, c.trailers, reqDir, c.merge);
+    if (!/^no /.test(r.text)) touching++;
+    if (r.state === "refused") bad.push(`${c.commit.slice(0, 10)} "${c.subject}": ${r.text}`);
+  }
+  if (bad.length) return { name: "requirements", state: "refused", text: bad.join("\n      ") };
+  return {
+    name: "requirements",
+    state: "ok",
+    text: touching
+      ? `${touching} commit(s) change ${reqDir}/, each with Requirements:`
+      : `no commit in the range changes ${reqDir}/`,
+  };
+}
+
+/** Requirements paths in the aggregate diff that no commit in the range owns. */
+export function checkAggregateRequirements(
+  aggregate: string[],
+  commits: CommitPaths[],
+  reqDir: string,
+): CheckLine {
+  const prefix = `${reqDir.replace(/\/$/, "")}/`;
+  const touched = aggregate.filter(
+    (p) => p.startsWith(prefix) && p !== `${prefix}README.md` && !p.endsWith("/.gitkeep"),
+  );
+  if (!touched.length)
+    return { name: "aggregate", state: "ok", text: `the range's diff leaves ${prefix} unchanged` };
+  const owned = new Set(commits.flatMap((c) => c.paths));
+  const orphan = touched.filter((p) => !owned.has(p));
+  if (orphan.length)
+    return {
+      name: "aggregate",
+      state: "refused",
+      text: `the range changes ${orphan.slice(0, 3).join(", ")}${orphan.length > 3 ? ", …" : ""} but no commit in it owns the change — rebase or merge the base, then re-run`,
+    };
+  return {
+    name: "aggregate",
+    state: "ok",
+    text: `${touched.length} path(s) under ${prefix}, each owned by a commit in the range`,
+  };
+}
+
+/** The item a branch is named after (`<id>` or `<id>-<slug>`, lowercased), or null. */
+export function itemOfBranch(branch: string, itemIds: Iterable<string>): string | null {
+  const b = branch.toLowerCase();
+  let best: string | null = null;
+  for (const id of itemIds) {
+    const l = id.toLowerCase();
+    if ((b === l || b.startsWith(`${l}-`)) && (!best || l.length > best.length)) best = id;
+  }
+  return best;
+}
+
+export function checkBranchItems(
+  branch: string | null,
+  item: string | null,
+  commits: CommitTrailers[],
+): CheckLine[] {
+  if (branch === null)
+    return [
+      { name: "branch", state: "ok", text: "detached HEAD: branch/item consistency not checked" },
+    ];
+  if (item === null)
+    return [{ name: "branch", state: "ok", text: `${branch} is not named after an item` }];
+  const want = normId(item);
+  const closes: string[] = [];
+  const progress: string[] = [];
+  for (const c of commits) {
+    const where = `${c.commit.slice(0, 10)} "${c.subject}"`;
+    for (const v of trailerValues(c.trailers, "Closes")) {
+      const id = trailerItemId(v);
+      if (id && id !== want) closes.push(`${where}: Closes: ${id}`);
+    }
+    for (const v of trailerValues(c.trailers, "Progress")) {
+      const id = trailerItemId(v);
+      if (id && id !== want) progress.push(`${where}: Progress: ${id}`);
+    }
+  }
+  const lines: CheckLine[] = [];
+  lines.push(
+    closes.length
+      ? {
+          name: "branch",
+          state: "refused",
+          text: `branch ${branch} is ${want}'s, and closes another item — ${closes.join("; ")}. Close it on its own branch`,
+        }
+      : {
+          name: "branch",
+          state: "ok",
+          text: `branch ${branch} is ${want}'s; every Closes: names it`,
+        },
+  );
+  if (progress.length)
+    lines.push({
+      name: "branch",
+      state: "warn",
+      text: `Progress: on other items from ${want}'s branch — ${progress.join("; ")}`,
+    });
+  return lines;
+}
+
 // ─── Gathering ────────────────────────────────────────────────────────────────
 
 /** Item IDs in git's index (committed or staged), by file name and frontmatter. */
@@ -241,6 +416,46 @@ export function indexedItemIds(
   return { ok: true, ids };
 }
 
+/**
+ * The paths a commit is answerable for: its diff against its parent (or the
+ * empty tree), or — for a merge — the paths that differ from every parent.
+ */
+export function commitPaths(
+  root: string,
+  commit: string,
+): { ok: true; paths: string[]; merge: boolean } | { ok: false; reason: string } {
+  const parents = git(root, ["rev-list", "--parents", "-n", "1", commit]);
+  if (!parents.ok) return parents;
+  const merge = parents.stdout.trim().split(/\s+/).length > 2;
+  const r = git(root, [
+    "diff-tree",
+    "-r",
+    "--no-commit-id",
+    "--name-only",
+    "-z",
+    merge ? "-c" : "--root",
+    commit,
+  ]);
+  if (!r.ok) return r;
+  return { ok: true, paths: r.stdout.split("\0").filter(Boolean), merge };
+}
+
+/** During a merge: staged paths that also differ from every merged head. */
+export function mergeOwnPaths(
+  root: string,
+  staged: string[],
+  heads: string[],
+): { ok: true; paths: string[] } | { ok: false; reason: string } {
+  let own = new Set(staged);
+  for (const head of heads) {
+    const r = git(root, ["diff", "--cached", "--name-only", "-z", head]);
+    if (!r.ok) return r;
+    const differs = new Set(r.stdout.split("\0").filter(Boolean));
+    own = new Set([...own].filter((p) => differs.has(p)));
+  }
+  return { ok: true, paths: [...own] };
+}
+
 function print(lines: CheckLine[]): void {
   const label: Record<LineState, string> = {
     ok: "ok",
@@ -252,18 +467,28 @@ function print(lines: CheckLine[]): void {
     console.log(`  ${label[l.state].padEnd(13)} ${l.name.padEnd(13)} ${l.text}`);
 }
 
+/** The project's copy of the starter manifest; an unreadable one falls back to the derived list. */
+function manifestOrNull(root: string): StarterManifest | null {
+  try {
+    return loadManifest(root);
+  } catch {
+    return null;
+  }
+}
+
 async function dirsFor(
   root: string,
 ): Promise<{ dirs: Dirs; integration: string; upstream: string[] }> {
+  const manifest = manifestOrNull(root);
   try {
     const cfg = await loadConfig(root);
     return {
       dirs: { requirements: cfg.dirs.requirements, plan: cfg.dirs.plan, adr: cfg.dirs.adr },
       integration: cfg.branches.integration,
-      upstream: upstreamPaths(cfg.modules?.replaced ?? []),
+      upstream: upstreamPaths(cfg.modules?.replaced ?? [], manifest),
     };
   } catch {
-    return { dirs: DEFAULT_DIRS, integration: "dev", upstream: UPSTREAM_PATHS };
+    return { dirs: DEFAULT_DIRS, integration: "dev", upstream: upstreamPaths([], manifest) };
   }
 }
 
@@ -293,8 +518,27 @@ export async function messageMode(root: string, file: string): Promise<number> {
     });
   const paths = staged.ok ? staged.stdout.split("\0").filter(Boolean) : [];
   const gitDir = git(root, ["rev-parse", "--git-dir"]);
-  const merging = gitDir.ok && existsSync(join(root, gitDir.stdout.trim(), "MERGE_HEAD"));
-  if (staged.ok) lines.push(checkRequirementsTrailer(paths, trailers, dirs.requirements, merging));
+  const mergeHead = gitDir.ok ? join(root, gitDir.stdout.trim(), "MERGE_HEAD") : null;
+  const merging = mergeHead !== null && existsSync(mergeHead);
+  if (staged.ok && !merging)
+    lines.push(checkRequirementsTrailer(paths, trailers, dirs.requirements, false));
+  else if (staged.ok && mergeHead) {
+    const heads = readFileSync(mergeHead, "utf8")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const own = mergeOwnPaths(root, paths, heads);
+    lines.push(
+      own.ok
+        ? checkRequirementsTrailer(own.paths, trailers, dirs.requirements, true)
+        : {
+            name: "requirements",
+            state: "unknown",
+            text: `could not ask git which paths this merge changes itself: ${own.reason}`,
+          },
+    );
+  }
+  lines.push(checkNoItem(trailers));
   if (items.ok) lines.push(checkItemTrailers(trailers, items.ids));
   else
     lines.push({
@@ -365,20 +609,74 @@ export async function rangeMode(
     print([{ name: "range", state: "ok", text: `no commits in ${from}..HEAD: nothing to check` }]);
     return 0;
   }
-  const ids = new Set(
-    loadItems(root, dirs).flatMap((i) => [i.id, ...(i.fileId ? [i.fileId] : [])]),
-  );
-  const lines = [
+  const claims = log.commits.filter(isClaimCommit);
+  const commits = log.commits.filter((c) => !isClaimCommit(c));
+  const claimNote = claims.length ? `; ${claims.length} Claim: commit(s) exempt` : "";
+  if (!commits.length) {
+    print([
+      {
+        name: "range",
+        state: "ok",
+        text: `${from}..HEAD holds only Claim: commits${claimNote}: nothing to check`,
+      },
+    ]);
+    return 0;
+  }
+  const items = loadItems(root, dirs);
+  const ids = new Set(items.flatMap((i) => [i.id, ...(i.fileId ? [i.fileId] : [])]));
+
+  const lines: CheckLine[] = [
     {
       name: "range",
-      state: "ok" as const,
-      text: `${log.commits.length} commit(s) in ${from}..HEAD`,
+      state: "ok",
+      text: `${log.commits.length} commit(s) in ${from}..HEAD${claimNote}`,
     },
-    checkRangeHasItem(log.commits),
-    checkRangeItems(log.commits, ids),
+    checkRangeHasItem(commits),
+    checkRangeItems(commits, ids),
+    checkRangeNoItem(commits),
   ];
+
+  // Every commit's own paths, then the aggregate.
+  const withPaths: CommitPaths[] = [];
+  const unread: string[] = [];
+  for (const c of commits) {
+    const p = commitPaths(root, c.commit);
+    if (p.ok) withPaths.push({ ...c, paths: p.paths, merge: p.merge });
+    else unread.push(`${c.commit.slice(0, 10)}: ${p.reason}`);
+  }
+  if (unread.length)
+    lines.push({
+      name: "requirements",
+      state: "unknown",
+      text: `could not ask git for the paths of ${unread.join("; ")}`,
+    });
+  else {
+    lines.push(checkRangeRequirements(withPaths, dirs.requirements));
+    const agg = git(root, ["diff", "--name-only", "-z", `${from}...HEAD`]);
+    lines.push(
+      agg.ok
+        ? checkAggregateRequirements(
+            agg.stdout.split("\0").filter(Boolean),
+            withPaths,
+            dirs.requirements,
+          )
+        : {
+            name: "aggregate",
+            state: "unknown",
+            text: `could not ask git for ${from}...HEAD: ${agg.reason}`,
+          },
+    );
+  }
+
+  // The branch and its item.
+  const head = git(root, ["symbolic-ref", "--short", "-q", "HEAD"]);
+  const branch = head.ok ? head.stdout.trim() || null : null;
+  lines.push(...checkBranchItems(branch, branch ? itemOfBranch(branch, ids) : null, commits));
+
   print(lines);
-  return lines.some((l) => l.state === "refused") ? 1 : 0;
+  if (lines.some((l) => l.state === "refused")) return 1;
+  if (lines.some((l) => l.state === "unknown")) return allowUnknown ? 0 : 1;
+  return 0;
 }
 
 export async function main(argv: string[]): Promise<number> {

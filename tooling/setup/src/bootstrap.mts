@@ -4,7 +4,20 @@
  * Prints on success too: a check whose normal output is silence cannot be told
  * from one that never ran (door_nexa's `pnpm doctor` ran pnpm's own built-in for
  * a year and reported nothing). Three answers per check — ok, FAIL, and
- * could-not-ask — and only a definite FAIL exits 1.
+ * could-not-ask — and a could-not-ask is never quietly a pass.
+ *
+ * Two kinds of check, by what depends on them:
+ *
+ *   required        node, pnpm, git, node_modules, checkout (worktree detection)
+ *                   and the env links. The workflow cannot run without them, so
+ *                   FAIL exits 1 and could-not-ask exits 2 ("could not answer").
+ *   informational   gh, git-lfs. Only some steps need them — gh for sdlc:init
+ *                   and land, git-lfs for committing journey evidence — so a
+ *                   missing or unanswering one is a `warn` line and never fails
+ *                   the run. sdlc:init checks git-lfs properly where it matters.
+ *
+ * Exit: 1 if any required check failed, else 2 if any required check could
+ * not ask, else 0.
  *
  * In a linked worktree it also symlinks the gitignored env files from the main
  * checkout. A symlink, never a copy: a copy keeps a rotated key and misses a new
@@ -17,7 +30,10 @@ import { exec as realExec, firstLine, isEntry } from "../../core/src/exec.mts";
 import type { Exec } from "../../core/src/exec.mts";
 import { findRoot } from "../../core/src/config.mts";
 
-export type CheckState = "ok" | "fail" | "could-not-ask" | "n/a";
+export type CheckState = "ok" | "fail" | "could-not-ask" | "warn" | "n/a";
+
+/** Checks that only inform: a failure is a warning (see the header). */
+export const INFORMATIONAL = new Set(["gh", "git-lfs"]);
 
 export interface Check {
   name: string;
@@ -157,11 +173,23 @@ export async function runBootstrap(
 ): Promise<{ checks: Check[]; exit: number }> {
   const { root } = deps;
   const checks: Check[] = [];
-  const add = (c: Check) => {
+  const add = (given: Check) => {
+    const c: Check =
+      INFORMATIONAL.has(given.name) && (given.state === "fail" || given.state === "could-not-ask")
+        ? {
+            ...given,
+            state: "warn",
+            detail: `${given.state === "fail" ? "" : "could not ask: "}${given.detail} (informational)`,
+          }
+        : given;
     checks.push(c);
-    const label = { ok: "ok", fail: "FAIL", "could-not-ask": "could not ask", "n/a": "n/a" }[
-      c.state
-    ];
+    const label = {
+      ok: "ok",
+      fail: "FAIL",
+      "could-not-ask": "could not ask",
+      warn: "warn",
+      "n/a": "n/a",
+    }[c.state];
     deps.log(`  ${label.padEnd(13)} ${c.name.padEnd(14)} ${c.detail}`);
   };
 
@@ -215,10 +243,11 @@ export async function runBootstrap(
 
   const failed = checks.filter((c) => c.state === "fail").length;
   const unknown = checks.filter((c) => c.state === "could-not-ask").length;
+  const warned = checks.filter((c) => c.state === "warn").length;
   deps.log(
-    `  ${failed ? `${failed} failed` : "nothing failed"}${unknown ? `, ${unknown} could not ask` : ""}`,
+    `  ${failed ? `${failed} failed` : "nothing failed"}${unknown ? `, ${unknown} could not ask` : ""}${warned ? `, ${warned} warning(s)` : ""}`,
   );
-  return { checks, exit: failed ? 1 : 0 };
+  return { checks, exit: failed ? 1 : unknown ? 2 : 0 };
 }
 
 async function main(): Promise<void> {

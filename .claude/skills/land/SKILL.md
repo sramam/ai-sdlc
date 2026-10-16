@@ -1,76 +1,66 @@
 ---
 name: land
-description: Takes a committed branch all the way to dev. It is the one skill other skills may hand work to, because it takes no lock — checks it is current with origin/dev, pushes, runs local CI (which posts a local-ci status on the pushed SHA), opens the PR, merges with a merge commit, and gives the resulting dev tip its own status so promotion can rely on it
+description: Takes a committed branch all the way to dev by running `pnpm land` — the only merge path agents have. Run it in the background; it checks, pushes, runs local CI, opens the PR, merges with a merge commit, and gives the merge commit its own local-ci status. It is the one skill other skills may hand work to, because it takes no lock.
 ---
 
 # Land
 
-CI is **local** (Actions is off, for cost), so this skill is the gate. **Nothing
-merges without a green `local-ci` status on the exact head SHA, and the merge
-commit on `dev` gets one too.** The skill does the remembering, not the
-judgement; see _Where this stops_. The trailer grammar is in
-`docs/kit/hooks.md`.
+**Checklist:**
 
-## 1. Ready
+1. The branch is committed, the tree is clean, and it is not `dev`.
+2. `origin/dev` is an ancestor: if not, `git merge origin/dev` and resolve
+   (verify any resolved conflict by substance against the original commits).
+3. The branch carries `Progress: <ITEM-ID> …` (and `Closes:` on the finishing
+   commit) or `No-Item: <reason>` (grammar: `docs/kit/hooks.md`).
+4. **Run `pnpm land` in the background** (a sub-agent or a background shell),
+   and keep working with the user. Report its result when it arrives; never
+   assume it.
 
-1. **Committed, and not on `dev`.** `git status --porcelain` is empty.
-2. **Current**: `git fetch`, then `origin/dev` must be an ancestor of `HEAD`. If
-   it is not, `git merge origin/dev`. **`ci:local` never merges by itself**; it
-   refuses a branch that is behind.
-3. **If a conflict was resolved, verify it by substance.** Compare files and
-   diffstat against the original commit(s). A resolved conflict is a change
-   nobody reviewed.
-4. **The branch names its work**: a `Progress: <ITEM-ID> …` trailer (and
-   `Closes:` on the finishing commit), or `No-Item: <reason>`. If it touches
-   `docs/requirements/`, it carries `Requirements:` and **contains nothing
-   else**. A requirements change is its own branch and PR, landed before the
-   code that depends on it. **Exception: the discovery branch (`x-000-…`)**,
-   which lands requirements, the project brief, `docs/architecture.md`, ADRs
-   and the plan together, because they are decided together.
+`pnpm land` (`tooling/ci/src/land.mts`) is the only way an agent merges.
+`.claude/settings.json` denies the raw routes (`gh pr merge`, pushing to `dev`,
+`--no-verify`, force-pushes), so there is nothing to remember and nothing to
+skip.
 
-## 2. Push, then test
+## What `pnpm land` does, in order
 
-5. `git push -u origin HEAD`. GitHub must have the SHA before a status can be
-   posted on it.
-6. **`pnpm ci:local`**, **in the background** (a sub-agent or a background
-   shell), so the conversation is not blocked. It tests a snapshot of the pushed
-   head SHA in `.ci-local/run-<sha>/`, and posts `local-ci` on it. Wait for the
-   result before step 7, and never assume it. On red, **stop and report**. _Could not run_ holds the merge,
-   unless the author explicitly allows it (`--allow-unknown`, which writes the
-   override into the status).
+1. Refuses on an integration branch, a detached HEAD or a dirty tree.
+2. Fetches, and refuses unless `origin/dev` is an ancestor of `HEAD`. It never
+   merges `dev` in by itself.
+3. Checks the trailers over `origin/dev..HEAD`. A branch touching
+   `docs/requirements/` must contain nothing else, **except the discovery
+   branch** (`x-000-…`).
+4. Pushes, then runs `ci:local` on the pushed SHA, which posts `local-ci`.
+5. Opens or reuses the PR into `dev`, with a body listing the `Progress:` and
+   `Closes:` lines.
+6. Re-checks that the PR head is the tested SHA and `origin/dev` has not moved.
+   If either changed, it stops and asks for a re-run.
+7. Merges with a **merge commit** (`gh pr merge --merge`), deleting the branch
+   **only** when it carries `Closes:`. A partial PR keeps its branch, so the item
+   still reads as claimed.
+8. Fetches and runs `ci:local --sha origin/dev`, so the merge commit has its own
+   `local-ci` status (content checks reused from the cache, history checks re-run).
+   Promotion relies on this status.
 
-## 3. Merge
+Exit codes: 0 landed, 1 refused or failed, 2 could not ask.
 
-7. Open the PR into `dev` if none exists (`gh pr create --base dev --body-file
-<file>`).
-8. **Re-check before merging**: the PR head is still the SHA with the green
-   status (`gh api repos/{o}/{r}/commits/<sha>/status`), and `origin/dev` has
-   not moved since step 2. If either has changed, go back to step 2.
-9. **A merge commit, never a squash**: `gh pr merge <n> --merge`, adding
-   `--delete-branch` **only when the PR carries `Closes:`**. A partial PR keeps
-   its branch, so the item still reads as claimed.
-10. **Give the new `dev` tip its status.** `git fetch`, then run `pnpm ci:local
---sha origin/dev`. Because `dev` did not move (step 8), the merge commit's
-    tree is identical to the tree just tested. The fingerprint matches, so it
-    posts `local-ci` on the merge SHA in under a second. Promotion relies on
-    this status.
+## Overrides
 
-There is no local `dev` to sync. Every worktree bases on `origin/dev`, and the
-main checkout is never worked in.
+`--allow-unknown` is for a step that **could not run** (a missing tool or
+credential), only when the author explicitly allows it. The override is posted
+under a separate status context, `local-ci/allow-unknown`, and `local-ci`
+itself stays unset. A gate that requires `local-ci` therefore never accepts an
+override.
 
-## If GitHub Actions has been enabled
+## If it stops
 
-Also wait for the hosted checks, and read them through `gh api`. `gh pr checks`
-shows _cancelled_ as `fail`, and a job with zero steps never ran.
-
-## Report
-
-What landed, the merge SHA and its `local-ci` status, which items it closed, and
-anything left open. If a check could not pass, say which and why, and never
-claim the work landed.
+- **Red CI:** report the failing steps and the log path it prints. Do not decide
+  a failure is "unrelated".
+- **Head or base moved:** merge `origin/dev` again if needed, then re-run.
+- **Merged, but the dev-tip status failed:** the merge landed. Re-run the
+  `ci:local --sha origin/dev` command it prints.
 
 ## Where this stops, deliberately
 
 - It may not merge red, and may not decide a real failure is "unrelated".
 - It may not release anything to QA.
-- It does not choose the merge order of dependent PRs. It asks.
+- It does not choose the merge order of dependent PRs. Ask.

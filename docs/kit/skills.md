@@ -63,7 +63,7 @@ below exists because doing its job by hand went wrong.
   account and writes a cookie jar, so agents can `curl` authenticated pages.
   It refuses production and refuses when the target is ambiguous.
 - **`pnpm bootstrap`**: environment doctor that prints a line per check and
-  repairs what it can (env symlink, generated client).
+  repairs what it can (the env symlink).
 - **`pnpm ci:local`**: _the_ CI. door_nexa built it as a fallback for an
   Actions outage; here it is the default. Give it fingerprinting, three-answer
   steps and a `local-ci` commit status.

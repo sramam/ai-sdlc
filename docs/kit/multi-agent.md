@@ -1,23 +1,23 @@
 # Running several agents in one repository
 
 Everything in this file follows from one fact: **the working tree, the index,
-HEAD, the stash, the ports and the dev database are all shared unless you make
+HEAD, the stash, the ports and the database are all shared unless you make
 them not shared.** Each row below was a real incident.
 
 ## Shared resources and their traps
 
-| shared thing                               | what went wrong                                                                                                       | the rule                                                                                                                                                   |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| working tree                               | `git add -A` swept another agent's work into a commit                                                                 | stage by path; work in a worktree                                                                                                                          |
-| stash (one per repo, across all worktrees) | a `pop` applied another session's stash                                                                               | never `git stash`. Copy a file to a scratchpad, or `git show HEAD:<path>`                                                                                  |
-| HEAD (per worktree)                        | four subagents sharing one HEAD: one was reset four times mid-edit; a 914-line commit landed on another lane's branch | each code-writing subagent gets `isolation: "worktree"`, which the **spawner** must pass                                                                   |
-| ports                                      | an e2e run `SIGKILL`ed another agent's dev server on :3000, then probed that server as its own                        | derive ports from a hash of the checkout path; kill only listeners whose cwd is this checkout                                                              |
-| `pkill -f <script>`                        | matched processes in every worktree                                                                                   | stop by PID, within your own checkout                                                                                                                      |
-| dev database                               | `migrate dev` applied a half-finished migration to the shared branch, and every other agent then hit drift            | per-checkout DB branches from day one; generate migrations offline against `origin/dev`'s schema (Prisma: `migrate diff`; Drizzle: `drizzle-kit generate`) |
-| tools that glob from the root              | vitest collected every other worktree's tests                                                                         | exclude `.claude/worktrees/**` everywhere                                                                                                                  |
-| `.dev.vars` / `.env` (gitignored)          | absent in worktrees, so "DATABASE_URL is not set"                                                                     | `pnpm bootstrap` symlinks them from the main checkout. Use a symlink, not a copy, so it cannot drift                                                       |
-| `node_modules`                             | absent in fresh worktrees, so hooks failed open                                                                       | `pnpm install` in each worktree (fast, hard-linked). **Never symlink `node_modules`**: workspace links would resolve to the main checkout's source         |
-| CPU during compile-heavy work              | three parallel cold compiles were slower than serial warm ones                                                        | one warm checkout for recording or visual work                                                                                                             |
+| shared thing                               | what went wrong                                                                                                       | the rule                                                                                                                                           |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| working tree                               | `git add -A` swept another agent's work into a commit                                                                 | stage by path; work in a worktree                                                                                                                  |
+| stash (one per repo, across all worktrees) | a `pop` applied another session's stash                                                                               | never `git stash`. Copy a file to a scratchpad, or `git show HEAD:<path>`                                                                          |
+| HEAD (per worktree)                        | four subagents sharing one HEAD: one was reset four times mid-edit; a 914-line commit landed on another lane's branch | each code-writing subagent gets `isolation: "worktree"`, which the **spawner** must pass                                                           |
+| ports                                      | an e2e run `SIGKILL`ed another agent's dev server on :3000, then probed that server as its own                        | derive ports from a hash of the checkout path; kill only listeners whose cwd is this checkout                                                      |
+| `pkill -f <script>`                        | matched processes in every worktree                                                                                   | stop by PID, within your own checkout                                                                                                              |
+| dev database                               | `migrate dev` applied a half-finished migration to the shared branch, and every other agent then hit drift            | each worktree has its own PGlite database (`pnpm db:local`), with snapshots before every migration; shared environments change only by promotion   |
+| tools that glob from the root              | vitest collected every other worktree's tests                                                                         | exclude `.claude/worktrees/**` everywhere                                                                                                          |
+| `.dev.vars` / `.env` (gitignored)          | absent in worktrees, so "DATABASE_URL is not set"                                                                     | `pnpm bootstrap` symlinks them from the main checkout. Use a symlink, not a copy, so it cannot drift                                               |
+| `node_modules`                             | absent in fresh worktrees, so hooks failed open                                                                       | `pnpm install` in each worktree (fast, hard-linked). **Never symlink `node_modules`**: workspace links would resolve to the main checkout's source |
+| CPU during compile-heavy work              | three parallel cold compiles were slower than serial warm ones                                                        | one warm checkout for recording or visual work                                                                                                     |
 
 ## Worktrees
 
@@ -94,7 +94,7 @@ a result that has not arrived.**
 Two rules keep this safe:
 
 - **A background run must not race the main thread's edits.** `ci:local` tests a
-  **snapshot**: it checks the commit out into `.ci-local/run-<sha>/` (a shared clone) (with its own
+  **snapshot**: it checks the commit out into `.ci-local/run-<sha>-<random>/` (a shared clone, one per run, behind a per-SHA lock) (with its own
   `pnpm install --offline`, never a symlinked `node_modules`), so the worktree
   stays free to edit. Anything else long-running that reads the working tree
   either snapshots the same way, or the main thread works elsewhere until it

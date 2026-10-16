@@ -12,8 +12,8 @@ beforeEach(() => {
   main = join(base, "main");
   tree = join(main, ".claude", "worktrees", "x");
   mkdirSync(tree, { recursive: true });
-  writeFileSync(join(main, "sdlc.config.ts"), "");
-  writeFileSync(join(tree, "sdlc.config.ts"), "");
+  writeFileSync(join(main, "sdlc.config.json"), "");
+  writeFileSync(join(tree, "sdlc.config.json"), "");
 });
 afterEach(() => rmSync(base, { recursive: true, force: true }));
 

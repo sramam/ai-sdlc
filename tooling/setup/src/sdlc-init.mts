@@ -7,14 +7,27 @@
  *
  * The integration branch is created **through the API**, not `git push`: the
  * pre-push hook refuses a push to dev, and it is right to.
+ *
+ * Branch protection is a repository ruleset named `ai-sdlc-integration` on the
+ * integration branch: a pull request and the `local-ci` status are required.
+ * GitHub offers rulesets on private repositories only on paid plans; there it
+ * answers 403/404 and the step reports `unavailable`, not failed — merges are
+ * then enforced locally, for agents, by `pnpm land` and the settings deny rules.
  */
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { exec as realExec, firstLine, isEntry } from "../../core/src/exec.mts";
 import type { Exec, ExecResult } from "../../core/src/exec.mts";
 import { findRoot, loadConfig } from "../../core/src/config.mts";
 import type { SdlcConfig } from "../../core/src/config.mts";
 
-export type InitState = "done" | "already" | "failed" | "could-not-ask" | "would" | "skipped";
+/**
+ * `unavailable`: GitHub will not offer this on this repository's plan. Not a
+ * failure — the local guards stand in — and it does not fail the run.
+ */
+export type InitState =
+  "done" | "already" | "failed" | "could-not-ask" | "would" | "skipped" | "unavailable";
 
 export interface InitStep {
   name: string;
@@ -40,11 +53,64 @@ export const REPO_SETTINGS: Record<string, boolean> = {
   has_projects: false,
 };
 
+/** A path .gitattributes must route through LFS (docs/kit/testing.md § Storing it). */
+export const LFS_PROBE = "docs/journeys/x.png";
+
 function ghFailure(r: ExecResult): string {
   if (r.notFound) return "gh is not installed";
   if (r.timedOut) return "gh timed out (waiting on a prompt? run gh auth login)";
   return firstLine(r.stderr || r.stdout) || `gh exited ${r.code}`;
 }
+
+export const RULESET_NAME = "ai-sdlc-integration";
+export const STATUS_CONTEXT = "local-ci";
+export const RULESET_UNAVAILABLE =
+  "server-side rules need a public repo or a paid plan; merges are enforced locally for agents by pnpm land and the settings deny rules";
+
+/** The ruleset this kit asks for on the integration branch. */
+export function integrationRuleset(integration: string): Record<string, unknown> {
+  return {
+    name: RULESET_NAME,
+    target: "branch",
+    enforcement: "active",
+    conditions: { ref_name: { include: [`refs/heads/${integration}`], exclude: [] } },
+    rules: [
+      {
+        type: "pull_request",
+        parameters: {
+          required_approving_review_count: 0,
+          dismiss_stale_reviews_on_push: false,
+          require_code_owner_review: false,
+          require_last_push_approval: false,
+          required_review_thread_resolution: false,
+        },
+      },
+      {
+        type: "required_status_checks",
+        parameters: {
+          strict_required_status_checks_policy: false,
+          required_status_checks: [{ context: STATUS_CONTEXT }],
+        },
+      },
+    ],
+  };
+}
+
+/** Does `have` (as GitHub returns it) carry everything `want` asks for? Extra defaults are fine. */
+export function covers(have: unknown, want: unknown): boolean {
+  if (Array.isArray(want)) {
+    if (!Array.isArray(have) || have.length !== want.length) return false;
+    return want.every((w) => have.some((h) => covers(h, w)));
+  }
+  if (want && typeof want === "object") {
+    if (!have || typeof have !== "object") return false;
+    return Object.entries(want).every(([k, v]) => covers((have as Record<string, unknown>)[k], v));
+  }
+  return have === want;
+}
+
+/** A 403/404 from the rulesets API: the plan does not offer it here. */
+const planRefusal = (r: ExecResult): boolean => /HTTP (403|404)/.test(r.stderr + r.stdout);
 
 function json<T>(r: ExecResult): T | null {
   try {
@@ -90,7 +156,7 @@ export async function runInit(deps: InitDeps): Promise<{ steps: InitStep[]; exit
       state: "could-not-ask",
       detail: `${ghFailure(view)} — is there a GitHub remote, and is gh logged in?`,
     });
-    for (const n of ["integration branch", "default branch", "settings", "actions"]) {
+    for (const n of ["integration branch", "default branch", "settings", "actions", "ruleset"]) {
       add({ name: n, state: "could-not-ask", detail: "no repository to ask" });
     }
   } else {
@@ -172,9 +238,57 @@ export async function runInit(deps: InitDeps): Promise<{ steps: InitStep[]; exit
         ["api", "-X", "PUT", `repos/${r}/actions/permissions`, "-F", "enabled=false"],
         "disabled",
       );
+
+    // 6. Branch protection: a ruleset on the integration branch.
+    const list = await gh(["api", `repos/${r}/rulesets`]);
+    const rulesets = list.code === 0 ? json<Array<{ id: number; name: string }>>(list) : null;
+    if (list.code !== 0 && planRefusal(list))
+      add({ name: "ruleset", state: "unavailable", detail: RULESET_UNAVAILABLE });
+    else if (!rulesets) add({ name: "ruleset", state: "could-not-ask", detail: ghFailure(list) });
+    else {
+      const want = integrationRuleset(integration);
+      const found = rulesets.find((x) => x.name === RULESET_NAME);
+      let current: unknown = null;
+      if (found) {
+        const one = await gh(["api", `repos/${r}/rulesets/${found.id}`]);
+        current = one.code === 0 ? json<unknown>(one) : null;
+      }
+      const what = `${integration}: pull request and ${STATUS_CONTEXT} status required`;
+      if (found && current && covers(current, want))
+        add({ name: "ruleset", state: "already", detail: `${RULESET_NAME} (${what})` });
+      else {
+        const args = found
+          ? ["api", "-X", "PUT", `repos/${r}/rulesets/${found.id}`]
+          : ["api", "-X", "POST", `repos/${r}/rulesets`];
+        const verb = found ? "updated" : "created";
+        if (dryRun)
+          add({
+            name: "ruleset",
+            state: "would",
+            detail: `${verb.replace(/d$/, "")} ${RULESET_NAME}: gh ${args.join(" ")}`,
+          });
+        else {
+          const dir = mkdtempSync(join(tmpdir(), "sdlc-ruleset-"));
+          const body = join(dir, "ruleset.json");
+          try {
+            writeFileSync(body, JSON.stringify(want));
+            const res = await gh([...args, "--input", body]);
+            add(
+              res.code === 0
+                ? { name: "ruleset", state: "done", detail: `${verb} ${RULESET_NAME} (${what})` }
+                : planRefusal(res)
+                  ? { name: "ruleset", state: "unavailable", detail: RULESET_UNAVAILABLE }
+                  : { name: "ruleset", state: "failed", detail: ghFailure(res) },
+            );
+          } finally {
+            rmSync(dir, { recursive: true, force: true });
+          }
+        }
+      }
+    }
   }
 
-  // 6. Fetch, so origin/<integration> exists locally.
+  // 7. Fetch, so origin/<integration> exists locally.
   if (dryRun) add({ name: "fetch", state: "would", detail: "git fetch --prune origin" });
   else {
     const f = await exec("git", ["fetch", "--prune", "origin"], { cwd: root, timeoutMs: 120_000 });
@@ -185,7 +299,8 @@ export async function runInit(deps: InitDeps): Promise<{ steps: InitStep[]; exit
     );
   }
 
-  // 7. Git LFS: journeys commit screenshots through it.
+  // 8. Git LFS: journeys commit screenshots through it. Installed is not enough:
+  //    the patterns in .gitattributes must actually route the evidence to LFS.
   const lfs = await exec("git", ["lfs", "version"], { cwd: root, timeoutMs: 15_000 });
   if (lfs.code !== 0) {
     add({
@@ -210,8 +325,27 @@ export async function runInit(deps: InitDeps): Promise<{ steps: InitStep[]; exit
       );
     }
   }
+  const probe = LFS_PROBE;
+  const attr = await exec("git", ["check-attr", "filter", "--", probe], {
+    cwd: root,
+    timeoutMs: 15_000,
+  });
+  if (attr.code !== 0)
+    add({
+      name: "lfs patterns",
+      state: "could-not-ask",
+      detail: firstLine(attr.stderr) || `git check-attr exited ${attr.code}`,
+    });
+  else if (/: filter: lfs\s*$/m.test(attr.stdout))
+    add({ name: "lfs patterns", state: "already", detail: `${probe} is stored in LFS` });
+  else
+    add({
+      name: "lfs patterns",
+      state: "failed",
+      detail: `${probe} is not routed to LFS (${firstLine(attr.stdout)}) — .gitattributes needs docs/journeys/**/*.png filter=lfs diff=lfs merge=lfs -text`,
+    });
 
-  // 8–9. The two checks, by running them.
+  // 9–10. The two checks, by running them.
   for (const [name, script, args] of [
     ["bootstrap", "tooling/setup/src/bootstrap.mts", []],
     ["ci:local", "tooling/ci/src/ci-local.mts", ["--no-status"]],
@@ -252,7 +386,7 @@ async function main(): Promise<void> {
   }
   const root = findRoot();
   if (!root) {
-    console.error("sdlc:init: no sdlc.config.ts above this directory");
+    console.error("sdlc:init: no sdlc.config.json above this directory");
     process.exit(1);
   }
   const dryRun = args.includes("--dry-run");

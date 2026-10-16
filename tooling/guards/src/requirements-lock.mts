@@ -7,7 +7,14 @@
  * by writing `<session_id> <skill>` to `.claude/requirements-session` in the
  * checkout being written. Anything else is refused.
  *
- *     docs/requirements/sources/**   refused, always — source material is read-only
+ *     docs/requirements/sources/**   refused, except Write creating a NEW file
+ *                                    in a marked session — that is /idea
+ *                                    importing a document. Edit, and Write over
+ *                                    an existing source, are refused always:
+ *                                    source material is immutable once there
+ *     docs/requirements/sources/MANIFEST   refused, always — appended only by
+ *                                    `sources-manifest.mts --add`, which records
+ *                                    each import's sha256 (checked in ci)
  *     docs/requirements/**           allowed only for a marked session
  *     everything else                not this guard's business
  *
@@ -18,7 +25,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
-import { loadConfig } from "../../core/src/config.mts";
+import { CONFIG_FILE, loadConfig } from "../../core/src/config.mts";
 import { canonical, checkoutRoot } from "../../core/src/git-command.mts";
 import { denyOutput } from "./worktree-base.mts";
 
@@ -43,6 +50,8 @@ export type Facts = {
   requirementsDir: string;
   /** Lines of `.claude/requirements-session` in that checkout; [] if absent. */
   marks: string[];
+  /** Whether the target exists already. Only consulted under sources/. */
+  exists?: boolean;
 };
 
 const ALLOW: Verdict = { decision: "allow" };
@@ -72,17 +81,32 @@ export function verdict(input: HookInput, facts: Facts): Verdict {
   const dir = facts.requirementsDir.replace(/\/+$/, "");
   if (!path.startsWith(`${dir}/`)) return ALLOW;
 
+  const skill = markedSkill(facts.marks, input.session_id ?? "");
+
   if (path.startsWith(`${dir}/sources/`)) {
+    const manifest = path === `${dir}/sources/MANIFEST`;
+    const importing = !manifest && input.tool_name === "Write" && facts.exists === false;
+    if (importing && skill)
+      return {
+        decision: "allow",
+        note:
+          `new source under a ${skill} session — record it: ` +
+          `node tooling/guards/src/sources-manifest.mts --add ${path}`,
+      };
     return {
       decision: "deny",
-      reason:
-        `\`${dir}/sources/\` holds the source material requirements are derived from, ` +
-        "and is never edited — by anyone, in any skill. Add a new source through the " +
-        "requirements skill, or record the disagreement as a requirement instead.",
+      reason: manifest
+        ? `\`${dir}/sources/MANIFEST\` is appended only by ` +
+          "`node tooling/guards/src/sources-manifest.mts --add <path>`, which records the " +
+          "sha256 of a newly imported source."
+        : `\`${dir}/sources/\` holds the source material requirements are derived from, ` +
+          "and is never edited — by anyone, in any skill. A requirements skill " +
+          "(/kickoff, /idea, /add-requirement) may import a **new** file there with Write" +
+          (importing ? ", and this session is not marked as running one" : "") +
+          "; to disagree with a source, record a requirement instead.",
     };
   }
 
-  const skill = markedSkill(facts.marks, input.session_id ?? "");
   if (skill) return { decision: "allow", note: `requirements session: ${skill}` };
 
   return {
@@ -110,10 +134,10 @@ export function readMarks(root: string): string[] {
   }
 }
 
-/** `dirs.requirements` from `sdlc.config.ts`; the default if it cannot be read. */
+/** `dirs.requirements` from `sdlc.config.json`; the default if it cannot be read. */
 export async function requirementsDir(root: string): Promise<string> {
   try {
-    if (!existsSync(join(root, "sdlc.config.ts"))) return DEFAULT_REQUIREMENTS_DIR;
+    if (!existsSync(join(root, CONFIG_FILE))) return DEFAULT_REQUIREMENTS_DIR;
     return (await loadConfig(root)).dirs?.requirements || DEFAULT_REQUIREMENTS_DIR;
   } catch {
     return DEFAULT_REQUIREMENTS_DIR;
@@ -132,7 +156,12 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
       if (root) {
         const result = verdict(
           { ...input, cwd: root, tool_input: { file_path: target } },
-          { root, requirementsDir: await requirementsDir(root), marks: readMarks(root) },
+          {
+            root,
+            requirementsDir: await requirementsDir(root),
+            marks: readMarks(root),
+            exists: existsSync(target),
+          },
         );
         if (result.decision === "deny") console.log(denyOutput(result.reason));
         else if (result.note) console.error(`requirements-lock: allowed — ${result.note}`);

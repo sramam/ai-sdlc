@@ -1,0 +1,286 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "sdlc.config.json",
+  "description": "The project's knobs for the ai-sdlc tooling. Declarative: read, validated and never executed (tooling/core/src/config.mts).",
+  "type": "object",
+  "properties": {
+    "configVersion": {
+      "type": "integer",
+      "description": "The config format version; default 1. sdlc:update refuses a project behind the starter's minConfigVersion.",
+      "minimum": 1
+    },
+    "branches": {
+      "type": "object",
+      "description": "Branch names: where work integrates, the staging tier and production.",
+      "properties": {
+        "integration": {
+          "type": "string",
+          "minLength": 1
+        },
+        "staging": {
+          "type": "string",
+          "minLength": 1
+        },
+        "production": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["integration", "staging", "production"],
+      "additionalProperties": false
+    },
+    "dirs": {
+      "type": "object",
+      "properties": {
+        "requirements": {
+          "type": "string",
+          "minLength": 1
+        },
+        "plan": {
+          "type": "string",
+          "minLength": 1
+        },
+        "progress": {
+          "type": "string",
+          "minLength": 1
+        },
+        "adr": {
+          "type": "string",
+          "minLength": 1
+        },
+        "handoffs": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["requirements", "plan", "progress", "adr", "handoffs"],
+      "additionalProperties": false
+    },
+    "claimStaleDays": {
+      "type": "integer",
+      "description": "Days without a commit before a claimed branch is reported as stale.",
+      "minimum": 1
+    },
+    "cadence": {
+      "type": "object",
+      "properties": {
+        "progressReportWeekdays": {
+          "type": "array",
+          "description": "0 = Sunday … 6 = Saturday.",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6
+          }
+        },
+        "planSyncDays": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": ["progressReportWeekdays", "planSyncDays"],
+      "additionalProperties": false
+    },
+    "accounts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cli": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The CLI binary, or null for a manual step."
+          },
+          "check": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "manual": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["name", "cli", "check"],
+        "additionalProperties": false
+      }
+    },
+    "ci": {
+      "type": "object",
+      "properties": {
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "run": {
+                "type": "string",
+                "minLength": 1
+              },
+              "applies": {
+                "type": "string",
+                "enum": ["always", "has-apps", "has-packages", "has-source", "has-plan"]
+              },
+              "env": {
+                "type": "array",
+                "description": "Environment variables the step may see.",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "history": {
+                "type": "boolean",
+                "description": "Reads a commit range: runs even on a cache hit."
+              }
+            },
+            "required": ["name", "run", "applies"],
+            "additionalProperties": false
+          }
+        },
+        "container": {
+          "type": "object",
+          "description": "Used by `ci:local --container`.",
+          "properties": {
+            "image": {
+              "type": "string",
+              "minLength": 1
+            },
+            "engine": {
+              "type": "string",
+              "enum": ["docker", "podman"]
+            },
+            "network": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["image"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["steps"],
+      "additionalProperties": false
+    },
+    "coverage": {
+      "type": "object",
+      "properties": {
+        "floors": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "lines": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "branches": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              }
+            },
+            "required": ["lines", "branches"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["floors"],
+      "additionalProperties": false
+    },
+    "modules": {
+      "type": "object",
+      "properties": {
+        "replaced": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["core", "guards", "plan", "ci", "setup", "journeys", "localdb", "seed"]
+          }
+        }
+      },
+      "required": ["replaced"],
+      "additionalProperties": false
+    },
+    "localdb": {
+      "type": "object",
+      "properties": {
+        "databases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "migrate": {
+                "type": "string",
+                "minLength": 1
+              },
+              "env": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "required": ["name"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["databases"],
+      "additionalProperties": false
+    },
+    "seeds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "app": {
+            "type": "string",
+            "minLength": 1
+          },
+          "run": {
+            "type": "string",
+            "minLength": 1
+          },
+          "database": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sizes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": ["app", "run"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["branches", "dirs", "claimStaleDays", "cadence", "accounts", "ci", "coverage"],
+  "additionalProperties": false
+}

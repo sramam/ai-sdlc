@@ -1,0 +1,160 @@
+{
+  "version": "0.1.0",
+  "minConfigVersion": 1,
+  "owned": [
+    {
+      "path": "tooling/core/",
+      "kind": "replace"
+    },
+    {
+      "path": "tooling/guards/",
+      "kind": "replace"
+    },
+    {
+      "path": "tooling/plan/",
+      "kind": "replace"
+    },
+    {
+      "path": "tooling/ci/",
+      "kind": "replace"
+    },
+    {
+      "path": "tooling/setup/",
+      "kind": "replace"
+    },
+    {
+      "path": "tooling/journeys/",
+      "kind": "replace"
+    },
+    {
+      "path": "tooling/localdb/",
+      "kind": "replace"
+    },
+    {
+      "path": "tooling/seed/",
+      "kind": "replace"
+    },
+    {
+      "path": "docs/kit/",
+      "kind": "replace"
+    },
+    {
+      "path": ".claude/skills/kickoff/",
+      "kind": "replace"
+    },
+    {
+      "path": ".claude/skills/idea/",
+      "kind": "replace"
+    },
+    {
+      "path": ".claude/skills/add-requirement/",
+      "kind": "replace"
+    },
+    {
+      "path": ".claude/skills/plan/",
+      "kind": "replace"
+    },
+    {
+      "path": ".claude/skills/land/",
+      "kind": "replace"
+    },
+    {
+      "path": ".claude/skills/handoff/",
+      "kind": "replace"
+    },
+    {
+      "path": ".claude/skills/pickup/",
+      "kind": "replace"
+    },
+    {
+      "path": ".claude/skills/progress-report/",
+      "kind": "replace"
+    },
+    {
+      "path": ".claude/skills/commit-reviewer/",
+      "kind": "replace"
+    },
+    {
+      "path": ".claude/skills/code-reviewer/",
+      "kind": "replace"
+    },
+    {
+      "path": ".claude/skills/journey-add/",
+      "kind": "replace"
+    },
+    {
+      "path": ".claude/skills/journey-test/",
+      "kind": "replace"
+    },
+    {
+      "path": ".claude/skills/journey-ready-for-qa/",
+      "kind": "replace"
+    },
+    {
+      "path": ".husky/commit-msg",
+      "kind": "replace"
+    },
+    {
+      "path": ".husky/pre-commit",
+      "kind": "replace"
+    },
+    {
+      "path": ".husky/pre-push",
+      "kind": "replace"
+    },
+    {
+      "path": ".husky/prepare-commit-msg",
+      "kind": "replace"
+    },
+    {
+      "path": "starter-manifest.json",
+      "kind": "replace"
+    },
+    {
+      "path": ".claude/settings.json",
+      "kind": "merge-json"
+    },
+    {
+      "path": "package.json",
+      "kind": "merge-json",
+      "keys": {
+        "scripts": [
+          "ci:local",
+          "plan:check",
+          "plan:status",
+          "item-check",
+          "worktrees",
+          "db:local",
+          "seed",
+          "accounts:check",
+          "bootstrap",
+          "sdlc:init",
+          "sdlc:update",
+          "land",
+          "claim",
+          "sources:add",
+          "sources:check",
+          "journeys:learn",
+          "journeys:test",
+          "journeys:delta",
+          "journeys:drift",
+          "journeys:index",
+          "journeys:timing"
+        ],
+        "devDependencies": ["@types/node", "husky", "lint-staged", "typescript", "vitest"]
+      }
+    },
+    {
+      "path": ".gitignore",
+      "kind": "merge-lines"
+    },
+    {
+      "path": ".gitattributes",
+      "kind": "merge-lines"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "kind": "merge-lines"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@ai-sdlc/seed",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "seed — deterministic mock data, opt-in per application, and the helpers a seeder imports.",
+  "exports": {
+    "./helpers": "./src/helpers.mts"
+  },
+  "dependencies": {
+    "@ai-sdlc/core": "workspace:*",
+    "@ai-sdlc/localdb": "workspace:*"
+  }
+}

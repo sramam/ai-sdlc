@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { exampleConfigJson } from "../../core/src/config.test-helper.mts";
 import {
   SESSION_FILE,
   markedSkill,
@@ -87,10 +88,36 @@ describe("inside the requirements", () => {
     expect(write("docs/requirements/a.md", facts([" kickoff"]), "").decision).toBe("deny");
   });
 
-  it("refuses every write under sources/, even for a marked session", () => {
+  it("refuses every edit under sources/, even for a marked session", () => {
     const v = write("docs/requirements/sources/brd.pdf", facts(["s1 kickoff"]));
     expect(v.decision).toBe("deny");
     expect(reasonOf(v)).toContain("sources/");
+    const existing = { ...facts(["s1 idea"]), exists: true };
+    expect(write("docs/requirements/sources/brd.pdf", existing).decision).toBe("deny");
+    const fresh = { ...facts(["s1 idea"]), exists: false };
+    expect(write("docs/requirements/sources/brd.pdf", fresh, "s1", "Edit").decision).toBe("deny");
+  });
+
+  it("lets a marked session import a NEW source with Write, and names the manifest step", () => {
+    const fresh = { ...facts(["s1 idea"]), exists: false };
+    const v = write("docs/requirements/sources/notes.md", fresh);
+    expect(v).toMatchObject({ decision: "allow", note: expect.stringContaining("--add") });
+    // Unmarked, or another session's mark: still refused.
+    expect(
+      write("docs/requirements/sources/notes.md", { ...facts(), exists: false }).decision,
+    ).toBe("deny");
+    expect(
+      reasonOf(
+        write("docs/requirements/sources/notes.md", { ...facts(["s2 idea"]), exists: false }),
+      ),
+    ).toContain("not marked");
+  });
+
+  it("never lets a tool write MANIFEST, which only --add appends", () => {
+    const fresh = { ...facts(["s1 idea"]), exists: false };
+    const v = write("docs/requirements/sources/MANIFEST", fresh);
+    expect(v.decision).toBe("deny");
+    expect(reasonOf(v)).toContain("sources-manifest.mts --add");
   });
 
   it("follows a configured directory", () => {
@@ -99,18 +126,20 @@ describe("inside the requirements", () => {
   });
 });
 
-describe("the directory, from sdlc.config.ts", () => {
+describe("the directory, from sdlc.config.json", () => {
   it("reads dirs.requirements, defaulting when absent or broken", async () => {
     const root = mkdtempSync(join(tmpdir(), "sdlc-req-cfg-"));
     expect(await requirementsDir(root)).toBe("docs/requirements");
     writeFileSync(
-      join(root, "sdlc.config.ts"),
-      'export default { dirs: { requirements: "spec" } };\n',
+      join(root, "sdlc.config.json"),
+      exampleConfigJson((c) => (c.dirs.requirements = "spec")),
     );
     expect(await requirementsDir(root)).toBe("spec");
-    // A fresh directory: a module URL is imported once per process.
+    // Invalid JSON, and valid JSON that is not a configuration: the default.
     const broken = mkdtempSync(join(tmpdir(), "sdlc-req-broken-"));
-    writeFileSync(join(broken, "sdlc.config.ts"), 'throw new Error("x");\n');
+    writeFileSync(join(broken, "sdlc.config.json"), "{ not json");
+    expect(await requirementsDir(broken)).toBe("docs/requirements");
+    writeFileSync(join(broken, "sdlc.config.json"), '{ "dirs": { "requirements": "spec" } }');
     expect(await requirementsDir(broken)).toBe("docs/requirements");
   });
 });
@@ -154,10 +183,12 @@ describe("as a hook", () => {
     mkdirSync(join(tree, ".claude"), { recursive: true });
     writeFileSync(join(tree, SESSION_FILE), "s1 kickoff\n");
     expect(run("s1", target)).toBe("");
-    expect(
-      JSON.parse(run("s1", join(tree, "docs/requirements/sources/a.md"))).hookSpecificOutput
-        .permissionDecision,
-    ).toBe("deny");
+    // A new source may be imported; once it exists, it may not be overwritten.
+    const source = join(tree, "docs/requirements/sources/a.md");
+    expect(run("s1", source)).toBe("");
+    mkdirSync(join(tree, "docs/requirements/sources"), { recursive: true });
+    writeFileSync(source, "imported");
+    expect(JSON.parse(run("s1", source)).hookSpecificOutput.permissionDecision).toBe("deny");
   });
 
   it("could not ask (not a repository): allows", () => {
