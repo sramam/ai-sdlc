@@ -1002,8 +1002,8 @@ export function drawDiff(
  * The check on the other side of `dateBoxes`: every date on the page has to be
  * excluded from the comparison, because in this product every date moves with
  * the clock. One that is not covered is a step that passes today and is red
- * tomorrow morning — [#617](https://github.com/VuNexa-App/door_nexa/issues/617),
- * which J35 had latently and J33 had without anybody noticing.
+ * tomorrow morning (#617), which J35 had latently and J33 had without anybody
+ * noticing.
  *
  * **Covered means every pixel**, not "overlaps". A partial mask is the failure
  * the audit trail's `data-volatile-clock` comment already records: it looks

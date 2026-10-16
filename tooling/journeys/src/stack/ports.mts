@@ -52,7 +52,7 @@ export const CHECKOUT_MARKER = "pnpm-workspace.yaml";
 /**
  * **Where a project's band lives, and what marks a checkout.**
  *
- * The constants above are door_nexa's and are the defaults; `journeys.config.mts`
+ * The constants above are the defaults; `journeys.config.mts`
  * overrides any of them (`ports` in `config.mts`). Changing a base or the slot
  * count moves every checkout's derived pair at once, which strands whatever a
  * previous run left on the old ones — do it between runs, not during one.

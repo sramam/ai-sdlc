@@ -2,7 +2,7 @@
  * `pnpm bootstrap` — is this checkout ready to work in? One line per check.
  *
  * Prints on success too: a check whose normal output is silence cannot be told
- * from one that never ran (door_nexa's `pnpm doctor` ran pnpm's own built-in for
+ * from one that never ran (an earlier `pnpm doctor` ran pnpm's own built-in for
  * a year and reported nothing). Three answers per check — ok, FAIL, and
  * could-not-ask — and a could-not-ask is never quietly a pass.
  *

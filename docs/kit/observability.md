@@ -7,11 +7,11 @@ an incident, and an incident is too late to add one.
 
 ## What is emitted
 
-| signal      | what                                                                                                                                                                         | from where                                                           |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| **traces**  | one root span per request, job or queue message; **one child span per capability call**; spans around every external call (DB, model, email, payments, authorization engine) | `@<scope>/telemetry` helpers in the binding and the port             |
-| **logs**    | structured and **correlated** (each record carries `trace_id` / `span_id`), only at decisions and failures, never narration                                                  | the same package; `console.log` is refused by lint                   |
-| **metrics** | request rate, errors and duration per capability; queue depth and age; job outcomes; model tokens and cost; authorization denials                                            | derived from spans where the backend supports it, explicit otherwise |
+| signal      | what                                                                                                                                                                         | from where                                                                  |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **traces**  | one root span per request, job or queue message; **one child span per capability call**; spans around every external call (DB, model, email, payments, authorization engine) | `@<scope>/telemetry` helpers in the binding and the port                    |
+| **logs**    | structured and **correlated** (each record carries `trace_id` / `span_id`), only at decisions and failures, never narration                                                  | the same package; `no-console` in `eslint.config.mjs` refuses `console.log` |
+| **metrics** | request rate, errors and duration per capability; queue depth and age; job outcomes; model tokens and cost; authorization denials                                            | derived from spans where the backend supports it, explicit otherwise        |
 
 ## Span conventions
 
@@ -44,19 +44,20 @@ Under the highest threat model, the telemetry backend is a third party holding
 whatever you send it:
 
 - **Allow-list attributes; never deny-list them.** The telemetry package
-  refuses any attribute key that is not registered. Free-form objects are never
-  logged.
+  refuses any attribute key that is not registered (`ATTRIBUTES` in
+  `src/attributes.ts` of [recipes/telemetry](recipes/telemetry/); an unknown
+  key is `TEL-001`). Free-form objects are never logged.
 - **No PII, secrets, tokens, full URLs with query strings, or request bodies.**
   Use IDs, not emails.
-- **A pattern check** fails if a span or log call passes an unregistered key.
 - Retention in the backend is set to match the data classification, and written
   down.
 
-## On Cloudflare Workers (_verify in the first spike_)
+## On Cloudflare Workers (verified locally, [spike-2026-10.md](spike-2026-10.md) § 7)
 
-- Workers has built-in observability and can export traces and logs to an OTLP
-  endpoint. Check what it captures automatically, and add the capability spans
-  through `@<scope>/telemetry`, which must work under that model.
+- **Workers traces the handler, outbound `fetch` and binding calls on its
+  own**: locally `hyperdrive_connect` appeared as a span, individual queries
+  did not. Capability spans come from `@<scope>/telemetry`'s span helper, which
+  produced child spans under workerd.
 - **Cloudflare exports natively** (OTLP/JSON, configured with
   `observability.*.destinations`), so there is no in-Worker exporter to flush.
   `ctx.waitUntil` matters only for a self-managed exporter.

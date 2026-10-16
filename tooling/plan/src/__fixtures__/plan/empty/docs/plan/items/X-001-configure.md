@@ -5,14 +5,14 @@ requirements: []
 personas: []
 journeys: []
 milestone: M0
-depends: []
+depends: [] # part 2 waits for kickoff's stage 1 to land (docs/kit/BOOTSTRAP.md Phase 2)
 estimate: unknown
 ---
 
 ## Acceptance
 
-- `sdlc.config.json` filled in: branches, accounts (from kickoff's decisions),
-  cadence, `claimStaleDays`.
+- `sdlc.config.json` filled in: accounts (from kickoff's decisions), cadence,
+  `claimStaleDays`; `branches` left as shipped (docs/kit/BOOTSTRAP.md Phase 2).
 - Root `AGENTS.md` written from `docs/kit/AGENTS.template.md`.
 - `pnpm accounts:check` prints a line per account, none _could not ask_.
 - Every guard in docs/kit/BOOTSTRAP.md Phase 2 tripped, each refusal pasted into
@@ -20,5 +20,5 @@ estimate: unknown
 
 ## Notes
 
-Shipped by the starter. Independent of the product, so it runs in parallel with
+Shipped in base (`ai-sdlc init`). Independent of the product, so it runs in parallel with
 X-000 (docs/kit/BOOTSTRAP.md Phase 2).

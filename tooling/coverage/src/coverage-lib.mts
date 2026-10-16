@@ -80,10 +80,10 @@ function mergeKind<T>(
  * Sum `from` into a copy of `into`, matching entries **by source location**,
  * not by key. Measured: @vitest/coverage-v8 numbers branches per run, so the
  * same key names different code in the unit and integration outputs (the
- * door_nexa version summed by key and so added unrelated branches together).
+ * earlier version summed by key and so added unrelated branches together).
  * This is also how istanbul-lib-coverage merges.
  *
- * Never mutates either argument: door_nexa's version mutated its first, so
+ * Never mutates either argument: an earlier version mutated its first, so
  * `merged = unit` aliased the two and the report printed the merged figure as
  * the unit one — two plausible identical rows, invisible in the output.
  */

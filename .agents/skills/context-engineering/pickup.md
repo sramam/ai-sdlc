@@ -6,8 +6,9 @@ disagreement is the finding**: something happened that nobody recorded.
 
 ## Instructions
 
-1. **Find them.** `$MAIN/docs/handoffs/` (the main checkout, resolved through
-   `--git-common-dir`). Take every file for the newest date, or only the named
+1. **Find them.** `$MAIN/docs/handoffs/`, where
+   `MAIN=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")`
+   (the main checkout). Take every file for the newest date, or only the named
    branch. If there are none, that is normal on a fresh clone or a cloud session.
    Fall back to `git log` and `pnpm plan:status`.
 2. **Check each claim against the repository:**

@@ -66,8 +66,8 @@ describe("where it is wired", () => {
    * passes and delete it — and the failure would be a mask learned against half
    * the evidence, which is permanent and looks like a volatile region.
    *
-   * So the caller count is the assertion, not a comment saying so. door_nexa
-   * asked `git grep` across the repository; this package is the only place the
+   * So the caller count is the assertion, not a comment saying so. An earlier
+   * version asked `git grep` across the repository; this package is the only place the
    * sweep is imported from, so its own `src/` is walked instead (the files need
    * not be committed for the check to hold).
    */
@@ -91,7 +91,7 @@ describe("where it is wired", () => {
   });
 
   /*
-   * door_nexa compared `MANAGED_BY_PLAYWRIGHT` with the `outputDir` its
+   * An earlier version compared `MANAGED_BY_PLAYWRIGHT` with the `outputDir` its
    * `playwright.config.ts` declares. The Playwright config arrives with the
    * recorder in step 3; until then there is nothing to compare against, and a
    * comparison with nothing is a pass that proves nothing.

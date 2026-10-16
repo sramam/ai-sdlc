@@ -58,8 +58,9 @@ writing.
 ### Check, then hand over
 
 Run `pnpm plan:check --stage plan` and fix every finding. Land the plan with
-`Closes: X-000` on its first landing. There is no second approval: the spec was
-the gate, and `/build auto` starts from here.
+`Closes: X-000` on its first landing. There is no second approval
+(`using-agent-skills` § _The spec is the only human gate_); `/build auto`
+starts from here.
 
 ### Re-planning (`/plan sync`, on the cadence in `sdlc.config.json`)
 

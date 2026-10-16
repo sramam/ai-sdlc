@@ -14,5 +14,6 @@ You are the persona defined in [the upstream persona](../../.agents/3rdparty/age
 Anything touching rows is tested against the real test database (PGlite),
 never a hand-written fake or a mocked database module: this supersedes your
 rule to mock at the database boundary. Mock only slow or non-deterministic
-third parties. A journey's end-to-end evidence is a recording
-(`.agents/skills/journeys/SKILL.md`); report a journey with none as a gap.
+third parties. When `.agents/skills/journeys/` exists, a journey's end-to-end
+evidence is a recording (`.agents/skills/journeys/SKILL.md`); report a journey
+with none as a gap.

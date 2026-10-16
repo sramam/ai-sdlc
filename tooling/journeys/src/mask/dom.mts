@@ -78,7 +78,7 @@ export function boxOf(
  *
  * **Nothing caught it because nothing checks `e2e/`** — no tsconfig project
  * includes this directory, which is the same gap `packages/db/agents.md`
- * records for `scripts/`. Found by `door-nexa-dc` running `tsc` against their
+ * records for `scripts/`. Found by somebody running `tsc` against their
  * own specs by hand before recording.
  */
 type RawRect = { left: number; top: number; right: number; bottom: number; path: string };
@@ -341,11 +341,11 @@ export async function declaredVolatileBoxes(
  * **Dates the page has rendered, whether or not anybody marked them.**
  *
  * `DECLARED_VOLATILE` above is the fix; this is the check that the fix was
- * applied. It is the half [#617](https://github.com/VuNexa-App/door_nexa/issues/617)
- * could not get from a static scan of the source: the formatting call and the
- * element are routinely in different files — `platform/staff/page.tsx` calls
- * `toLocaleDateString` and `staff-table.tsx` renders the string — so a source
- * pattern check can ask *did somebody declare this* and never *is the value covered*.
+ * applied. It is the half #617 could not get from a static scan of the
+ * source: the formatting call and the element are routinely in different
+ * files — `platform/staff/page.tsx` calls `toLocaleDateString` and
+ * `staff-table.tsx` renders the string — so a source pattern check can ask
+ * *did somebody declare this* and never *is the value covered*.
  * Read from the DOM, both questions are answerable, because an element has a
  * rectangle and so does a mask.
  *

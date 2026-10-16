@@ -1,14 +1,14 @@
 /**
  * Where this checkout's journey stack lives — **one definition, several processes.**
  *
- * The generic half of door_nexa's `journey-db-url.ts`. The runner, every test
+ * The generic half of an earlier project's URL module. The runner, every test
  * worker, the stack host and anything they spawn must agree on the app's port,
  * the control channel, and where captured mail and stored objects go: a worker
  * looking at a different outbox than the app wrote to finds nothing, and reports
  * a broken sign-in rather than a misconfigured path.
  *
- * **No database URL.** door_nexa built a Postgres URL here, with a connection
- * bound whose history is the cautionary tale of #916. Which database, which
+ * **No database URL.** An earlier version built a Postgres URL here, with a
+ * connection bound whose history is the cautionary tale of #916. Which database, which
  * driver and what URL shape are the adapter's business — this module hands an
  * adapter a `dbPort` and stops there.
  */
@@ -70,7 +70,7 @@ export type ResolveOptions = {
  * pair comes from the checkout's path (`resolveJourneyPorts`), stepping past a
  * slot somebody else holds.
  *
- * **Written back into `env`, which is load-bearing.** door_nexa imported this in
+ * **Written back into `env`, which is load-bearing.** This is imported in
  * the runner, again inside every Playwright worker and again in the stack
  * process; re-deriving in each would be a second answer to one question, and a
  * probe is allowed to come back differently a second later. Pinning it means
@@ -122,8 +122,8 @@ export function resolveStackUrls({
     controlUrl: `http://127.0.0.1:${dbPort + 1}`,
     /*
      * Anchored on the checkout rather than `process.cwd()`, so a driver spawned
-     * from anywhere resolves the place the runner reads. door_nexa met the other
-     * version: a worktree's `.env.local` pointed the outbox at the main checkout,
+     * from anywhere resolves the place the runner reads. The alternative once
+     * failed like this: a worktree's `.env.local` pointed the outbox at the main checkout,
      * the drivers wrote there, the test read here, and the assertion reported
      * `121 is not 122`.
      */
@@ -135,7 +135,7 @@ export function resolveStackUrls({
 /**
  * **Back to the seeded state, between journeys** — `POST /reset` on the host.
  *
- * Per file rather than per test in door_nexa, because a per-test reset runs
+ * Per file rather than per test, because a per-test reset runs
  * after that test's fixtures and deletes what they built.
  *
  * **It throws rather than warning.** A reset that quietly did nothing leaves the
@@ -172,8 +172,8 @@ export async function resetStack(
  *
  * This sends `SIGKILL`, and in a second worktree the thing on the port is
  * another agent's server — killed with no message, while this run's app falls
- * back a port and passes its readiness probe against the survivor (door_nexa
- * #598). So every listener is attributed to a checkout first, and only ours is
+ * back a port and passes its readiness probe against the survivor (#598).
+ * So every listener is attributed to a checkout first, and only ours is
  * killed. Another checkout's stops the run (`JOURNEY-002`); one whose working
  * directory cannot be read stops it too (`JOURNEY-003`) — neither safe to kill
  * nor safe to share with. The same answer covers a directory that *was* read
@@ -236,7 +236,7 @@ export function freeStackPorts(
   // indistinguishable from sabotage.
   if (env[WORKER_VAR] !== undefined) return;
   // Somebody else owns the stack — the one case where the thing on the port is
-  // alive and wanted. door_nexa's sweep once ignored this and killed the stack
+  // alive and wanted. An earlier sweep ignored this and killed the stack
   // the learner had started thirty seconds earlier.
   if (env[EXTERNAL_VAR]) return;
 

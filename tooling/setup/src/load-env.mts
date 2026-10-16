@@ -5,8 +5,8 @@
  * else unless `pnpm bootstrap` has linked them. A worktree has its own
  * `sdlc.config.json`, so a loader that only walks up stops there, finds nothing,
  * and every script reports "X is not set" — which reads as a missing variable
- * rather than a loader looking in the wrong place (door_nexa lost a seed run and
- * an integration run to that). So the main checkout is the fallback.
+ * rather than a loader looking in the wrong place (this once cost a seed run
+ * and an integration run). So the main checkout is the fallback.
  *
  *   import { loadEnv } from "./load-env.mts";
  *   loadEnv();
@@ -20,7 +20,7 @@ export const ENV_FILES = [".dev.vars", ".env"] as const;
 
 /**
  * Never taken from a file: a file's `NODE_ENV=development` silently changes how
- * every build behaves (door_nexa #1465 — a "flaky" build that was really
+ * every build behaves (#1465 — a "flaky" build that was really
  * "flaky" invocation).
  */
 const NEVER_FROM_FILE = new Set(["NODE_ENV"]);

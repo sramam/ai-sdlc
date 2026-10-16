@@ -9,7 +9,7 @@
  * reach pass 3 — the host would not reset, the stack died, somebody pressed
  * Ctrl-C — what was written is half a recording: a new reference with no
  * verification behind it, sitting where the next comparison will trust it.
- * door_nexa's version put back the masks and told the operator to
+ * An earlier version put back the masks and told the operator to
  * `git restore` the rest, which nobody does at 6pm.
  *
  * ## Why a copy and a restore, rather than recording into a staging tree

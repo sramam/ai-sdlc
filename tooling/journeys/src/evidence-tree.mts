@@ -13,11 +13,11 @@
  * **A persona directory is marked by `persona.json`**, never recognised by its
  * name or by an absence. A discriminator that works by absence gets a wrong
  * answer from any folder that is merely half-written. A path found directly
- * under a journey folder — door_nexa's layout before the persona level was
+ * under a journey folder — the layout before the persona level was
  * unconditional — is still enumerated, with no persona, so the pattern check can name
  * it rather than the walk silently skipping it.
  *
- * **Walked, never assumed to a fixed depth.** door_nexa's learner scanned two
+ * **Walked, never assumed to a fixed depth.** An earlier learner scanned two
  * levels and found `0 of 0 steps` the day the persona level arrived — and
  * reported *every recorded step is now compared* while comparing nothing.
  */

@@ -59,8 +59,8 @@ stays and `add` says so. The `seed` files (`package.json`, `sdlc.config.json`,
 through items' merges.
 
 One root file rather than a manifest beside each item, because an item is not a
-directory: base gathers root configuration, ten skills, the kit and five
-modules from all over the tree. In one file, "every file belongs to exactly one
+directory: base gathers root configuration, the skills in `.agents/skills/`
+except the optional ones, the kit and five modules from all over the tree. In one file, "every file belongs to exactly one
 item" is a single pass, and nothing that exists only for the registry is copied.
 
 **The registry's pattern check** (`scripts/registry/pattern-check.test.ts`, in
@@ -182,17 +182,17 @@ claude-security is declared in `.claude/settings.json` (`enabledPlugins`) and
 each person installs it; `pnpm bootstrap` says when they have not.
 
 **Moving a project from `.claude/skills/` to `.agents/skills/`** (projects
-created before October 2026): `pnpm sdlc update base` copies the new skills and
+created before October 2026): `pnpm sdlc update base` copies the new skills,
 links them, and removes the old skill files. Commit it in two steps, because
 git cannot stage a path beyond a symlink in the commit that deletes the file
-there: first remove the links (`find .claude/skills -maxdepth 1 -type l
--delete`) and commit everything else, then `pnpm bootstrap` (which recreates
-them) and commit the links.
+there: remove the links (`find .claude/skills -maxdepth 1 -type l -delete`)
+and commit everything else, then `pnpm bootstrap` and commit the links it
+recreates.
 
 ## Layout of a new project
 
 ```
-.claude/settings.json      permissions (deny list: a courtesy, not a boundary), attribution, hooks
+.claude/settings.json      permissions (deny list: a guardrail, not a security boundary), attribution, hooks
 .agents/3rdparty/          third-party skills, verbatim at a recorded commit (agent-skills; added skills)
 .agents/skills/            the skills agents load: a wrapper per upstream skill and command, plus
                            kickoff and progress-report (modules add journeys and procedures)
@@ -244,22 +244,3 @@ script with no review.
 A project that fixes something in an item fixes it in place, then offers the
 change to the registry (`/progress-report` asks; [memory.md](memory.md)). Other
 projects take it with `diff` and `update` when they choose to.
-
-## Building the registry from door_nexa
-
-door_nexa holds about 14,000 lines of scripts and 16,600 lines of e2e support.
-Extracting the kit meant **generalising and leaving behind**, not copying:
-
-| take, and generalise                                                                                                                 | leave behind (door_nexa's product)                                                                    |
-| ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| worktree guards, `git-command`, the registry, `worktrees`                                                                            | `clickup/*`, the ClickUp sync, weekly plan, status, and everything about the board                    |
-| `ci-local` (steps become config), the coverage gate                                                                                  | Neon branch scripts (replaced by per-environment Hyperdrive and DB config)                            |
-| `journey-*` (record, masks, delta, drift, index, verdict, status, regions)                                                           | jurisdiction, screening, address, payouts and statements scripts                                      |
-| `e2e/support`: journey, mask, page-diff, dom-boxes, ports, stack, verdict, pdf-pages, the pattern checks                             | `e2e/support`: portfolio, onboarding, staff, organization, and every per-journey helper               |
-| `bootstrap`, `load-env` (main-checkout fallback), the attribution trailer, lockfile checks; `issue-check` reworked into `item-check` | `dev-session` as written (Better Auth and organization specific; it becomes the `dev-session` recipe) |
-| `playground-db` (per-checkout data directory, port probing, pid lock)                                                                | seed portfolio, seed history, fixtures                                                                |
-| the skills, generalised                                                                                                              | persona agents, and the journey and persona registries                                                |
-
-Each extracted piece must pass its own tests in a new project, and every pattern
-check must pass **vacuously** on an empty project and **meaningfully** after one
-capability and one journey are added. Prove both by tripping them.

@@ -8,7 +8,7 @@
  * ```
  *
  * A project extends this with its own fixtures (`test.extend`) — an
- * organization, a signed-in session — the way door_nexa did; those are about
+ * organization, a signed-in session; those are about
  * the app and do not belong here.
  */
 import { expect, test as base } from "@playwright/test";
@@ -43,7 +43,7 @@ const allowances = new WeakMap<Page, Array<{ pattern: RegExp; reason: string }>>
  * Permit one known page error, **with a reason** — a declaration, not a
  * suppression. *"A third-party widget logs on load"* is a reason; *"it was
  * failing"* is not. A long-lived dev server's errors are not a journey's to
- * declare: restart the server instead (door_nexa's Segment Explorer note).
+ * declare: restart the server instead.
  */
 export function allowPageError(page: Page, pattern: RegExp, reason: string): void {
   const list = allowances.get(page) ?? [];
@@ -56,7 +56,7 @@ export function allowPageError(page: Page, pattern: RegExp, reason: string): voi
  * definition, so it is never mistaken for a customer in a rate-limit table.
  *
  * A rate limiter keyed on the client address otherwise sees every test as one
- * client, and the suite competes with itself (door_nexa: `429` on a sign-in,
+ * client, and the suite competes with itself (a `429` on a sign-in,
  * which reads as a product refusal).
  */
 export const clientIpFor = (workerIndex: number, parallelIndex: number, line: number): string => {

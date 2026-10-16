@@ -18,10 +18,6 @@ description: Defines a new project with its author, so it can be built without a
 7. Done when a re-run asks nothing. A person approves the first features'
    specs (`Approved:`), then `/build auto` plans and builds.
 
-Named `kickoff` rather than `init` because Claude Code ships a built-in `/init`
-(which writes a CLAUDE.md), and a project skill of the same name would replace
-it.
-
 **Purpose:** nothing gets built on an unasked question. Every topic below ends
 in one of three end states: **decided**, **deferred** (with an owner and a date), or
 **out of scope**. "We'll see" is not a state.
@@ -34,7 +30,8 @@ After kickoff, a change to what the product does goes through `/spec`
 
 The project brief lives at `docs/requirements/project-brief.md`, which is
 locked. On start, claim the lock (`echo "$CLAUDE_CODE_SESSION_ID kickoff" >
-.claude/requirements-session`). Release it on finish, and mark commits
+.claude/requirements-session`). If `$CLAUDE_CODE_SESSION_ID` is empty, stop:
+the lock cannot be claimed. Release it on finish, and mark commits
 `Requirements: kickoff`. `docs/architecture.md` and the ADRs are outside the
 lock, but every component in them cites a requirement or an ADR.
 
@@ -163,8 +160,8 @@ think they should want. Within that:
    The brief records its state: the verdict in `review.md`, whether the access
    model is settled, and the open `Q-` files.
 2. **People**:
-   - who decides product questions, and **who approves specs** (the one human
-     gate; everything after a spec's approval runs as a pipeline)
+   - who decides product questions, and **who approves specs** (the only human
+     gate, `using-agent-skills`)
    - who reviews code, if anyone beyond the hooks and `ci:local`
    - who does QA, and what QA tests
    - who holds credentials and accounts
@@ -200,16 +197,18 @@ think they should want. Within that:
 5. **Budget**: GitHub plan (branch protection?), Git LFS storage and bandwidth
    (journey screenshots), hosting tier, database branch limits, LLM spend per
    tenant per day and per run.
-6. **Accounts and credentials**: each one with an owner. The list is **derived
-   from the decisions**: GitHub, Cloudflare and OpenRouter always; then the
-   database host, the OTel backend, Oso Cloud or AuthZed, the email, SMS and
-   payment vendors, vast.ai, Lovable and Figma, as each is decided. Stage 1
-   covers the always-needed ones, and stage 3 adds the rest. These are
-   the commonest blocker, so start them on day one. **Prefer each vendor's CLI**
-   for login and provisioning (`docs/kit/tech-stack.md` § _CLIs first_). A
-   person logs in once per machine; the CLIs go into `sdlc.config.json`, and
-   `pnpm accounts:check` confirms each one, and anything
-   with no CLI gets a documented manual step with a check.
+6. **Accounts and credentials**: each one with an owner. These are the
+   commonest blocker, so start them on day one.
+   1. Derive the list from the decisions: GitHub, Cloudflare and OpenRouter
+      always (stage 1); then the database host, the OTel backend, Oso Cloud or
+      AuthZed, the email, SMS and payment vendors, vast.ai, Lovable and Figma,
+      as each is decided (stage 3).
+   2. Prefer each vendor's CLI for login and provisioning
+      (`docs/kit/tech-stack.md` § _CLIs first_). A person logs in once per
+      machine.
+   3. Record the CLIs in `sdlc.config.json`; `pnpm accounts:check` confirms
+      each one.
+   4. Give anything with no CLI a documented manual step with a check.
 7. **Delivery risks**: technical unknowns, and the spike that retires each.
    Product risks live in the BRD.
 8. **Working agreements**:

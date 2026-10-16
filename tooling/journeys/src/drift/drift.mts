@@ -4,7 +4,7 @@
  *
  * The journey suite needs a browser and a stack, so it is not in every CI run,
  * and a merge can change a screen whose only signal is somebody re-recording
- * later and finding a red comparison they did not cause. door_nexa met it three
+ * later and finding a red comparison they did not cause. It has happened three
  * times, each a careful change by a careful author. Gating the full suite costs
  * a minute per journey per pull request; a convention is the thing that already
  * failed. This asks the cheap half: **which recordings visited the route a
@@ -23,7 +23,7 @@
  *   No-Rerecord: J4 the change is copy in a tooltip no step opens
  *   ```
  *
- *   A trailer rather than door_nexa's pull-request-body line: it travels with the
+ *   A trailer rather than a pull-request-body line: it travels with the
  *   commit, survives a merge commit, and `git interpret-trailers` reads it — a
  *   body that merely *quotes* one in prose is not a trailer. One journey per
  *   trailer, and **a reason is required**: an excuse with no reason is a gate

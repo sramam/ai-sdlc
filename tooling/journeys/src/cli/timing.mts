@@ -14,7 +14,7 @@
  * somebody then acts on.
  *
  * **A hold holds this journey rather than skipping it.** `journeys learn` exits
- * 75 when another checkout is recording; door_nexa's first version logged a 1s
+ * 75 when another checkout is recording; the first version logged a 1s
  * row and moved on, and six rows that looked like measurements appeared. A held
  * journey is retried; one held too long ends the sweep and says so.
  *

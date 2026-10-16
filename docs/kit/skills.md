@@ -27,7 +27,7 @@ against their amendments. Projects then take it with `pnpm sdlc update`.
 
 ## The workflow (base)
 
-People type two commands; the pipeline invokes the rest.
+People type two commands, `/kickoff` and `/spec`; the pipeline invokes the rest.
 
 | phase    | command                                            | skills it applies (amendments in their wrappers)                                                                                                                                                                                               |
 | -------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -70,34 +70,22 @@ actionability, fidelity, efficiency, security: [principles.md](principles.md)
   beside the text it changes, and only if it changes what an agent does here.
   Editing the copy breaks the next sync.
 - **The skill text is read by an agent mid-task.** Lead with the steps; put the
-  reasons after them, briefly. door_nexa's `journey-test` reached 760 lines,
-  which is too long.
+  reasons after them, briefly.
 - **Name what the skill may not decide.** For example, `pnpm land` may not merge
   red, may not decide a failure is "unrelated", and may not release to QA.
 - **End by printing the next step**, so the instruction travels with the
   output.
 - **The count of criteria in the header must equal the number of sections.**
-  door_nexa's code reviewer said four criteria and had eight, and the
-  unreported four included tenant safety. Put a pattern check on your own skills.
+  A criterion the header does not count goes unreported. Put a pattern check
+  on your own skills.
 
-## Tools that worked
+## Tools not documented elsewhere
 
-- **`gh` CLI**: use `gh api` for anything compared; `--json` is fine for reading.
+- **`gh api`** for anything compared; `--json` is fine for reading. Prefer `gh`
+  and the REST/GraphQL API to an MCP connector for scripted work, because a
+  connector's quota is shared by every agent.
 - **A capture outbox** for email in dev and e2e, written to disk with an index.
-- **`pnpm dev:session`** (the `dev-session` recipe): completes a real passwordless sign-in for a seeded
-  account and writes a cookie jar, so agents can `curl` authenticated pages.
-  It refuses production and refuses when the target is ambiguous.
-- **`pnpm bootstrap`**: environment doctor that prints a line per check and
-  repairs what it can (the env and skill links). It runs at the start of every
-  session, and lists the newest handoffs.
-- **`pnpm usage`**: AI cost for every worktree of the repository, from the
-  agents' local logs (codeburn, run with `pnpm dlx` at a pinned version).
-- **`pnpm ci:local`**: _the_ CI. door_nexa built it as a fallback for an
-  Actions outage; here it is the default. Give it fingerprinting, three-answer
-  steps and a `local-ci` commit status.
-- **`pnpm playground`**: a long-lived local DB and server for clicking around,
-  with its data directory and ports per checkout and a pid lock against `--fresh`.
-- **`scripts/one-of/`** (gitignored) for throwaway scripts.
-- **Prefer `gh` and the REST/GraphQL API to an MCP connector** for scripted work.
-  Connectors often carry small daily quotas shared by every agent; door_nexa's
-  allowed 300 calls a day.
+- **`pnpm dev:session`** (the `dev-session` recipe): completes a real
+  passwordless sign-in for a seeded account and writes a cookie jar, so agents
+  can `curl` authenticated pages. It refuses production and refuses when the
+  target is ambiguous.

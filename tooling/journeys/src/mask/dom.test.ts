@@ -157,7 +157,7 @@ describe("boxOf is the only thing that makes a box", () => {
    * edge in 87.5% of rects — and a pattern check reading one file could not see it,
    * because it is not a DOM probe and nobody auditing the three would have
    * opened it. *A pattern check naming one shape goes silent outside it* is a failure
-   * this repository has now paid for in door_nexa's list-pane check and here.
+   * this repository has now paid for twice: in a list-pane check and here.
    *
    * Declared exemptions rather than a narrower scan: each is an **exact
    * expression** with a reason that is a property of what it computes, so a new
@@ -168,10 +168,10 @@ describe("boxOf is the only thing that makes a box", () => {
     /**
      * Not a box — none of these is an interval with two edges to round.
      *
-     * door_nexa's list named a canvas buffer, a duration and a name table. The
+     * An earlier list named a canvas buffer, a duration and a name table. The
      * canvas buffer arrived with `render/pdf.mts`; the duration here uses
      * `Math.trunc` instead. The grid arithmetic in `regions.mts`
-     * is new here only because door_nexa's pattern check scanned `e2e/support/` and
+     * is new here only because the earlier pattern check scanned `e2e/support/` and
      * `regions` lived in `scripts/`: it was never asked.
      */
     const NOT_A_BOX = new Map([

@@ -38,7 +38,7 @@ import { join } from "node:path";
 /**
  * Playwright's `outputDir`, which Playwright clears itself.
  *
- * Duplicated from the Playwright config rather than imported: door_nexa's
+ * Duplicated from the Playwright config rather than imported: an earlier
  * config called `freeJourneyPorts()` at module scope, which `SIGKILL`s whatever
  * holds the journey ports — so reading the name would kill the stack this
  * runs for. The recorder's config (step 3) must declare

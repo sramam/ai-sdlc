@@ -22,7 +22,7 @@ export type IdOptions = {
   /**
    * The literal prefixes a journey id may carry, before its number.
    *
-   * Unset keeps door_nexa's convention — **any one letter**, so `J31` and the
+   * Unset means **any one letter**, so `J31` and the
    * platform track `P1` both release. A project whose ids read `JRN-12` passes
    * `["JRN-"]`. Literal rather than a regex source, so a prefix containing `.`
    * or `+` means what it says; longest first, so `JX` is not read as `J`.

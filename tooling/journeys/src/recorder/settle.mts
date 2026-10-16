@@ -13,10 +13,10 @@
  * `[aria-busy="true"]` gone. A loading skeleton renders with it, and while it is
  * up the page's real elements **do not exist** — so any presence-guarded wait
  * finds nothing, concludes the element is absent, and skips the wait that exists
- * for exactly this moment. door_nexa measured that as a skeleton-versus-table
+ * for exactly this moment. Measured: a skeleton-versus-table
  * box at 15.8% of the page (#614).
  *
- * ## Everything else is the project's, and `EXAMPLE_SETTLE` shows door_nexa's
+ * ## Everything else is the project's, and `EXAMPLE_SETTLE` shows one app's
  *
  * | | waits for | because |
  * | --- | --- | --- |
@@ -61,7 +61,7 @@ export async function waitForSettled(page: Page, settle: SettleConfig): Promise<
  *
  * Asking the container how tall its content is, and making the window that
  * tall, needs no knowledge of the layout — releasing the container's overflow
- * was tried first in door_nexa and fails, because every ancestor is
+ * was tried first and fails, because every ancestor is
  * viewport-height too. Width is untouched, so no breakpoint moves.
  */
 export async function growToContent(
@@ -90,8 +90,8 @@ export async function growToContent(
  *
  * **The caret by stylesheet, never Playwright's `caret: "hide"`.** That option
  * writes `style="caret-color: transparent"` onto every input — a DOM mutation
- * React then hydrates against, which produced 102 console errors on door_nexa's
- * J33. A `<style>` appended outside the app root mutates nothing React owns.
+ * React then hydrates against, which produced 102 console errors on one
+ * journey. A `<style>` appended outside the app root mutates nothing React owns.
  *
  * **Re-added per screenshot**: a full navigation replaces the document and
  * takes an injected `<style>` with it.

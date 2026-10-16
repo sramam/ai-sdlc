@@ -22,7 +22,7 @@ import { resolveStackUrls } from "./urls.mts";
  *
  * No database and no framework — an adapter that serves one page from a child
  * `node` process, which itself spawns a grandchild. That is the shape that
- * matters: door_nexa's app was `pnpm → next → next-server`, and the fault worth
+ * matters: a Next.js app is `pnpm → next → next-server`, and the fault worth
  * proving absent is a grandchild surviving teardown and holding a port.
  *
  * POSIX: teardown and attribution use `pgrep` and `lsof`, as the host does.

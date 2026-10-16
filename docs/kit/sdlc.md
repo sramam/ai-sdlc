@@ -56,8 +56,8 @@ the pattern check.
   irreversible.
 - **Every change names its work**: a `Progress:` trailer for its item, or
   `No-Item: <reason>` for the genuinely item-less (a revert, a dependency bump,
-  a report). A merge that names nothing appears in no report, so a productive
-  week looked empty in door_nexa. `X-` items hold platform work.
+  a report). A merge that names nothing appears in no report. `X-` items hold
+  platform work.
 - **Every item traces to a requirement, and every requirement to a persona and a
   journey.** `pnpm plan:check` fails on anything orphaned, unknown or
   duplicated. An unknown ID is refused, not created, because a typo would
@@ -78,7 +78,7 @@ the pattern check.
 - **The branch name starts with the item ID**, and pushing it is the claim.
 - **Promotion is fast-forward only, never a PR into `main`.** A PR merge writes a
   commit `dev` never receives. `main` then stops being an ancestor of `dev`, and
-  every later fast-forward is rejected. That happened twice.
+  every later fast-forward is rejected.
 - **If branch protection is ever bought, make it asymmetric:** require a PR on
   `dev` only. On `staging` and `main`, restrict who may push and require linear
   history.
@@ -91,13 +91,9 @@ the pattern check.
 
 See [AGENTS.template.md](AGENTS.template.md) § Building for the rules, and
 [tech-stack.md](tech-stack.md) for the shape. The core of it: **one port, many
-bindings.** Every capability is implemented once, in a framework-free package.
-Server functions, HTTP routes, MCP tools and agent tools are thin transports over
-it. **Every project exposes its API three ways from the start**: a typed SDK, an
-HTTP API with OpenAPI, and an MCP server, all rendered from the manifest so they
-cannot drift. A capability missing from any of them needs an exclusion in the
-manifest with a reason that is a property of the mechanism, and a pattern check
-fails the build otherwise ([`recipes/api-bindings`](recipes/api-bindings/)).
+bindings**: every capability is implemented once, in a framework-free package,
+and every transport (server functions, HTTP, SDK, MCP, agent tools) is rendered
+from its manifest ([`recipes/api-bindings`](recipes/api-bindings/)).
 
 ## 4. Committing
 
@@ -108,11 +104,11 @@ fails the build otherwise ([`recipes/api-bindings`](recipes/api-bindings/)).
   Progress: F03-012 stop reminders on cancel — job + machine done; email copy remains
   Closes: F03-012
   Assumes: Q-007 → B          (only when building on an open question)
+  Co-Authored-By: …           (exactly what settings say; no model name)
+  Worktree: … / Session: …    (added by prepare-commit-msg in a worktree)
   ```
   `Closes:` goes **only** on the commit that finishes the item. That trailer is
   what makes the item _done_ once it reaches `origin/dev`.
-- The trailers are `Co-Authored-By:` (model-free), `Worktree:` and `Session:`
-  (automatic in a worktree).
 - A branch that changes source changes a test too, or a commit says why not
   (`No-Test: <reason>`); the trailer check in `ci:local` refuses it otherwise.
 - Agent reviewers run on `git commit` (the commit review and the code review's
@@ -154,26 +150,28 @@ fails the build otherwise ([`recipes/api-bindings`](recipes/api-bindings/)).
 
 ## 7. QA tests journeys, not items
 
-An item is not something a person can _get done_. A journey (`J<nn>`) is. Three
-skills, each run by a different hand:
+An item is not something a person can _get done_. A journey (`J<nn>`) is. The
+`journeys` module's skill has three commands, each run by a different hand:
 
-- **describe** a journey: who, what sequence, every refusal
-- **validate** it: record evidence per path
-- **release** it to QA: a person signs off. A green run says the paths that exist
-  pass. It cannot say the right paths were written.
+- **`/journeys add <id>`** registers a described journey: who, what sequence,
+  every refusal
+- **`/journeys test <id>`** records evidence per path
+- **`/journeys ready-for-qa <id>`** releases it to QA, once a person signs off.
+  A green run says the paths that exist pass. It cannot say the right paths
+  were written.
 
 A journey is ready to walk when every item serving its requirements is done.
 `plan:status --journeys` answers that.
 
 ## 8. Cadence
 
-| when                            | what                                                                                                 | written by                         |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| twice a week                    | `docs/progress/YYYY-MM-DD.md`: Shipped, Decided, **Cost a day**, Open, plus a `plan:status` snapshot | `/progress-report`, from `git log` |
-| same cadence                    | `/plan sync`: discovered work placed, answered questions applied, critical path re-derived           | a skill                            |
-| weekly, if stakeholders want it | `plan:status --html`: one page to send                                                               | generated                          |
-| on each commit                  | coverage figures                                                                                     | the gate's own run                 |
-| when an ADR lands               | the decisions index                                                                                  | a skill                            |
+| when                               | what                                                                                                 | written by                         |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| on `cadence` in `sdlc.config.json` | `docs/progress/YYYY-MM-DD.md`: Shipped, Decided, **Cost a day**, Open, plus a `plan:status` snapshot | `/progress-report`, from `git log` |
+| same cadence                       | `/plan sync`: discovered work placed, answered questions applied, critical path re-derived           | a skill                            |
+| weekly, if stakeholders want it    | `plan:status --html`: one page to send                                                               | generated                          |
+| on each commit                     | coverage figures                                                                                     | the gate's own run                 |
+| when an ADR lands                  | the decisions index                                                                                  | a skill                            |
 
 A progress report is **never** rewritten: it records what was known then. The
 plan's forecast is **always** recomputed: a stale forecast is a lie.

@@ -11,7 +11,9 @@ architecture cites.
 
 `/kickoff` and `/spec` each scan the requirements for these
 triggers. A trigger found with no decision behind it is **blocking** for the
-items that depend on it.
+items that depend on it. `plan:check` enforces it at the requirements stage:
+every trigger in `docs/requirements/technology.md` is decided, citing an ADR,
+or pending, citing its requirement IDs (`tooling/plan/src/plan-check.mts`).
 
 | the requirement says or implies                               | the decision                                                                 |
 | ------------------------------------------------------------- | ---------------------------------------------------------------------------- |
@@ -96,7 +98,4 @@ exceeds N" or "if the vendor changes its retention policy"). Then update:
 ## What the agent must not do
 
 - choose a technology because it is familiar, popular or already half-installed
-- present a single option as if it were a decision
 - hide a cost, a retention policy or a Workers incompatibility it found
-- add a dependency for a requirement without an ADR
-- treat "the user did not object" as a decision

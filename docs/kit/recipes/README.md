@@ -1,11 +1,12 @@
 # Recipes
 
 Reference implementations of the packages most projects need. Each is an item:
-the foundation items add the ones `/kickoff` chose with `pnpm sdlc add <recipe>`,
-which copies it to the place its README names (`packages/api`, `apps/web`, …)
-along with the recipes it requires, and the project owns it from then on
-([../registry.md](../registry.md)). A recipe's README arrives beside this index
-when the recipe is added; until then the links below resolve in the registry.
+`/kickoff` records which recipes the project takes, and the foundation items
+run `pnpm sdlc add <recipe>`, which copies it to the place its README names
+(`packages/api`, `apps/web`, …) along with the recipes it requires, and the
+project owns it from then on ([../registry.md](../registry.md)). A recipe's
+README arrives beside this index when the recipe is added; until then the links
+below resolve in the registry.
 
 Built from the October 2026 platform spike ([../spike-2026-10.md](../spike-2026-10.md)),
 which assembled them into a scratch project and ran them on workerd:
@@ -26,13 +27,7 @@ which assembled them into a scratch project and ran them on workerd:
 | [`dev-session/`](dev-session/)                   | `pnpm dev:session`: a real passwordless sign-in for a seeded account, for curl and Playwright              |
 | [`api-bindings/`](api-bindings/)                 | the manifest as an HTTP API with OpenAPI, an MCP server and a typed SDK; caller resolution per binding     |
 
-The second group was built after the spike, against current vendor docs and,
-where one could run, the vendor's local engine; each README says what was run
-and what was not ([../spike-2026-10.md](../spike-2026-10.md) § _Addendum_).
-
-In the registry, `pnpm recipes:check` installs each recipe into a scratch
-project through `init` and `add`, then installs, typechecks and runs its own
-tests, and answers _pass_, _fail_, _could not run_ or _not checked_ per recipe,
-with the reason. It needs the network and is run by hand when a recipe changes;
-the authorization recipes report _could not run_ unless their engine is started
-([../registry.md](../registry.md)).
+What each was run against, and what was not, is in its README and in
+[../spike-2026-10.md](../spike-2026-10.md) (§ _Verdicts_ for the first group,
+§ _Addendum_ for the second). How the registry checks them (`pnpm
+recipes:check`) is in [../registry.md](../registry.md).

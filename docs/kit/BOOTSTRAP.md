@@ -110,29 +110,29 @@ It runs **in parallel with Phase 1**, in another session and worktree
 (`x-001-configure`), in two parts. Base ships the tooling; this phase
 **configures and proves** it, and builds nothing.
 
-- **Part 1, independent of discovery:** trip every guard (the table below),
-  set `claimStaleDays`. Land it.
-- **Part 2, after kickoff's first pass has landed** (merge `origin/dev` into
-  the branch first): copy the accounts list and the reporting cadence from the
-  project brief into `sdlc.config.json`, and run `pnpm accounts:check`. Land it
-  with `Closes: X-001`.
+**Part 1, independent of discovery.** Land it when done.
 
-- Fill in `sdlc.config.json`: ID prefixes and `claimStaleDays`. **Leave
-  `branches` as shipped** (`dev`, `staging`, `main`): the names are fixed, and
-  the validator refuses any other value, because the pre-push hook, the
-  permission denies and the skills name them literally. The
-  accounts list and the reporting cadence come from the project brief once
-  kickoff's first pass has decided them; coverage floors stay unset until there
-  is code.
+- Set `claimStaleDays` in `sdlc.config.json`. **Leave `branches` as shipped**
+  (`dev`, `staging`, `main`): the names are fixed, and the validator refuses
+  any other value, because the pre-push hook, the permission denies and the
+  skills name them literally. Coverage floors stay unset until there is code.
 - Write the root `AGENTS.md` from `docs/kit/AGENTS.template.md`. Its packages
   section is filled in by the apps-and-packages foundation item.
+- **Trip every guard** (the table below), and paste each refusal into the
+  `X-001` PR.
+
+**Part 2, after kickoff's first pass has landed** (merge `origin/dev` into the
+branch first). Land it with `Closes: X-001`.
+
+- Copy the accounts list and the reporting cadence from the project brief into
+  `sdlc.config.json` (`accounts`, `cadence`), and run `pnpm accounts:check`.
 - Add the modules kickoff's SDLC defaults call for, one commit each, and trip
-  their guards with the rest: `pnpm sdlc add security coverage` always (the CI
+  their guards the same way: `pnpm sdlc add security coverage` always (the CI
   steps `secrets`, `supply-chain` and `coverage` arrive with them), and
   `journeys`, `localdb`, `seed` and `promote` when the plan has journeys, a
   database, mock data and deployed environments. `pnpm install` after each.
-- Run `pnpm accounts:check`.
-- **Trip every guard**, and paste each refusal into the `X-001` PR:
+
+The guards, and how to trip each:
 
 | guard               | trip it by                                                                                                                            |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
@@ -158,7 +158,7 @@ items**, in this order, each with its own acceptance and trip tests:
 
 | item                       | does                                                                                                                                                                                                                                                                                                                               |
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| platform spike             | verifies everything marked _verify_ in the kit for the chosen stack: framework on Workers, ORM through Hyperdrive, auth library, OTel export, the authorization engine from a Worker and in tests, Base UI coverage. Findings become ADRs and package `agents.md` notes                                                            |
+| platform spike             | verifies each constraint in [tech-stack.md](tech-stack.md) § _Workers constraints to design for_ for the chosen stack: framework on Workers, ORM through Hyperdrive, auth library, OTel export, the authorization engine from a Worker and in tests, Base UI coverage. Findings become ADRs and package `agents.md` notes          |
 | apps and packages          | adds each app and package from kickoff topic 9 with `pnpm sdlc add <recipe>` (`pnpm sdlc list`), one commit each, then adapts it to the decisions (scope, names) with its tests passing. Where no recipe exists, it writes the package directly and offers it to the registry as one. Fills in the packages section of `AGENTS.md` |
 | infrastructure             | the agent writes `pnpm infra:provision`; **a person runs it** per environment; the agent writes `wrangler.jsonc` from its output; `/api/health` confirms                                                                                                                                                                           |
 | environments and promotion | env and binding schema, `.dev.vars.example` pattern check, `pnpm sdlc add promote seed localdb`, a seed framework that refuses production                                                                                                                                                                                          |
@@ -185,23 +185,9 @@ follow the cadence in `sdlc.config.json`, and the pickup says when one is due.
 
 ## Defaults kickoff confirms rather than asks
 
-|                       | default                                                                                                                               |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| backlog               | the plan in the repo (`docs/plan/`), status derived from git. No GitHub Issues or Projects                                            |
-| CI                    | local (`pnpm ci:local`). GitHub Actions off unless the author opts in                                                                 |
-| branches              | lowercase `<item-id>-<slug>` → PR → `dev` → ff → `staging` → ff → `main`                                                              |
-| merges                | merge commits; squash disabled                                                                                                        |
-| framework and hosting | TanStack Start on Cloudflare Workers; R2, Queues, Cron Triggers, Workflows; Hyperdrive when Postgres ([tech-stack.md](tech-stack.md)) |
-| environments          | local (per checkout), plus dev, staging and production ([environments.md](environments.md))                                           |
-| auth                  | passwordless OTP or passkeys; MFA for privileged roles                                                                                |
-| authorization         | Oso or SpiceDB, recommended and decided in `/kickoff` ([security.md](security.md))                                                    |
-| observability         | OpenTelemetry from the first commit ([observability.md](observability.md))                                                            |
-| security              | highest threat model; ASVS L3 for auth, authorization, money and personal data                                                        |
-| models and GPUs       | OpenRouter with zero-data-retention routing for real data; vast.ai for non-sensitive work only                                        |
-| UI                    | shadcn/ui on Base UI; a shell per persona group; role switching; a separated backoffice ([ux.md](ux.md))                              |
-| AI                    | asked of every application: act, propose, assist, see, notice, set up ([ai.md](ai.md))                                                |
-| integrations          | vendor CLIs first; `pnpm accounts:check`                                                                                              |
-| journeys              | three-pass recording with learned data-volatile masks; one-pass testing; Git LFS ([testing.md](testing.md))                           |
+The SDLC defaults kickoff confirms are listed once, in
+`.agents/skills/kickoff/SKILL.md` topic 4; the stack it confirms is topic 3 and
+[tech-stack.md](tech-stack.md).
 
 ## Done means
 

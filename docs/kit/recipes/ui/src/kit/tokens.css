@@ -5,8 +5,8 @@
  * One accent (the design brief's), neutrals for everything else, destructive
  * only for destruction (ux.md). Components use the contract (`bg-primary`,
  * `text-muted-foreground`); brand names are aliases ONTO it, never the reverse:
- * door_nexa defined the contract in terms of its brand names once, and fourteen
- * contract utilities silently emitted no CSS.
+ * defining the contract in terms of brand names makes contract utilities
+ * silently emit no CSS.
  */
 :root {
   --brand-accent: oklch(0.48 0.15 255); /* the brief's Accent; check contrast in both themes */

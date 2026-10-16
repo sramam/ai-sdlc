@@ -121,7 +121,7 @@ new mask, with pass 3's verdict.
 ## Before committing
 
 ```bash
-pnpm exec vitest run e2e/journeys.pattern-check.test.ts   # the project's pattern check, over tooling/journeys/src/pattern-check
+pnpm exec vitest run e2e/journeys.pattern-check.test.ts   # from the journeys-adapter recipe, over tooling/journeys/src/pattern-check
 ```
 
 The pattern check names orphaned screenshots (a renamed step leaves its old image behind, and git shows

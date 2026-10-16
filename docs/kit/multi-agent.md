@@ -2,22 +2,22 @@
 
 Everything in this file follows from one fact: **the working tree, the index,
 HEAD, the stash, the ports and the database are all shared unless you make
-them not shared.** Each row below was a real incident.
+them not shared.**
 
-## Shared resources and their traps
+## Shared resources and their rules
 
-| shared thing                               | what went wrong                                                                                                       | the rule                                                                                                                                           |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| working tree                               | `git add -A` swept another agent's work into a commit                                                                 | stage by path; work in a worktree                                                                                                                  |
-| stash (one per repo, across all worktrees) | a `pop` applied another session's stash                                                                               | never `git stash`. Copy a file to a scratchpad, or `git show HEAD:<path>`                                                                          |
-| HEAD (per worktree)                        | four subagents sharing one HEAD: one was reset four times mid-edit; a 914-line commit landed on another lane's branch | each code-writing subagent gets `isolation: "worktree"`, which the **spawner** must pass                                                           |
-| ports                                      | an e2e run `SIGKILL`ed another agent's dev server on :3000, then probed that server as its own                        | derive ports from a hash of the checkout path; kill only what an abandoned run of this checkout recorded (§ _Ports_)                               |
-| `pkill -f <script>`                        | matched processes in every worktree                                                                                   | stop by PID, within your own checkout                                                                                                              |
-| dev database                               | `migrate dev` applied a half-finished migration to the shared branch, and every other agent then hit drift            | each worktree has its own PGlite database (`pnpm db:local`), with snapshots before every migration; shared environments change only by promotion   |
-| tools that glob from the root              | vitest collected every other worktree's tests                                                                         | exclude `.claude/worktrees/**` everywhere                                                                                                          |
-| `.dev.vars` / `.env` (gitignored)          | absent in worktrees, so "DATABASE_URL is not set"                                                                     | `pnpm bootstrap` symlinks them from the main checkout. Use a symlink, not a copy, so it cannot drift                                               |
-| `node_modules`                             | absent in fresh worktrees, so hooks failed open                                                                       | `pnpm install` in each worktree (fast, hard-linked). **Never symlink `node_modules`**: workspace links would resolve to the main checkout's source |
-| CPU during compile-heavy work              | three parallel cold compiles were slower than serial warm ones                                                        | one warm checkout for recording or visual work                                                                                                     |
+| shared thing                               | the rule                                                                                                                                                             |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| working tree                               | stage by path, never `git add -A`; work in a worktree                                                                                                                |
+| stash (one per repo, across all worktrees) | never `git stash`. Copy a file to a scratchpad, or `git show HEAD:<path>`                                                                                            |
+| HEAD (per worktree)                        | each code-writing subagent gets `isolation: "worktree"`, which the **spawner** must pass                                                                             |
+| ports                                      | derive ports from a hash of the checkout path; kill only what an abandoned run of this checkout recorded (§ _Ports_)                                                 |
+| `pkill -f <script>`                        | matches processes in every worktree: stop by PID, within your own checkout                                                                                           |
+| dev database                               | each worktree has its own PGlite database (`pnpm db:local`), with snapshots before every migration; shared environments change only by promotion                     |
+| tools that glob from the root              | exclude `.claude/worktrees/**` everywhere                                                                                                                            |
+| `.dev.vars` / `.env` (gitignored)          | absent in worktrees: `pnpm bootstrap` symlinks them from the main checkout. Use a symlink, not a copy, so it cannot drift                                            |
+| `node_modules`                             | absent in fresh worktrees: `pnpm install` in each (fast, hard-linked). **Never symlink `node_modules`**: workspace links would resolve to the main checkout's source |
+| CPU during compile-heavy work              | parallel cold compiles are slower than serial warm ones: one warm checkout for recording or visual work                                                              |
 
 ## Ports
 
@@ -49,13 +49,17 @@ answer, nothing is signalled.
 ## Worktrees
 
 ```bash
-git worktree add .claude/worktrees/<name> -b <branch> origin/dev
+pnpm claim <ID>                     # an item: the branch is its lowercased ID
+git fetch origin <id> && git worktree add .claude/worktrees/<id>-<slug> <id>
+git worktree add .claude/worktrees/req-<slug> -b req-<slug> origin/dev   # a requirements branch
 # inside it:
 pnpm install && pnpm bootstrap
 ```
 
-- Fork from **`origin/dev`**, not `dev`. Local `dev` lags by every merge since
-  somebody last fast-forwarded it.
+- An item's worktree is created from its claim branch (`pnpm claim <ID>`;
+  `.agents/skills/git-workflow-and-versioning/SKILL.md` § _Starting an item_).
+  Anything else forks from **`origin/dev`**, not `dev`. Local `dev` lags by
+  every merge since somebody last fast-forwarded it.
 - **Every session works in its own worktree, and the user names it.** As soon
   as the user asks for something, the agent **proposes** a name: derived from
   the item (`f03-012-<slug>`), a requirements change (`req-<slug>`), or the
@@ -131,28 +135,16 @@ Two rules keep this safe:
 - **A sub-agent that writes gets its own worktree** (`isolation: "worktree"`).
   Sub-agents that only run scripts and report may share the session's tree.
 
-## Named agents (personas and lanes)
+## Named agents
 
-door_nexa had named subagents (`.claude/agents/*.md`): one per persona of _its_
-product, plus platform, infrastructure, project-manager and orchestrator. In a
-new project, create persona agents only once discovery has settled the
-personas, and only for personas with enough journeys to need an owner. A shared `_shared.md`
-held the common rules. What held up:
+Base ships no persona agents (`.claude/agents/` holds the reviewers `/ship`
+fans out to). A project that adds named agents keeps two rules:
 
 - **Scope is a boundary.** Out-of-scope work becomes a **plan item** (through
   `/spec`), never a message to another agent. An item survives the session
   and shows in `plan:status`. A message is a relay.
 - **Never relay an authorisation.** "The orchestrator said it was fine" says
   nothing about whether you may.
-- **An orchestrator lane** decides whose turn it is on scarce resources (the
-  single warm recording checkout) and lands PRs. A HEAD lock covers the short
-  exclusive window (switch → add → commit → push). Everything else stays parallel.
-- **A simultaneous all-clear is a starting gun.** Releasing six waiting lanes at
-  once recreated the contention. Gate on conditions checked inside the command
-  itself (load, nobody else running), not on a broadcast.
-- Subagents cannot create worktrees themselves, because the harness refuses git
-  outside their checkout. Isolation must be passed by the parent on every fan-out.
-  Agent frontmatter has no field for it.
 
 ## Before starting the second agent
 

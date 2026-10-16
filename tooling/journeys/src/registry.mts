@@ -1,8 +1,8 @@
 /**
  * **Which journeys exist, what they are called, and who walks them.**
  *
- * door_nexa kept this in `scripts/journeys.mts`, a 1,459-line map that the
- * delivery plan, the board sync and the recorder all read. Here it is the
+ * An earlier project kept this in a 1,459-line map that the delivery plan,
+ * the board sync and the recorder all read. Here it is the
  * project's to declare, in `journeys.config.mts` (`registry`) or in a module of
  * its own (`registryFile`), and this file is what everything else asks.
  *
@@ -16,7 +16,7 @@
  * **`common` is a persona key every journey may use**, for a walk that does not
  * depend on who performs it — a wrong code, an expired link. It is a
  * declaration rather than a default: filing a refusal under one role makes that
- * role's walk look larger than it is, which is how door_nexa came to add it.
+ * role's walk look larger than it is.
  */
 import { existsSync } from "node:fs";
 import { isAbsolute, join } from "node:path";

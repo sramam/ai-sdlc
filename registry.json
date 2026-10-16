@@ -481,6 +481,10 @@
         {
           "from": "docs/kit/recipes/journeys-adapter/stack.test.ts",
           "to": "e2e/stack.test.ts"
+        },
+        {
+          "from": "docs/kit/recipes/journeys-adapter/journeys.pattern-check.test.ts",
+          "to": "e2e/journeys.pattern-check.test.ts"
         }
       ],
       "check": {

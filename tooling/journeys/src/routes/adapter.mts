@@ -11,7 +11,7 @@
  * | | | |
  * | --- | --- | --- |
  * | `tanstack` | TanStack Router, file-based (`src/routes`) | the default |
- * | `next-app` | the Next.js App Router (`app/`) | door_nexa's, ported unchanged |
+ * | `next-app` | the Next.js App Router (`app/`) | ported unchanged |
  *
  * A route is a pattern in one spelling whatever the router: `/`, `/posts`,
  * `/posts/[id]`, `/files/[...rest]`, `/[[lang]]`. `under` matches a visited

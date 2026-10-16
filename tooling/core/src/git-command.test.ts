@@ -17,7 +17,7 @@ import {
   unquote,
 } from "./git-command.mts";
 
-/** The real command that walked past two of door_nexa's three parsers. */
+/** The real command that walked past two of the three parsers this replaces. */
 const VIA_C =
   "MAIN=/Users/me/repo\n" +
   'git -C "$MAIN" worktree add "$MAIN/.claude/worktrees/audit" -b feat/audit origin/dev 2>&1 | tail -5';

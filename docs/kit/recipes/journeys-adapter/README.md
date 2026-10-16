@@ -24,3 +24,7 @@ teardown.
   is the developer's.
 - `stack.test.ts` covers the two pure parts: the password, and reading a
   capture line through wrangler's ANSI decoration.
+- `journeys.pattern-check.test.ts` is the project's journey pattern check
+  (every screenshot named by its narrative, every evidence folder under a
+  registered journey and a declared persona, one spec per walk, every spec
+  resetting the stack first), run by `pnpm test` from `e2e/`.

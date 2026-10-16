@@ -10,7 +10,7 @@
  *
  * | | | |
  * | --- | --- | --- |
- * | `workers: 1` | everywhere | door_nexa's flake lived where it was hardest to read: CI was serial and laptops fanned out. A deterministic suite that takes longer beats a fast one that fails one run in three (#549) |
+ * | `workers: 1` | everywhere | the flake lived where it was hardest to read: CI was serial and laptops fanned out. A deterministic suite that takes longer beats a fast one that fails one run in three (#549) |
  * | `outputDir` | `<scratch>/playwright` | Playwright **deletes** its output directory at the start of every run; when it was all of scratch it wiped the database the run was about to use, reported as `58P01 could not open file` |
  * | `webServer` | `journeys stack`, unless `JOURNEY_DB_EXTERNAL` | the learner brings one stack for three passes; three stacks in a row raced each other's shutdown for ports |
  * | ports swept at load | `freeStackPorts` | an orphan from a killed run holds the port and the next run dies with `EADDRINUSE`. It kills only this checkout's, and never inside a worker or when the stack is external |
@@ -42,7 +42,7 @@ export type JourneyPlaywrightOptions = {
   journeys?: JourneysConfigInput;
   /** What `webServer` polls. The adapter's `readyPath` is the stack's own, stricter check. */
   readyPath?: string;
-  /** How long the stack may take to build, start and seed. door_nexa: 180s. */
+  /** How long the stack may take to build, start and seed. Default: 180s. */
   webServerTimeoutMs?: number;
   /** Merged last, so a project can override anything here — and say why beside it. */
   overrides?: PlaywrightTestConfig;

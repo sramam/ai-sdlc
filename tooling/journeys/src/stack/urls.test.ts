@@ -107,8 +107,8 @@ describe("resetStack", () => {
 });
 
 /**
- * **The sweep, which is the only code here that sends `SIGKILL`** (door_nexa
- * #598, #613, #1416). The assertion that matters on every refusal is that
+ * **The sweep, which is the only code here that sends `SIGKILL`** (#598,
+ * #613, #1416). The assertion that matters on every refusal is that
  * nothing was killed, which is why `kill` is a seam of its own.
  */
 describe("freeStackPorts", () => {

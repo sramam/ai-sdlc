@@ -4,7 +4,7 @@
  * A recording run rewrites every file it walks, so `git status` reports the
  * whole suite modified and a reviewer cannot tell the four screenshots that
  * matter from the hundred that do not — which is how a spurious mask gets
- * committed with a clean conscience. door_nexa measured one re-record of seven
+ * committed with a clean conscience. One measured re-record of seven
  * journeys: 81 identical, 32 resized, 4 changed.
  *
  * ## The rule this exists to enforce
@@ -25,10 +25,11 @@
  *
  * ## The report lives outside the evidence root
  *
- * door_nexa wrote its images into a scratch folder under `docs/`, and seven
- * pattern checks that enumerate the evidence then had to be taught to skip it — on
- * the one machine that ran it, since it was gitignored and CI never saw it.
- * Here the report and its images go under `reportRoot`, which no pattern check reads.
+ * An earlier version wrote its images into a scratch folder under `docs/`,
+ * and seven pattern checks that enumerate the evidence then had to be taught
+ * to skip it — on the one machine that ran it, since it was gitignored and CI
+ * never saw it. Here the report and its images go under `reportRoot`, which
+ * no pattern check reads.
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";

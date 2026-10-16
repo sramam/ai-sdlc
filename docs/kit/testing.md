@@ -13,17 +13,13 @@ The boundary between test tiers is **what each one can prove**.
 
 ## Rules that each cost something to learn
 
-**Never hand-write a database fake.** door_nexa's fake grew to 779 lines of the
-ORM reimplemented from memory. Replacing it with PGlite exposed:
-
-- **five product bugs**, four of them capabilities that threw on every call
-- eight fixture values naming enum members that do not exist
-- "fake was wrong, real code looked broken", five times over
-
-Mocking the DB module also substitutes away the **scoping extension**, which is
-the thing most worth testing. Enforce the rule with a pattern check that fails on a
-`vi.mock` factory that answers queries. A **spy** (`vi.fn()`, asserting what was
-written) is fine. A **fake** (returns made-up rows) is not.
+**Never hand-write a database fake.** A fake is the ORM reimplemented from
+memory, so it hides product bugs and makes real code look broken. Mocking the
+DB module also substitutes away the **scoping extension**, which is the thing
+most worth testing. The commit-time code review checks the rule (project
+criteria 1); a project adds a pattern check that fails on a `vi.mock` factory
+answering queries with its test harness. A **spy** (`vi.fn()`, asserting what
+was written) is fine. A **fake** (returns made-up rows) is not.
 
 **PGlite specifics.**
 
@@ -35,14 +31,13 @@ written) is fine. A **fake** (returns made-up rows) is not.
 - Note what you give up: hosted-pooler behaviour, and host-specific settings.
 
 **The unit suite is hermetic, and you must prove it.** vitest `env: {}` does
-**not** empty `process.env`, and an app env loader read the developer's
-`.env.local` into tests. Locally green, CI red, for a year. Skip env loading
-under `VITEST`, then run the suite _with_ a real `.env.local` present and check
-that the secrets are undefined inside a test.
+**not** empty `process.env`, so an app env loader reads the developer's
+`.env.local` into tests. Skip env loading under `VITEST`, then run the suite
+_with_ a real `.env.local` present and check that the secrets are undefined
+inside a test.
 
-**With CI local, this matters more.** door_nexa found the leak only because a
-clean hosted runner disagreed with the laptop. With no hosted runner, nothing
-disagrees. So `ci:local` must run each suite in a scrubbed child environment,
+**With CI local, this matters more.** With no hosted runner, nothing disagrees
+with the laptop. So `ci:local` must run each suite in a scrubbed child environment,
 spawned with an explicit env and not inheriting the shell's. Add a pattern check
 that fails if any test can see a known secret variable. Periodically run
 `ci:local` from a fresh clone with no `.env.local` at all.
@@ -53,20 +48,19 @@ afterwards. `NOT_FOUND` returned while the update landed anyway is the worst
 outcome, and looks identical at the call site.
 
 **Smoke-test the production build early.** Every other tier runs under
-`NODE_ENV=test` or `development`. Two auth-cookie bugs (the `__Secure-` prefix)
-shipped in one week because nothing ran `production`. Use a real browser, since
-the browser is what enforces cookie rules.
+`NODE_ENV=test` or `development`, so a `production`-only defect (the
+`__Secure-` cookie prefix) reaches nothing else. Use a real browser, since the
+browser is what enforces cookie rules.
 
 **Record model responses; do not stub them.** A stub returns what someone
 imagined. Re-record when a prompt changes. Run evals separately, with a pass
 threshold, against the production model before a release.
 
 **Coverage: one gate over a merged run.** Merge unit and integration coverage,
-or the most-tested module (exercised only through a real client) reads as 54%.
-Keep floors in one script that both the gate and the published report read.
-Never quote the floor in prose, because the copies drift. vitest per-glob
-thresholds were **silently inert** on vitest 4.1, so verify that your gate can
-fail.
+or a module exercised only through a real client reads as barely tested. Keep
+floors in one script that both the gate and the published report read. Never
+quote the floor in prose, because the copies drift. Verify that your gate can
+fail: a per-glob threshold can be silently inert.
 
 **Generated artifacts need deterministic generators.** A gate on a
 non-deterministic output fails on noise, and people learn to ignore it.
@@ -99,12 +93,11 @@ Each path of each journey records, under `<journey>/<persona>/<path>/`:
 | **3. verify**   | runs a third time and applies the learned masks                                       | **the only pass that proves anything.** Red means the masks do not yet hold, and the run exits 1                                                 |
 
 **An abort before pass 3 leaves the committed evidence as it was.** The learner
-copies every journey folder the run can touch, and the index, aside before pass
-
-1. If the host will not reset, the stack dies, or the run is interrupted, all of
-   it is restored: screenshots, masks, narratives and `run.json`, not the masks
-   alone. Once pass 3 has run the result stands, red or green; a red pass 3 keeps
-   its union, because running again is how a mask converges.
+copies every journey folder the run can touch, and the index, aside before
+pass 1. If the host will not reset, the stack dies, or the run is interrupted,
+all of it is restored: screenshots, masks, narratives and `run.json`, not the
+masks alone. Once pass 3 has run the result stands, red or green; a red pass 3
+keeps its union, because running again is how a mask converges.
 
 Then `journeys:delta` writes one report, to `test-results/journey-reports/delta.md` (outside the evidence root). For every step whose reference or mask
 changed, it shows the old and new reference, the old and new mask, and the pixel
@@ -121,7 +114,7 @@ recording is reviewed in a pull request like code.
 
 ### The conditions that keep masks honest
 
-These are door_nexa's expensive lessons, and they come with the machinery:
+These conditions come with the machinery:
 
 - **A contended or cold run learns a permanently wrong mask.** A route compiling
   during pass 1, or a slow database pool, makes a step photograph a page that
@@ -135,7 +128,7 @@ These are door_nexa's expensive lessons, and they come with the machinery:
   - **discard a contended or abandoned recording** rather than committing it
   - after changing how the stack reaches its database, **relearn from scratch**
 - **Recording in parallel checkouts is slower, not faster.** Compilation
-  dominates: about 30 seconds of walking against minutes of compiling.
+  dominates the walking.
 - **Wait for the page to settle**, not for a timer: `aria-busy` clears, then the
   project's `settle.selectors` (journeys config), with DOM mutations watched
   during the shot.
@@ -176,11 +169,10 @@ These are door_nexa's expensive lessons, and they come with the machinery:
 
 ### Storing it
 
-door_nexa committed its recordings to git: **196 MB** in `docs/journeys/`, which
-grew with every re-record. References and masks must be versioned with the code,
-because a re-record is reviewed in a PR, so:
+References and masks must be versioned with the code, because a re-record is
+reviewed in a PR, and they grow with every re-record, so:
 
-- **Store screenshots, masks and rendered emails in Git LFS**, configured in the
-  starter's `.gitattributes`. Narratives and `run.json` stay as plain git.
+- **Store screenshots, masks and rendered emails in Git LFS**, configured in
+  base's `.gitattributes`. Narratives and `run.json` stay as plain git.
 - Keep only the **current** reference per step. History lives in git, not in
   extra files.

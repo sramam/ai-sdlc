@@ -2,8 +2,9 @@
 
 **We assume the strongest realistic adversary from the first commit**
 ([principles.md](principles.md) §17). Security added later costs a rewrite;
-security designed in costs a few lines per feature. Items marked _verify_ are
-vendor specifics to confirm against current docs when they are adopted.
+security designed in costs a few lines per feature. A vendor claim marked
+_Unverified as of <date>_ is checked against the vendor's page when it is
+adopted.
 
 ## The threat model we assume
 
@@ -28,10 +29,10 @@ anticipation).
 `/kickoff` writes `access-model.md` (tenancy, roles, row scope) in stage 2. The
 engine is chosen from it in stage 3, and recorded in an ADR:
 
-| choose                                                                                                                   | when the access model looks like                                                                                                                                                                                                         |
-| ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Oso** (Oso Cloud, with local authorization for list filtering; _verify: the legacy open-source library is deprecated_) | roles within tenants, plus attribute rules ("owner of the record", "status is draft"), with policy kept as readable code (Polar) next to the app                                                                                         |
-| **SpiceDB** (self-hosted, or AuthZed's hosted offering)                                                                  | fine-grained **sharing** of individual objects with users and groups, nested groups, deep hierarchies, relationships that change often, several services sharing one authorization source, a need for consistency guarantees (ZedTokens) |
+| choose                                                           | when the access model looks like                                                                                                                                                                                                                                                  |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Oso** (Oso Cloud, with local authorization for list filtering) | roles within tenants, plus attribute rules ("owner of the record", "status is draft"), with policy kept as readable code (Polar) next to the app. Unverified as of 2026-10-16: that the open-source Oso library is deprecated; check Oso's docs before choosing it over Oso Cloud |
+| **SpiceDB** (self-hosted, or AuthZed's hosted offering)          | fine-grained **sharing** of individual objects with users and groups, nested groups, deep hierarchies, relationships that change often, several services sharing one authorization source, a need for consistency guarantees (ZedTokens)                                          |
 
 Whichever is chosen, these rules hold:
 
@@ -62,39 +63,22 @@ Whichever is chosen, these rules hold:
 
 ### Testing the policy engine without a network
 
-The unit suite has no network, and contract tests run on PGlite, so the
-authorization engine must run locally too (verified in the recipes,
-docs/kit/spike-2026-10.md addendum):
-
-- **SpiceDB** runs as `spicedb serve-testing --http-enabled`: each bearer token
-  gets its own empty in-memory datastore, so suites are isolated. Each suite
-  loads the schema and relationships it needs.
-- **Oso** runs the Oso Dev Server container, with isolated per-test
-  environments, and the policy file from the repo. A policy whose own Polar
-  tests fail is refused on load.
-- **Neither engine's official Node client runs on Workers** (Oso's SDK uses
-  `fs`/`http`; SpiceDB's uses gRPC). The `authz-oso` and `authz-spicedb` recipes
-  call each engine's HTTP API with plain `fetch`.
-- **Oso local authorization avoids the outbox**: it reads facts from our own
-  Postgres and returns SQL to run, so nothing is written to Oso twice.
-- **The matrix test** runs against that local engine. It is generated from
-  `access-model.md`, and its cells arrive with the features that need them.
-- **An unreachable engine is _could not run_, never a pass.** The matrix then
-  fails with a test titled `AUTHZ-COULD-NOT-RUN: …`, so plain `pnpm test` exits
-  1; the engine-free cases (catalogue, default deny, `UNAVAILABLE`) still run.
-  The recipe's `pnpm test:ci` exits 2 when those sentinels are the only
-  failures, and the project's authz ci step declares `"unknownExitCodes": [2]`,
-  so `ci:local` reports _could not run_ and holds the verdict. Any other failure
-  is exit 1. `AUTHZ_ENGINE=skip` is the only way to skip the matrix; it prints a
-  banner saying nothing was verified and exits 0, and is never set in CI.
+The unit suite has no network, so the engine runs locally (SpiceDB's
+`serve-testing`, the Oso Dev Server) and the matrix test, generated from
+`access-model.md`, runs against it. An unreachable engine is _could not run_,
+never a pass: the sentinel, the exit code and `AUTHZ_ENGINE=skip` are in
+[recipes/authz-oso/README.md](recipes/authz-oso/README.md) § _Run the tests_
+(the same in `authz-spicedb`).
 
 ## Model providers — OpenRouter, with data policy enforced
 
 OpenRouter routes to many providers, so it is **an intermediary that sees every
 prompt**, and the provider behind it is a second party. Under this threat model:
 
-- **Account-level settings first** (_verify the current names_): prompt logging
-  off, and providers that train on or retain inputs excluded.
+- **Account-level settings first**: prompt logging off, and providers that
+  train on or retain inputs excluded. Unverified as of 2026-10-16: the current
+  names of those settings; check OpenRouter's privacy settings page before
+  relying on them.
 - **Per-request enforcement in `@<scope>/llm`**: every request carries provider
   routing that denies data collection and, for any real user data, requires
   **zero-data-retention** endpoints. A request without it is refused in code,
@@ -108,15 +92,17 @@ prompt**, and the provider behind it is a second party. Under this threat model:
 - **Cost caps are enforced in-process**, per run and per tenant per day.
 - **Record responses for tests; never call a model from the unit suite.**
 
-## GPU hosts — vast.ai, restricted by trust
+## GPU hosts — vast.ai, by trust tier
 
-vast.ai is a marketplace, and many hosts are third parties you cannot audit. So:
+vast.ai is a marketplace, and many hosts are third parties you cannot audit.
+What may go to a host depends on its tier:
 
-- **Default: synthetic, public or already-anonymized data only.** Use it for
+- **Any host: synthetic, public or already-anonymized data only.** Use it for
   training and evaluation on data you would publish.
 - **Real user data, secrets or proprietary weights** only on hosts the platform
-  verifies as datacenter-grade (_verify the current tier_), and only with an ADR
-  that names the data class and the reason.
+  verifies as datacenter-grade, and only with an ADR that names the data class
+  and the reason. Unverified as of 2026-10-16: the name and criteria of that
+  tier; check vast.ai's host verification page before relying on it.
 - **Instances are ephemeral.** Use short-lived, narrowly scoped credentials
   (one bucket prefix, expiring), never a long-lived key. Destroy the instance
   afterwards.
@@ -147,8 +133,8 @@ relationship in the database, never from a header, a query or a body.
   is 403; a key store or JWKS that cannot be asked is 503, never 401.
 - **Rate-limit per credential**, not per IP: per API key, per OAuth client and
   user, per session user. Better Auth's api-key plugin has its own limiter with
-  a low default (10 a day in 1.7.7 through 1.7.9); set it on purpose or turn it off and limit
-  in the binding.
+  a low default ([recipes/api-bindings/README.md](recipes/api-bindings/README.md));
+  set it on purpose or turn it off and limit in the binding.
 - **Keys and tokens are secrets in the user's hands**: shown once, stored
   hashed, expiring, revocable from the app, and never logged or put in a span.
 
@@ -175,7 +161,7 @@ relationship in the database, never from a header, a query or a body.
 - **Install scripts denied by default.** pnpm's `onlyBuiltDependencies`
   allow-list is reviewed when it changes.
 - A **minimum release age** for new versions, so freshly published packages are
-  not taken on day one (_verify the pnpm setting_).
+  not taken on day one: `minimumReleaseAge` in `pnpm-workspace.yaml`.
 - `ci:local` runs a dependency audit, a secret scan (TruffleHog or Gitleaks),
   and a license check.
 - Dependency updates are batched weekly, read, and landed through `pnpm land`.

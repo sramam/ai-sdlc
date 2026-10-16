@@ -12,9 +12,9 @@ in full, with the amendments below. Where they differ, the amendments win.
 
 ## Amendments
 
-- **A slice is a commit on the item's branch**, with a `Progress: <ID>
-<covered; remains>` trailer; the commit that finishes the item carries
-  `Closes: <ID>` (`git-workflow-and-versioning`). The item was claimed and its
-  worktree created first; one item per worktree.
+- **A slice is a commit on the item's branch**, with the trailers in
+  `git-workflow-and-versioning` § _Commits carry trailers_; the item was
+  claimed and its worktree created first (§ _Starting an item_), one item per
+  worktree.
 - **Finishing the item is landing it**: `pnpm land`, which runs `ci:local`.
   Nothing ticks a task off; `Closes:` on `origin/dev` is what makes it done.

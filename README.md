@@ -162,7 +162,7 @@ be used as one.
 
 The eleven modules, the recipes, the CLI and the workflow's skills are built:
 Addy Osmani's agent-skills at `aeac41d`, wrapped, plus three skills of our own
-and three optional third-party skills. Not yet exercised:
+in base, `journeys` with its module, and three optional third-party skills. Not yet exercised:
 `pnpm dlx github:sramam/ai-sdlc#<tag>` against GitHub itself (the same path is
 proven from a local git URL), `ci:local`'s container mode, a live OpenRouter
 call, and the authorization engines inside a deployed Worker.

@@ -20,7 +20,7 @@ estimate: unknown
   the user through the dialog), apps, packages and scope, backoffice split, AI
   architecture; `docs/architecture.md` written, every component citing a
   requirement or ADR.
-- `review.md` verdict is **ready to plan** or **ready with assumptions**; the
+- `review.md` verdict is `ready-to-plan` or `ready-with-assumptions`; the
   project brief's Blocking list is empty.
 - `pnpm plan:check --stage requirements` passes.
 - `/plan` has written the plan, the author has seen it, and

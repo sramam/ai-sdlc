@@ -40,16 +40,20 @@ docs/plan/
 docs/progress/YYYY-MM-DD.md   dated reports, never rewritten
 ```
 
+A requirements skill imports a document by creating a **new** file under
+`sources/` with Write, then `pnpm sources:add <path>` records its hash in
+`sources/MANIFEST`, which the `sources` CI step checks.
+
 ## IDs
 
-| kind        | form                       | example        | rules                                                    |
-| ----------- | -------------------------- | -------------- | -------------------------------------------------------- |
-| persona     | `@slug`                    | `@organizer`   | defined once in `personas.md`, after discovery (below)   |
-| feature     | `F<nn>`                    | `F03`          | the file name carries a slug too: `F03-reminders.md`     |
-| requirement | `F<nn>-R<nn>`              | `F03-R07`      | numbered within its feature                              |
-| journey     | `J<nn>`, `J<nn>.<n>`       | `J12`, `J12.2` | `J<nn>` may span personas; `J<nn>.<n>` names exactly one |
-| work item   | `F<nn>-<nnn>` or `X-<nnn>` | `F03-012`      | numbered within its feature; `X` for platform work       |
-| question    | `Q-<nnn>`                  | `Q-007`        |                                                          |
+| kind        | form                       | example        | rules                                                                                                                                                         |
+| ----------- | -------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| persona     | `@slug`                    | `@organizer`   | defined once in `personas.md`, after discovery (below)                                                                                                        |
+| feature     | `F<nn>`                    | `F03`          | the file name carries a slug too: `F03-reminders.md`                                                                                                          |
+| requirement | `F<nn>-R<nn>`              | `F03-R07`      | numbered within its feature                                                                                                                                   |
+| journey     | `J<nn>`, `J<nn>.<n>`       | `J12`, `J12.2` | `J<nn>` may span personas; `J<nn>.<n>` names exactly one; its tasks cite requirements (`.agents/skills/spec-driven-development/requirements.md` § _Journeys_) |
+| work item   | `F<nn>-<nnn>` or `X-<nnn>` | `F03-012`      | numbered within its feature; `X` for platform work                                                                                                            |
+| question    | `Q-<nnn>`                  | `Q-007`        |                                                                                                                                                               |
 
 - **IDs are stable and never reused.** A dropped requirement keeps its ID and is
   marked `withdrawn`, with a date and reason. A renumbered ID silently re-points
@@ -60,20 +64,18 @@ docs/progress/YYYY-MM-DD.md   dated reports, never rewritten
 
 ## Personas are discovered, not assumed
 
-No persona carries over from one project to the next. door_nexa's roles came
-out of _its_ domain, and a new project's will come out of its own. What carries
-over is the **method**. Run it in `/kickoff` (stage 2, BRD theme 2), and repeat it whenever a request names an actor that is not in the
-registry.
+No persona carries over from one project to the next; what carries over is the
+**method**. `/kickoff` runs it in stage 2, BRD theme 2
+(`.agents/skills/kickoff/product.md`), and `/kickoff revisit product` repeats
+it when a request names an actor that is not in the registry.
 
 **Where candidates come from** (check every source; each tends to miss someone):
-
-- **the requirements**: every actor named in a sentence ("the manager approves…")
-- **the author**: who uses it, who pays for it, who would complain if it broke
-- **the permission model**: every distinct role that is allowed or refused something
-- **outputs**: whoever _receives_ an email, report, invoice, notification or export
-- **setup and operation**: whoever configures, onboards others, or administers it
-- **the product's own staff**: support and operations people, who are often forgotten
-- **people with no account**: a visitor, an invitee, someone signing up
+every actor named in a requirement; the author's answers to who uses it, who
+pays for it and who would complain if it broke; every distinct role the
+permission model allows or refuses something; whoever _receives_ an email,
+report, invoice, notification or export; whoever configures, onboards others or
+administers it; the product's own support and operations staff; and people with
+no account (a visitor, an invitee, someone signing up).
 
 External systems (a payment provider, a scheduler, a webhook) are **actors, not
 personas**. Name them `system:<name>` in requirements and keep them out of the
@@ -81,9 +83,9 @@ registry.
 
 **When are two candidates one persona?** Split them when they differ in **goals,
 permissions, or the journeys they walk**. Merge them when they differ only in
-job title. Two people who walk the same journey in the same way are one persona.
+job title.
 
-**What each persona records:**
+**What `personas.md` declares for each persona:**
 
 - ID and a one-line description
 - goals (their top jobs-to-be-done)
@@ -97,33 +99,28 @@ job title. Two people who walk the same journey in the same way are one persona.
 stays provisional silently.
 
 **The registry grows by finding, not by assumption.** When `/kickoff` or
-`/spec` meets a
-request whose actor is not in `personas.md`, that is a finding. Either the
-request maps to an existing persona, or a new one is added through this method.
+`/spec` meets a request whose actor is not in `personas.md`, that is a finding.
+Either the request maps to an existing persona, or a new one is added through
+`/kickoff revisit product`.
 
 ## Tenancy and access are discovered, not assumed
 
-door_nexa was multi-tenant: one organization's rows were invisible to another's.
-That was _its_ answer, not a default. A new project might be a single-customer
-deployment, a personal tool, a team workspace, a marketplace with two sides, or
-a hierarchy. Tenancy decides the data model, the scoping layer, the tests and
-the auth flow, so it is **discovered from the product definition** during
-`/kickoff` (stage 2), and recorded before any schema is written.
+A project might be a single-customer deployment, a personal tool, a team
+workspace, a multi-tenant service, a marketplace with two sides, or a
+hierarchy. Tenancy decides the data model, the scoping layer, the tests and the
+auth flow, so it is **discovered from the product definition** in `/kickoff`
+stage 2, BRD theme 5 (`.agents/skills/kickoff/product.md`), and recorded
+before any schema is written.
 
-**The questions that reveal it** (ask them of the BRD and of the author):
-
-- **Who owns the data?** A person, a team, a company, or the product itself?
-- **Who must never see whose data?** Name a concrete pair: "company A must never
-  see company B's invoices."
-- **What is the billing unit?** Whoever pays is often the tenant.
-- **Can one person belong to several of them?** With a different role in each?
-- **Is there a hierarchy?** For example organization → team → project, with
-  access inherited or not.
-- **What is shared or public?** Catalogs, profiles, cross-tenant marketplaces.
-- **Who works across tenants?** The product's own support and admin staff are a
-  separate axis, and need audited, deliberate access.
-- **Is data residency or isolation demanded per tenant?** Region, or a separate
-  database or deployment.
+**The questions that reveal it** (ask them of the BRD and of the author): who
+owns the data (a person, a team, a company, the product itself); who must never
+see whose data, as a concrete pair ("company A must never see company B's
+invoices"); what the billing unit is (whoever pays is often the tenant); whether
+one person can belong to several, with a different role in each; whether there
+is a hierarchy (organization → team → project) and whether access inherits down
+it; what is shared or public; who works across tenants (the product's own staff
+are a separate axis, with audited, deliberate access); and whether residency or
+isolation is demanded per tenant.
 
 **The usual answers, and what each implies:**
 
@@ -136,29 +133,31 @@ the auth flow, so it is **discovered from the product definition** during
 | **two-sided / marketplace**           | buyers and sellers, hosts and guests         | per-relationship visibility; neither side is "the" tenant                                   |
 | **database or deployment per tenant** | regulated customers, residency demands       | routing by tenant; migrations × N; no shared-schema scoping                                 |
 
-**Write `docs/requirements/access-model.md`**, plus an ADR for the model chosen:
+**What `docs/requirements/access-model.md` declares**, plus an ADR for the
+model chosen:
 
+- **tenancy**: a `Tenancy: <model>` line (never `open` once decided), with the
+  reason
+- **the concrete "must never see" pairs**
+- **membership**: how a user relates to a tenant. The role belongs to the
+  **relationship**, not the person; one person can be an admin in one tenant and
+  a member in another
+- **two axes, always both**: _may this role do this action_ (a persona ×
+  capability table) and _which rows may it touch_ (the scope rule per entity)
+- **row-scope rules are an allow-list per entity.** An entity not listed is
+  refused, not open; the most private default holds wherever the definition is
+  silent (principles.md §10)
 - **shells**: one per persona group (customer front, and the backoffice for
   operators, support and product admins), each with the roles that land in it.
   Whether the backoffice is a separate shell or a separate app is settled in
-  `/kickoff`
+  `/kickoff` stage 3
 - **switching**: a person may hold several relationships (different roles in
   different tenants, a customer and staff). Exactly **one is active at a time**,
   chosen explicitly through a switcher, and the active relationship decides
   both the shell and the row scope. It is never inferred, and never a merge of
   several
-
-- the tenancy model, the reason, and the concrete "must never see" pairs
-- **membership**: how a user relates to a tenant. The role belongs to the
-  **relationship**, not the person; one person can be an admin in one tenant and
-  a member in another.
-- **two axes, always both**: _may this role do this action_ (a persona ×
-  capability table) and _which rows may it touch_ (the scope rule per entity)
-- **cross-tenant staff**: who they are, how access is granted, and how it is audited
-- **row-scope rules are an allow-list per entity.** An entity not listed is
-  refused, not open.
-- **the most private default** wherever the definition is silent
-  (principles.md §10)
+- **cross-tenant staff**: who they are, how access is granted, and how it is
+  audited
 
 **Unsettled tenancy is blocking.** It is cheap to decide on day one and expensive
 to change after the schema exists. If it is open, the data model waits; work
@@ -293,7 +292,7 @@ overrides it):
 
 | stage             | reached when                                                                                                    | says                                         |
 | ----------------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| **pre-discovery** | no discovery output exists yet (the starter)                                                                    | `NOT STARTED`, never a plain pass            |
+| **pre-discovery** | no discovery output exists yet (base)                                                                           | `NOT STARTED`, never a plain pass            |
 | **requirements**  | any discovery output exists                                                                                     | every mandatory output present and non-empty |
 | **plan**          | `docs/plan/README.md` holds a written plan                                                                      |                                              |
 | **build**         | a workspace package with a `package.json` exists outside `tooling/`, or the plan README declares `Stage: build` |                                              |
@@ -341,8 +340,8 @@ stage requires `ready-to-plan` or `ready-with-assumptions`.
 - a `Progress:` or `Closes:` trailer naming an item that does not exist
 - a dependency (in any field of any `package.json`) that no ADR or
   `docs/architecture.md` lists on a structured line: `Dependencies: pkg-a,
-@scope/pkg-b`. A name mentioned only in prose does not count. The starter's
-  own tooling dependencies are listed by `ADR-000-starter-tooling`
+@scope/pkg-b`. A name mentioned only in prose does not count. Base's own
+  tooling dependencies are listed by `ADR-000-starter-tooling`
 
 This is the same shape as every other pattern check here (principles.md §6): the
 checks a project board would have offered as views, made into failures.
