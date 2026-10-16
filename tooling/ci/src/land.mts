@@ -27,6 +27,10 @@
  *                 commit's tree is the tree just tested, so its content checks
  *                 are a cache hit and only the history checks run
  *
+ * When a fetch or push fails in a way that looks like the network, a `github`
+ * line follows it: githubstatus.com's answer (an incident to wait out, or all
+ * operational, so the problem is local) and the fix that matches the error.
+ *
  * Exit 0 landed · 1 refused or failed · 2 could not ask (git, gh, the network).
  */
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -36,6 +40,8 @@ import { exec as realExec, firstLine, isEntry } from "../../core/src/exec.mts";
 import type { Exec, ExecResult } from "../../core/src/exec.mts";
 import { findRoot, loadConfig as realLoadConfig } from "../../core/src/config.mts";
 import type { SdlcConfig } from "../../core/src/config.mts";
+import { diagnoseGitFailure, fetchGithubStatus } from "../../core/src/github-status.mts";
+import type { FetchStatus } from "../../core/src/github-status.mts";
 import { realCiDeps, runCiLocal } from "./ci-local.mts";
 import type { CiOptions, CiOutcome } from "./ci-local.mts";
 
@@ -55,6 +61,8 @@ export interface LandDeps {
   runCi: (opts: CiOptions) => Promise<CiResult>;
   /** A fresh directory for the generated PR body. */
   tempDir: () => string;
+  /** githubstatus.com, asked only after a network-shaped git failure. */
+  githubStatus?: FetchStatus;
 }
 
 export interface LandOutcome {
@@ -128,8 +136,15 @@ export async function runLand(opts: LandOptions, deps: LandDeps): Promise<LandOu
   const { log, root } = deps;
   const line = (name: string, state: LineState, text: string) =>
     log(`  ${state.padEnd(13)} ${name.padEnd(13)} ${text}`);
-  const stop = (name: string, state: LineState, text: string, extra: Partial<LandOutcome> = {}) => {
+  const stop = (
+    name: string,
+    state: LineState,
+    text: string,
+    extra: Partial<LandOutcome> = {},
+    note: string | null = null,
+  ) => {
     line(name, state, text);
+    if (note) line("github", "warn", note);
     const exit = state === "COULD NOT ASK" ? 2 : 1;
     log("");
     log(`land: stopped at ${name}. Nothing after it ran${extra.merged ? "" : "; nothing merged"}.`);
@@ -142,6 +157,22 @@ export async function runLand(opts: LandOptions, deps: LandDeps): Promise<LandOu
     deps.exec("gh", args, { cwd: root, timeoutMs: 120_000, env: ghEnv });
   const why = (r: ExecResult) =>
     r.notFound ? "not installed" : r.timedOut ? "timed out" : firstLine(r.stderr || r.stdout, 120);
+  /** A git step that failed: stop, and when the network looks to blame, say whose network. */
+  const gitStop = async (
+    name: string,
+    state: LineState,
+    text: string,
+    r: ExecResult,
+    extra: Partial<LandOutcome> = {},
+  ) => {
+    const diagnosis = r.notFound
+      ? null
+      : await diagnoseGitFailure(
+          r.timedOut ? "timed out" : `${r.stderr}\n${r.stdout}`,
+          deps.githubStatus,
+        );
+    return stop(name, state, text, extra, diagnosis);
+  };
 
   const config = await deps.loadConfig(root);
   const integration = config.branches.integration;
@@ -176,7 +207,7 @@ export async function runLand(opts: LandOptions, deps: LandDeps): Promise<LandOu
 
   // 3. Fetch.
   const f = await git(["fetch", "--quiet", "origin"], 300_000);
-  if (f.code !== 0) return stop("fetch", "COULD NOT ASK", `git fetch: ${why(f)}`);
+  if (f.code !== 0) return gitStop("fetch", "COULD NOT ASK", `git fetch: ${why(f)}`, f);
   line("fetch", "ok", "origin");
 
   // 4. Current.
@@ -260,10 +291,11 @@ export async function runLand(opts: LandOptions, deps: LandDeps): Promise<LandOu
   // 7. Push. GitHub must have the SHA before a status can be posted on it.
   const push = await git(["push", "-u", "origin", "HEAD"], 300_000);
   if (push.code !== 0)
-    return stop(
+    return gitStop(
       "push",
       push.notFound || push.timedOut ? "COULD NOT ASK" : "FAILED",
       `git push: ${why(push)}`,
+      push,
     );
   line("push", "ok", `${branch} @ ${headSha.slice(0, 12)}`);
 
@@ -361,7 +393,8 @@ export async function runLand(opts: LandOptions, deps: LandDeps): Promise<LandOu
       { pr },
     );
   const f2 = await git(["fetch", "--quiet", "origin"], 300_000);
-  if (f2.code !== 0) return stop("recheck", "COULD NOT ASK", `git fetch: ${why(f2)}`, { pr });
+  if (f2.code !== 0)
+    return gitStop("recheck", "COULD NOT ASK", `git fetch: ${why(f2)}`, f2, { pr });
   const base2 = await git(["rev-parse", "--verify", "--quiet", `origin/${integration}^{commit}`]);
   if (base2.code !== 0)
     return stop("recheck", "COULD NOT ASK", `origin/${integration} vanished`, { pr });
@@ -416,10 +449,13 @@ export async function runLand(opts: LandOptions, deps: LandDeps): Promise<LandOu
   const tip = await git(["rev-parse", "--verify", "--quiet", `origin/${integration}^{commit}`]);
   const mergeSha = tip.code === 0 ? tip.stdout.trim() : undefined;
   if (f3.code !== 0 || !mergeSha)
-    return stop("dev-status", "COULD NOT ASK", `could not fetch the merge commit: ${why(f3)}`, {
-      pr,
-      merged: true,
-    });
+    return gitStop(
+      "dev-status",
+      "COULD NOT ASK",
+      `could not fetch the merge commit: ${why(f3)}`,
+      f3,
+      { pr, merged: true },
+    );
   const post = await deps.runCi({
     sha: `origin/${integration}`,
     allowUnknown: opts.allowUnknown,
@@ -472,6 +508,7 @@ async function main(): Promise<void> {
         realCiDeps(root, (l) => log(`    ${l}`)),
       ),
     tempDir: () => mkdtempSync(join(tmpdir(), "land-")),
+    githubStatus: fetchGithubStatus,
   });
   process.exit(outcome.exit);
 }
